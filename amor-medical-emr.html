@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amor Medical — EMR Platform v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0B1120;--bg-card:#111827;--bg-input:#1F2937;--bg-hover:#1a2332;
+  --primary:#0EA5E9;--primary-dark:#0284C7;--accent:#10B981;--danger:#EF4444;--warning:#F59E0B;--purple:#8B5CF6;
+  --border:#1F2937;--text:#F1F5F9;--text-muted:#94A3B8;--text-dim:#64748B;
+  --radius:10px;--sidebar-w:240px;--sidebar-mini:64px;--right-w:280px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden;}
+button{cursor:pointer;font-family:inherit;}
+input,select,textarea{font-family:inherit;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;outline:none;transition:border .2s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);}
+textarea{resize:vertical;min-height:80px;}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+
+.app{display:flex;height:100vh;width:100vw;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--bg-card);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .25s ease;flex-shrink:0;overflow:hidden;z-index:100;}
+.sidebar.mini{width:var(--sidebar-mini);}
+.sidebar-header{padding:16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);min-height:64px;}
+.sidebar-header .logo{font-size:20px;font-weight:800;color:var(--primary);white-space:nowrap;}
+.sidebar.mini .logo-text{display:none;}
+.sidebar-toggle{background:none;border:none;color:var(--text-muted);font-size:18px;margin-left:auto;padding:4px;width:auto;}
+.sidebar-toggle:hover{color:var(--text);}
+.sidebar-nav{flex:1;padding:8px;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:var(--text-muted);cursor:pointer;transition:all .15s;white-space:nowrap;font-size:14px;font-weight:500;}
+.nav-item:hover{background:var(--bg-hover);color:var(--text);}
+.nav-item.active{background:rgba(14,165,233,.15);color:var(--primary);}
+.nav-item .icon{font-size:18px;min-width:24px;text-align:center;}
+.sidebar.mini .nav-label{display:none;}
+.sidebar-footer{padding:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim);text-align:center;}
+.sidebar.mini .sidebar-footer span{display:none;}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.topbar{height:56px;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0;}
+.topbar h2{font-size:18px;font-weight:700;}
+.topbar .spacer{flex:1;}
+.topbar-search{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);width:260px;font-size:13px;}
+.role-badge{background:rgba(14,165,233,.15);color:var(--primary);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;width:auto;}
+.content-area{display:flex;flex:1;overflow:hidden;}
+.content{flex:1;overflow-y:auto;padding:24px;}
+.content::-webkit-scrollbar{width:6px;}
+.content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+.right-panel{width:var(--right-w);background:var(--bg-card);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;transition:width .25s,opacity .25s;padding:16px;}
+.right-panel.hidden{width:0;padding:0;opacity:0;overflow:hidden;}
+.right-panel h4{font-size:13px;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;letter-spacing:.5px;}
+.quick-link{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--text-muted);cursor:pointer;font-size:13px;transition:all .15s;}
+.quick-link:hover{background:var(--bg-hover);color:var(--text);}
+.quick-link.active{color:var(--primary);background:rgba(14,165,233,.1);}
+
+/* CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.stat-card .label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.stat-card .value{font-size:28px;font-weight:800;}
+.stat-card .sub{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.stat-card.blue .value{color:var(--primary);}
+.stat-card.green .value{color:var(--accent);}
+.stat-card.yellow .value{color:var(--warning);}
+.stat-card.red .value{color:var(--danger);}
+.stat-card.purple .value{color:var(--purple);}
+
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{text-align:left;padding:10px 12px;color:var(--text-dim);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg-card);position:sticky;top:0;}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);}
+.data-table tr:hover td{background:var(--bg-hover);}
+.data-table tr{cursor:pointer;}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;border:none;transition:all .15s;width:auto;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{opacity:.9;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{opacity:.9;}
+.btn-purple{background:var(--purple);color:#fff;}
+.btn-purple:hover{opacity:.9;}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--text-dim);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;}
+
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:90%;max-width:640px;max-height:85vh;overflow-y:auto;padding:24px;}
+.modal.large{max-width:900px;}
+.modal h3{font-size:18px;margin-bottom:16px;}
+.modal-close{float:right;background:none;border:none;color:var(--text-muted);font-size:20px;width:auto;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.form-grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-group label{font-size:12px;color:var(--text-muted);font-weight:500;}
+.form-group.full{grid-column:1/-1;}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap;}
+.tab{padding:10px 16px;color:var(--text-muted);cursor:pointer;font-size:13px;font-weight:500;border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+.badge-blue{background:rgba(14,165,233,.15);color:var(--primary);}
+.badge-green{background:rgba(16,185,129,.15);color:var(--accent);}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--warning);}
+.badge-red{background:rgba(239,68,68,.15);color:var(--danger);}
+.badge-purple{background:rgba(139,92,246,.15);color:var(--purple);}
+
+.soap-section{margin-bottom:16px;position:relative;}
+.soap-section .soap-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding:4px 8px;border-radius:4px;display:inline-block;}
+.soap-s .soap-label{background:rgba(14,165,233,.15);color:var(--primary);}
+.soap-o .soap-label{background:rgba(16,185,129,.15);color:var(--accent);}
+.soap-a .soap-label{background:rgba(245,158,11,.15);color:var(--warning);}
+.soap-p .soap-label{background:rgba(139,92,246,.15);color:var(--purple);}
+
+.vitals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:12px 0;}
+.vital-box{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.vital-box .vital-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;}
+.vital-box .vital-value{font-size:20px;font-weight:700;margin:4px 0;}
+.vital-box input{text-align:center;background:transparent;border:none;color:var(--text);font-size:18px;font-weight:700;padding:4px;}
+.vital-box input:focus{outline:1px solid var(--primary);border-radius:4px;}
+
+.mic-btn{width:32px;height:32px;border-radius:50%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-muted);font-size:14px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;padding:0;}
+.mic-btn:hover{border-color:var(--primary);color:var(--primary);}
+.mic-btn.recording{background:var(--danger);border-color:var(--danger);color:#fff;animation:pulse 1.5s infinite;}
+.mic-main{width:56px;height:56px;border-radius:50%;background:var(--danger);border:none;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;}
+.mic-main.recording{animation:pulse 1.5s infinite;}
+.mic-main.idle{background:var(--bg-input);border:2px solid var(--border);color:var(--text-muted);}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4);}50%{box-shadow:0 0 0 12px rgba(239,68,68,0);}}
+
+.activity-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.activity-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;}
+.activity-text{font-size:13px;}
+.activity-time{font-size:11px;color:var(--text-dim);}
+
+.rx-card{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:8px;}
+.rx-card .rx-name{font-weight:600;font-size:14px;}
+.rx-card .rx-sig{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.rx-card .rx-details{display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--text-dim);flex-wrap:wrap;}
+
+.encounter-card{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s;}
+.encounter-card:hover{border-color:var(--primary);}
+.encounter-card .enc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.encounter-card .enc-date{font-weight:600;}
+.encounter-card .enc-preview{font-size:12px;color:var(--text-muted);line-height:1.4;}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-dim);}
+.empty-state .empty-icon{font-size:48px;margin-bottom:12px;}
+
+/* EXECUTIVE CHARTS */
+.chart-bar{height:24px;background:var(--bg-input);border-radius:4px;overflow:hidden;margin:4px 0;}
+.chart-fill{height:100%;border-radius:4px;transition:width .5s;}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.metric-label{font-size:13px;color:var(--text-muted);}
+.metric-value{font-size:14px;font-weight:700;}
+
+/* INTEGRATION CARDS */
+.integration-card{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;align-items:center;gap:12px;}
+.integration-card .int-icon{font-size:28px;}
+.integration-card .int-info{flex:1;}
+.integration-card .int-name{font-weight:600;font-size:14px;}
+.integration-card .int-desc{font-size:12px;color:var(--text-muted);}
+.integration-card .int-status{font-size:11px;padding:4px 10px;border-radius:12px;}
+
+/* SECTION DIVIDER */
+.section-title{font-size:16px;font-weight:700;margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+@media(max-width:900px){
+  .sidebar{width:var(--sidebar-mini);}
+  .sidebar .nav-label,.sidebar .logo-text,.sidebar-footer span{display:none;}
+  .right-panel{width:0;padding:0;opacity:0;overflow:hidden;}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">💙 <span class="logo-text">Amor EMR</span></div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" onclick="navigate('dashboard')" data-nav="dashboard"><span class="icon">📊</span><span class="nav-label">Dashboard</span></div>
+      <div class="nav-item" onclick="navigate('executive')" data-nav="executive"><span class="icon">👔</span><span class="nav-label">Executive View</span></div>
+      <div class="nav-item" onclick="navigate('patients')" data-nav="patients"><span class="icon">👥</span><span class="nav-label">Patients</span></div>
+      <div class="nav-item" onclick="navigate('providers')" data-nav="providers"><span class="icon">🩺</span><span class="nav-label">Providers</span></div>
+      <div class="nav-item" onclick="navigate('practices')" data-nav="practices"><span class="icon">🏥</span><span class="nav-label">Practices</span></div>
+      <div class="nav-item" onclick="navigate('encounters')" data-nav="encounters"><span class="icon">📋</span><span class="nav-label">Encounters</span></div>
+      <div class="nav-item" onclick="navigate('prescriptions')" data-nav="prescriptions"><span class="icon">💊</span><span class="nav-label">Prescriptions</span></div>
+      <div class="nav-item" onclick="navigate('labs')" data-nav="labs"><span class="icon">🔬</span><span class="nav-label">Labs</span></div>
+      <div class="nav-item" onclick="navigate('integrations')" data-nav="integrations"><span class="icon">🔌</span><span class="nav-label">Integrations</span></div>
+      <div class="nav-item" onclick="navigate('calculators')" data-nav="calculators"><span class="icon">🧮</span><span class="nav-label">Calculators</span></div>
+      <div class="nav-item" onclick="navigate('credentialing')" data-nav="credentialing"><span class="icon">📜</span><span class="nav-label">Credentialing</span></div>
+      <div class="nav-item" onclick="navigate('settings')" data-nav="settings"><span class="icon">⚙️</span><span class="nav-label">Settings</span></div>
+    </div>
+    <div class="sidebar-footer"><span>Amor EMR v2.0</span> 💙</div>
+  </nav>
+  <div class="main">
+    <div class="topbar">
+      <h2 id="page-title">Dashboard</h2>
+      <div class="spacer"></div>
+      <input type="text" class="topbar-search" placeholder="Search patients, providers..." id="globalSearch" onkeyup="handleGlobalSearch(event)">
+      <div class="role-badge" id="roleBadge">Agency Admin</div>
+    </div>
+    <div class="content-area">
+      <div class="content" id="content"></div>
+      <div class="right-panel hidden" id="rightPanel"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATABASE
+// ═══════════════════════════════════════════
+const DB_KEY='amor_emr_db_v2';
+let db;
+function loadDB(){const r=localStorage.getItem(DB_KEY);if(r){db=JSON.parse(r);return;}seedDB();}
+function saveDB(){localStorage.setItem(DB_KEY,JSON.stringify(db));}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,6);}
+
+function seedDB(){
+  const prIds=[genId(),genId(),genId()];
+  const pvIds=[genId(),genId(),genId(),genId()];
+  const ptIds=[genId(),genId(),genId(),genId()];
+  db={
+    currentRole:'admin',
+    practices:[
+      {id:prIds[0],name:'IROSM',street:'123 Sports Medicine Blvd',city:'Miami',state:'FL',zip:'33101',phone:'(305) 555-0101',npi:'1234567890',taxId:'12-3456789',specialty:'Orthopedics & Sports Medicine',createdAt:new Date().toISOString()},
+      {id:prIds[1],name:'Javier Baez Cardiology Practice',street:'456 Heart Ave',city:'Miami',state:'FL',zip:'33102',phone:'(305) 555-0202',npi:'2345678901',taxId:'23-4567890',specialty:'Cardiology',createdAt:new Date().toISOString()},
+      {id:prIds[2],name:'Amor Medical',street:'789 Wellness Dr',city:'Miami',state:'FL',zip:'33103',phone:'(786) 977-3299',npi:'3456789012',taxId:'34-5678901',specialty:'Endocrinology & Primary Care',createdAt:new Date().toISOString()}
+    ],
+    providers:[
+      {id:pvIds[0],name:'Dr. Jorge Gonzalez, MD',npi:'1111111111',dea:'AG1234567',specialty:'Orthopedic & Sports Medicine',license:'MD-FL-12345',practiceId:prIds[0],role:'provider',createdAt:new Date().toISOString()},
+      {id:pvIds[1],name:'Jorge Gonzalez, NP',npi:'2222222222',dea:'MG2345678',specialty:'Nurse Practitioner',license:'NP-FL-23456',practiceId:prIds[1],role:'provider',createdAt:new Date().toISOString()},
+      {id:pvIds[2],name:'Dr. Michelle Lopez',npi:'3333333333',dea:'ML3456789',specialty:'Endocrinology',license:'MD-FL-34567',practiceId:prIds[2],role:'provider',createdAt:new Date().toISOString()},
+      {id:pvIds[3],name:'Dr. Ania Mora, NP',npi:'4444444444',dea:'AM4567890',specialty:'Primary Care',license:'NP-FL-45678',practiceId:prIds[2],role:'provider',createdAt:new Date().toISOString()}
+    ],
+    patients:[
+      {id:ptIds[0],firstName:'Roger',lastName:'Gonzalez',dob:'1985-03-15',gender:'Male',phone:'(786) 977-3299',email:'roger@example.com',street:'100 Palm Dr',city:'Miami',state:'FL',zip:'33101',insurancePrimary:'Blue Cross Blue Shield',insuranceId:'BCBS-001234',insuranceSecondary:'',insuranceSecondaryId:'',emergencyName:'Maria Gonzalez',emergencyPhone:'(305) 555-9999',emergencyRelation:'Spouse',pharmacy:'CVS Pharmacy — 1200 Brickell Ave, Miami FL 33131',pharmacyPhone:'(305) 555-7700',practiceId:prIds[2],providerId:pvIds[2],allergies:['Penicillin','Sulfa'],pmh:['Hypertension','Type 2 Diabetes'],createdAt:new Date().toISOString()},
+      {id:ptIds[1],firstName:'Jorge',lastName:'Gonzalez',dob:'1980-07-22',gender:'Male',phone:'(305) 555-1111',email:'jorge@example.com',street:'200 Ocean Blvd',city:'Miami',state:'FL',zip:'33102',insurancePrimary:'Aetna',insuranceId:'AET-005678',insuranceSecondary:'',insuranceSecondaryId:'',emergencyName:'Rosa Gonzalez',emergencyPhone:'(305) 555-8888',emergencyRelation:'Mother',pharmacy:'Walgreens — 300 Collins Ave, Miami Beach FL 33139',pharmacyPhone:'(305) 555-3300',practiceId:prIds[0],providerId:pvIds[0],allergies:['None known'],pmh:['Rotator cuff tear (2019)','ACL reconstruction (2015)'],createdAt:new Date().toISOString()},
+      {id:ptIds[2],firstName:'Michelle',lastName:'Lopez',dob:'1988-11-03',gender:'Female',phone:'(305) 555-2222',email:'michelle@example.com',street:'300 Bayshore Dr',city:'Miami',state:'FL',zip:'33103',insurancePrimary:'United Healthcare',insuranceId:'UHC-009012',insuranceSecondary:'',insuranceSecondaryId:'',emergencyName:'Carlos Lopez',emergencyPhone:'(305) 555-7777',emergencyRelation:'Brother',pharmacy:'Publix Pharmacy — 450 Coral Way, Miami FL 33145',pharmacyPhone:'(305) 555-4400',practiceId:prIds[2],providerId:pvIds[2],allergies:['Ibuprofen'],pmh:['Hypothyroidism','PCOS'],createdAt:new Date().toISOString()},
+      {id:ptIds[3],firstName:'Ania',lastName:'Mora',dob:'1990-05-18',gender:'Female',phone:'(305) 555-3333',email:'ania@example.com',street:'400 Coral Way',city:'Miami',state:'FL',zip:'33104',insurancePrimary:'Cigna',insuranceId:'CIG-003456',insuranceSecondary:'Medicare',insuranceSecondaryId:'MCR-789012',emergencyName:'Luis Mora',emergencyPhone:'(305) 555-6666',emergencyRelation:'Father',pharmacy:'Walgreens — 500 SW 8th St, Miami FL 33130',pharmacyPhone:'(305) 555-5500',practiceId:prIds[2],providerId:pvIds[3],allergies:['Latex'],pmh:['Migraine','Anxiety disorder'],createdAt:new Date().toISOString()}
+    ],
+    encounters:[
+      {id:genId(),patientId:ptIds[0],providerId:pvIds[2],practiceId:prIds[2],date:'2026-03-20',type:'in-office',noteType:'Follow-Up',chiefComplaint:'Follow-up for diabetes management',subjective:'Patient reports improved blood glucose readings. Occasional morning hyperglycemia. Compliant with metformin. Denies polyuria/polydipsia.',objective:'Alert, oriented. BMI 28.2. Skin warm/dry. No acanthosis.',assessment:'Type 2 DM — improved control. A1C pending.',plan:'Continue metformin 1000mg BID. Recheck A1C in 3 months. Reinforce diet/exercise.',vitals:{bp:'128/82',hr:'76',temp:'98.4',spo2:'98',weight:'185',height:'70'},icd10:'E11.65',cpt:'99214',status:'signed',signedAt:'2026-03-20T16:00:00Z'},
+      {id:genId(),patientId:ptIds[0],providerId:pvIds[3],practiceId:prIds[2],date:'2026-03-10',type:'in-office',noteType:'Annual Physical',chiefComplaint:'Annual physical exam',subjective:'Here for annual exam. No acute complaints. Good energy. Exercises 3x/week.',objective:'Well-appearing. HEENT normal. Lungs CTA. Heart RRR. Abdomen soft NT.',assessment:'Annual wellness visit. HTN stable. DM stable.',plan:'Labs ordered: CBC, CMP, A1C, Lipid panel. Continue current meds. Follow up 2 weeks.',vitals:{bp:'132/84',hr:'72',temp:'98.6',spo2:'99',weight:'186',height:'70'},icd10:'Z00.00',cpt:'99395',status:'signed',signedAt:'2026-03-10T15:00:00Z'},
+      {id:genId(),patientId:ptIds[1],providerId:pvIds[0],practiceId:prIds[0],date:'2026-03-18',type:'in-office',noteType:'New Problem',chiefComplaint:'Right shoulder pain x 2 weeks',subjective:'Pt reports right shoulder pain worsening with overhead activities. Rates 6/10. No trauma. Worse at night.',objective:'ROM limited in abduction/external rotation. Positive Neer/Hawkins. Strength 4/5 supraspinatus.',assessment:'Right shoulder impingement syndrome, possible rotator cuff tendinopathy.',plan:'MRI right shoulder. PT 2x/week x 6 weeks. Naproxen 500mg BID PRN. Ice 20min TID.',vitals:{bp:'120/78',hr:'68',temp:'98.2',spo2:'99',weight:'195',height:'72'},icd10:'M75.111',cpt:'99213',status:'signed',signedAt:'2026-03-18T14:30:00Z'},
+      {id:genId(),patientId:ptIds[2],providerId:pvIds[2],practiceId:prIds[2],date:'2026-03-15',type:'telehealth',noteType:'Follow-Up',chiefComplaint:'Hypothyroid medication adjustment',subjective:'Feels fatigued despite current levothyroxine dose. Weight gain of 5 lbs over 2 months. Cold intolerance persists.',objective:'Thyroid non-tender, no nodules. Skin dry. DTR slightly delayed.',assessment:'Hypothyroidism — suboptimally treated. TSH likely elevated.',plan:'Increase levothyroxine to 100mcg daily. Recheck TSH/Free T4 in 6 weeks. Continue current diet plan.',vitals:{bp:'118/74',hr:'62',temp:'97.8',spo2:'98',weight:'152',height:'64'},icd10:'E03.9',cpt:'99214',status:'signed',signedAt:'2026-03-15T11:00:00Z'}
+    ],
+    prescriptions:[
+      {id:genId(),patientId:ptIds[0],providerId:pvIds[2],medication:'Metformin',dose:'1000',unit:'mg',frequency:'BID',route:'Oral',quantity:60,refills:5,daw:false,sig:'Take 1 tablet by mouth twice daily with meals',status:'active',writtenDate:'2026-03-20'},
+      {id:genId(),patientId:ptIds[0],providerId:pvIds[3],medication:'Lisinopril',dose:'20',unit:'mg',frequency:'QD',route:'Oral',quantity:30,refills:11,daw:false,sig:'Take 1 tablet by mouth once daily',status:'active',writtenDate:'2026-03-10'},
+      {id:genId(),patientId:ptIds[1],providerId:pvIds[0],medication:'Naproxen',dose:'500',unit:'mg',frequency:'BID PRN',route:'Oral',quantity:60,refills:1,daw:false,sig:'Take 1 tablet by mouth twice daily as needed for pain',status:'active',writtenDate:'2026-03-18'},
+      {id:genId(),patientId:ptIds[2],providerId:pvIds[2],medication:'Levothyroxine',dose:'100',unit:'mcg',frequency:'QD',route:'Oral',quantity:30,refills:11,daw:true,sig:'Take 1 tablet by mouth every morning on empty stomach, 30min before food',status:'active',writtenDate:'2026-03-15'},
+      {id:genId(),patientId:ptIds[3],providerId:pvIds[3],medication:'Sumatriptan',dose:'50',unit:'mg',frequency:'PRN',route:'Oral',quantity:9,refills:2,daw:false,sig:'Take 1 tablet at onset of migraine. May repeat once after 2 hours. Max 200mg/24hr.',status:'active',writtenDate:'2026-03-12'}
+    ],
+    labOrders:[
+      {id:genId(),patientId:ptIds[0],providerId:pvIds[3],vendor:'Quest Diagnostics',tests:['CBC','CMP','A1C','Lipid Panel'],orderedDate:'2026-03-10',status:'resulted',results:'A1C: 7.2%, FBG: 132, TC: 198, LDL: 118, HDL: 52, TG: 140',icd10:'E11.65'},
+      {id:genId(),patientId:ptIds[2],providerId:pvIds[2],vendor:'LabCorp',tests:['TSH','Free T4','Free T3'],orderedDate:'2026-03-15',status:'pending',results:'',icd10:'E03.9'}
+    ],
+    integrations:[
+      {id:genId(),name:'Quest Diagnostics',type:'lab',status:'connected',apiKey:'',endpoint:'https://api.questdiagnostics.com/v1',notes:'Primary lab vendor'},
+      {id:genId(),name:'LabCorp',type:'lab',status:'configured',apiKey:'',endpoint:'https://api.labcorp.com/v1',notes:'Secondary lab vendor'},
+      {id:genId(),name:'Surescripts (E-Prescribing)',type:'escript',status:'pending',apiKey:'',endpoint:'',notes:'NCPDP SCRIPT standard — needed for e-prescribing'},
+      {id:genId(),name:'Rico Cloud CRM',type:'crm',status:'connected',apiKey:'',endpoint:'https://api.ricocloud.net/v1',notes:'Patient intake forms auto-populate here'},
+      {id:genId(),name:'Stripe (Billing)',type:'billing',status:'pending',apiKey:'',endpoint:'',notes:'Payment processing'}
+    ],
+    noteTypes:['SOAP Note','H&P (History & Physical)','Progress Note','Follow-Up','Annual Physical','New Problem','Procedure Note','Consultation','Discharge Summary','Telehealth Visit','Phone Encounter','Pre-Op Evaluation','Post-Op Follow-Up'],
+    encounterTypes:['in-office','telehealth','phone'],
+    users:[{id:genId(),name:'Admin User',email:'admin@amormedical.com',role:'admin',createdAt:new Date().toISOString()}],
+    medications:[
+      {name:'Metformin',doses:['500mg','850mg','1000mg'],routes:['Oral']},{name:'Lisinopril',doses:['5mg','10mg','20mg','40mg'],routes:['Oral']},{name:'Amlodipine',doses:['2.5mg','5mg','10mg'],routes:['Oral']},{name:'Atorvastatin',doses:['10mg','20mg','40mg','80mg'],routes:['Oral']},{name:'Levothyroxine',doses:['25mcg','50mcg','75mcg','88mcg','100mcg','112mcg','125mcg','137mcg','150mcg'],routes:['Oral']},{name:'Omeprazole',doses:['20mg','40mg'],routes:['Oral']},{name:'Losartan',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Gabapentin',doses:['100mg','300mg','600mg','800mg'],routes:['Oral']},{name:'Hydrochlorothiazide',doses:['12.5mg','25mg','50mg'],routes:['Oral']},{name:'Sertraline',doses:['25mg','50mg','100mg','150mg','200mg'],routes:['Oral']},{name:'Fluoxetine',doses:['10mg','20mg','40mg','60mg'],routes:['Oral']},{name:'Escitalopram',doses:['5mg','10mg','20mg'],routes:['Oral']},{name:'Prednisone',doses:['5mg','10mg','20mg','50mg'],routes:['Oral']},{name:'Albuterol',doses:['90mcg/inh'],routes:['Inhalation']},{name:'Insulin Glargine',doses:['100units/mL'],routes:['Subcutaneous']},{name:'Insulin Lispro',doses:['100units/mL'],routes:['Subcutaneous']},{name:'Empagliflozin',doses:['10mg','25mg'],routes:['Oral']},{name:'Semaglutide',doses:['0.25mg','0.5mg','1mg','2mg'],routes:['Subcutaneous']},{name:'Dulaglutide',doses:['0.75mg','1.5mg','3mg','4.5mg'],routes:['Subcutaneous']},{name:'Sitagliptin',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Pioglitazone',doses:['15mg','30mg','45mg'],routes:['Oral']},{name:'Glipizide',doses:['5mg','10mg'],routes:['Oral']},{name:'Rosuvastatin',doses:['5mg','10mg','20mg','40mg'],routes:['Oral']},{name:'Simvastatin',doses:['10mg','20mg','40mg'],routes:['Oral']},{name:'Warfarin',doses:['1mg','2mg','2.5mg','5mg','7.5mg','10mg'],routes:['Oral']},{name:'Apixaban',doses:['2.5mg','5mg'],routes:['Oral']},{name:'Rivaroxaban',doses:['10mg','15mg','20mg'],routes:['Oral']},{name:'Clopidogrel',doses:['75mg'],routes:['Oral']},{name:'Aspirin',doses:['81mg','325mg'],routes:['Oral']},{name:'Naproxen',doses:['250mg','500mg'],routes:['Oral']},{name:'Ibuprofen',doses:['200mg','400mg','600mg','800mg'],routes:['Oral']},{name:'Acetaminophen',doses:['325mg','500mg','650mg'],routes:['Oral']},{name:'Tramadol',doses:['50mg','100mg'],routes:['Oral']},{name:'Cyclobenzaprine',doses:['5mg','10mg'],routes:['Oral']},{name:'Meloxicam',doses:['7.5mg','15mg'],routes:['Oral']},{name:'Sumatriptan',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Topiramate',doses:['25mg','50mg','100mg','200mg'],routes:['Oral']},{name:'Amoxicillin',doses:['250mg','500mg','875mg'],routes:['Oral']},{name:'Azithromycin',doses:['250mg','500mg'],routes:['Oral']},{name:'Ciprofloxacin',doses:['250mg','500mg','750mg'],routes:['Oral']},{name:'Doxycycline',doses:['50mg','100mg'],routes:['Oral']},{name:'Cephalexin',doses:['250mg','500mg'],routes:['Oral']},{name:'Metronidazole',doses:['250mg','500mg'],routes:['Oral']},{name:'Fluconazole',doses:['150mg','200mg'],routes:['Oral']},{name:'Montelukast',doses:['4mg','5mg','10mg'],routes:['Oral']},{name:'Cetirizine',doses:['5mg','10mg'],routes:['Oral']},{name:'Loratadine',doses:['10mg'],routes:['Oral']},{name:'Pantoprazole',doses:['20mg','40mg'],routes:['Oral']},{name:'Famotidine',doses:['20mg','40mg'],routes:['Oral']},{name:'Ondansetron',doses:['4mg','8mg'],routes:['Oral','IV']},{name:'Testosterone Cypionate',doses:['100mg/mL','200mg/mL'],routes:['Intramuscular']},{name:'Estradiol',doses:['0.5mg','1mg','2mg'],routes:['Oral','Transdermal']},{name:'Progesterone',doses:['100mg','200mg'],routes:['Oral']},{name:'Methylprednisolone',doses:['4mg'],routes:['Oral']},{name:'Ketorolac',doses:['10mg'],routes:['Oral','IM','IV']}
+    ]
+  };
+  saveDB();
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let currentPage='dashboard';
+let selectedPatient=null;
+let selectedPatientTab='demographics';
+let modalStack=[];
+let activeFieldDictation=null;
+
+function navigate(page){
+  currentPage=page;
+  if(page!=='patient-detail') selectedPatient=null;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const ni=document.querySelector(`[data-nav="${page}"]`);
+  if(ni) ni.classList.add('active');
+  render();
+}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('mini');}
+function setPageTitle(t){document.getElementById('page-title').textContent=t;}
+function handleGlobalSearch(e){
+  if(e.key==='Enter'){
+    const q=e.target.value.trim().toLowerCase();
+    if(!q) return;
+    const f=db.patients.find(p=>(p.firstName+' '+p.lastName).toLowerCase().includes(q));
+    if(f){openPatientDetail(f.id);}else{navigate('patients');}
+  }
+}
+function fmtAddr(o){return [o.street,o.city,o.state,o.zip].filter(Boolean).join(', ');}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function render(){
+  const c=document.getElementById('content'),rp=document.getElementById('rightPanel');
+  rp.classList.add('hidden');
+  switch(currentPage){
+    case 'dashboard': renderDashboard(c); break;
+    case 'executive': renderExecutive(c); break;
+    case 'patients': renderPatients(c); break;
+    case 'patient-detail': renderPatientDetail(c); renderPatientRightPanel(rp); break;
+    case 'providers': renderProviders(c); break;
+    case 'practices': renderPractices(c); break;
+    case 'encounters': renderEncounters(c); break;
+    case 'prescriptions': renderPrescriptions(c); break;
+    case 'labs': renderLabs(c); break;
+    case 'integrations': renderIntegrations(c); break;
+    case 'calculators': renderCalculators(c); break;
+    case 'credentialing': renderCredentialing(c); break;
+    case 'settings': renderSettings(c); break;
+  }
+}
+
+// ═══════ DASHBOARD ═══════
+function renderDashboard(c){
+  setPageTitle('Dashboard');
+  const today=new Date().toISOString().split('T')[0];
+  const todayEnc=db.encounters.filter(e=>e.date===today).length;
+  const activeRx=db.prescriptions.filter(p=>p.status==='active').length;
+  const pendingLabs=db.labOrders.filter(l=>l.status==='pending').length;
+  const signedToday=db.encounters.filter(e=>e.date===today&&e.status==='signed').length;
+  c.innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="label">Total Patients</div><div class="value">${db.patients.length}</div><div class="sub">${db.practices.length} practices</div></div>
+      <div class="stat-card green"><div class="label">Encounters Today</div><div class="value">${todayEnc}</div><div class="sub">${signedToday} signed</div></div>
+      <div class="stat-card yellow"><div class="label">Active Providers</div><div class="value">${db.providers.length}</div></div>
+      <div class="stat-card red"><div class="label">Active Rx</div><div class="value">${activeRx}</div></div>
+      <div class="stat-card purple"><div class="label">Pending Labs</div><div class="value">${pendingLabs}</div></div>
+    </div>
+    <div class="btn-group" style="margin-bottom:24px;">
+      <button class="btn btn-primary" onclick="showNewPatientModal()">+ New Patient</button>
+      <button class="btn btn-accent" onclick="showNewEncounterModal()">+ New Encounter</button>
+      <button class="btn btn-ghost" onclick="showNewPracticeModal()">+ New Practice</button>
+      <button class="btn btn-ghost" onclick="showNewProviderModal()">+ New Provider</button>
+    </div>
+    <div class="section-title">Recent Activity</div>
+    ${renderActivityFeed()}
+  `;
+}
+function renderActivityFeed(){
+  let items=[];
+  db.encounters.slice(-5).reverse().forEach(e=>{
+    const p=db.patients.find(x=>x.id===e.patientId);const pv=db.providers.find(x=>x.id===e.providerId);
+    items.push(`<div class="activity-item"><div class="activity-dot" style="background:var(--accent)"></div><div><div class="activity-text"><strong>${pv?.name||''}</strong> — ${e.type||'visit'} with <strong>${p?p.firstName+' '+p.lastName:''}</strong>: ${e.chiefComplaint}</div><div class="activity-time">${e.date} · ${e.noteType||'SOAP'}</div></div></div>`);
+  });
+  return items.join('')||'<div class="empty-state"><p>No recent activity</p></div>';
+}
+
+// ═══════ EXECUTIVE DASHBOARD ═══════
+function renderExecutive(c){
+  setPageTitle('Executive Dashboard');
+  const totalEnc=db.encounters.length;
+  const signed=db.encounters.filter(e=>e.status==='signed').length;
+  const draft=totalEnc-signed;
+  const telehealth=db.encounters.filter(e=>e.type==='telehealth').length;
+  const inOffice=db.encounters.filter(e=>e.type==='in-office').length;
+  const phone=db.encounters.filter(e=>e.type==='phone').length;
+  // CPT breakdown
+  const cptMap={};db.encounters.forEach(e=>{if(e.cpt){cptMap[e.cpt]=(cptMap[e.cpt]||0)+1;}});
+  const cptRows=Object.entries(cptMap).sort((a,b)=>b[1]-a[1]).map(([code,cnt])=>`<div class="metric-row"><span class="metric-label">${code}</span><span class="metric-value">${cnt}</span></div>`).join('');
+  // Provider productivity
+  const provProd=db.providers.map(p=>{const cnt=db.encounters.filter(e=>e.providerId===p.id).length;return{name:p.name,cnt};}).sort((a,b)=>b.cnt-a.cnt);
+  const maxEnc=Math.max(...provProd.map(p=>p.cnt),1);
+
+  c.innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="label">Total Encounters</div><div class="value">${totalEnc}</div></div>
+      <div class="stat-card green"><div class="label">Signed</div><div class="value">${signed}</div></div>
+      <div class="stat-card yellow"><div class="label">Unsigned/Draft</div><div class="value">${draft}</div></div>
+      <div class="stat-card purple"><div class="label">Total Patients</div><div class="value">${db.patients.length}</div></div>
+      <div class="stat-card red"><div class="label">Active Rx</div><div class="value">${db.prescriptions.filter(r=>r.status==='active').length}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div>
+        <div class="section-title">Encounter Types</div>
+        <div class="metric-row"><span class="metric-label">🏥 In-Office</span><span class="metric-value">${inOffice}</span></div>
+        <div class="metric-row"><span class="metric-label">💻 Telehealth</span><span class="metric-value">${telehealth}</span></div>
+        <div class="metric-row"><span class="metric-label">📞 Phone</span><span class="metric-value">${phone}</span></div>
+        <div class="section-title">CPT Code Distribution</div>
+        ${cptRows||'<p style="color:var(--text-dim);font-size:13px;">No CPT data yet</p>'}
+      </div>
+      <div>
+        <div class="section-title">Provider Productivity</div>
+        ${provProd.map(p=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>${p.name}</span><span style="font-weight:700;">${p.cnt} encounters</span></div><div class="chart-bar"><div class="chart-fill" style="width:${(p.cnt/maxEnc*100)}%;background:var(--primary);"></div></div></div>`).join('')}
+        <div class="section-title">Practice Summary</div>
+        ${db.practices.map(pr=>{
+          const patCnt=db.patients.filter(p=>p.practiceId===pr.id).length;
+          const encCnt=db.encounters.filter(e=>e.practiceId===pr.id).length;
+          return `<div class="metric-row"><span class="metric-label">🏥 ${pr.name}</span><span class="metric-value">${patCnt} pts / ${encCnt} enc</span></div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="section-title">Revenue Indicators (Estimated)</div>
+    <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px;">Based on CPT code averages — actual billing integration pending</p>
+    <div class="stats-grid">
+      <div class="stat-card green"><div class="label">Est. Revenue (CPT)</div><div class="value">$${estimateRevenue()}</div><div class="sub">Based on ${totalEnc} encounters</div></div>
+      <div class="stat-card blue"><div class="label">Avg per Encounter</div><div class="value">$${totalEnc?(estimateRevenue(true)/totalEnc).toFixed(0):'0'}</div></div>
+    </div>
+  `;
+}
+function estimateRevenue(raw){
+  const rates={'99213':130,'99214':200,'99215':280,'99395':250,'99396':260,'99203':170,'99204':260,'99205':340};
+  let total=0;db.encounters.forEach(e=>{total+=(rates[e.cpt]||150);});
+  return raw?total:total.toLocaleString();
+}
+
+// ═══════ PATIENTS ═══════
+function renderPatients(c){
+  setPageTitle('Patients');
+  c.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="position:relative;flex:1;max-width:400px;"><input type="text" placeholder="🔍 Search patients..." id="patientSearch" onkeyup="filterPatients()" style="padding-left:12px;"></div>
+      <button class="btn btn-primary" onclick="showNewPatientModal()">+ New Patient</button>
+    </div>
+    <table class="data-table"><thead><tr><th>Name</th><th>DOB</th><th>Gender</th><th>Phone</th><th>Insurance</th><th>Pharmacy</th><th>Provider</th></tr></thead>
+    <tbody id="ptBody">${renderPatientRows(db.patients)}</tbody></table>
+  `;
+}
+function renderPatientRows(pts){
+  return pts.map(p=>{
+    const pv=db.providers.find(x=>x.id===p.providerId);
+    return `<tr onclick="openPatientDetail('${p.id}')"><td><strong>${p.firstName} ${p.lastName}</strong></td><td>${p.dob}</td><td>${p.gender}</td><td>${p.phone}</td><td>${p.insurancePrimary||'—'}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.pharmacy||'—'}</td><td>${pv?pv.name:'—'}</td></tr>`;
+  }).join('');
+}
+function filterPatients(){
+  const q=document.getElementById('patientSearch').value.toLowerCase();
+  const f=db.patients.filter(p=>(p.firstName+' '+p.lastName+' '+p.phone+' '+(p.insurancePrimary||'')).toLowerCase().includes(q));
+  document.getElementById('ptBody').innerHTML=renderPatientRows(f);
+}
+
+// ═══════ PATIENT DETAIL ═══════
+function openPatientDetail(id){
+  selectedPatient=db.patients.find(p=>p.id===id);
+  selectedPatientTab='demographics';
+  currentPage='patient-detail';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelector('[data-nav="patients"]').classList.add('active');
+  render();
+}
+function renderPatientDetail(c){
+  const p=selectedPatient;if(!p){navigate('patients');return;}
+  setPageTitle(p.firstName+' '+p.lastName);
+  const tabs=['demographics','history','medications','allergies','encounters','labs','vitals','billing'];
+  c.innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="navigate('patients')">← Back</button>
+      <div><h2 style="font-size:22px;">${p.firstName} ${p.lastName}</h2><span style="color:var(--text-muted);font-size:13px;">DOB: ${p.dob} | ${p.gender} | ${p.pharmacy||'No pharmacy'}</span></div>
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-sm" onclick="showNewEncounterModal('${p.id}')">+ Encounter</button>
+      <button class="btn btn-accent btn-sm" onclick="showNewPrescriptionModal('${p.id}')">+ Rx</button>
+      <button class="btn btn-ghost btn-sm" onclick="editPatientModal('${p.id}')">✏️ Edit</button>
+    </div>
+    <div class="tabs">${tabs.map(t=>`<div class="tab ${selectedPatientTab===t?'active':''}" onclick="selectedPatientTab='${t}';render()">${t.charAt(0).toUpperCase()+t.slice(1)}</div>`).join('')}</div>
+    <div>${renderPatientTab(p)}</div>`;
+}
+function renderPatientTab(p){
+  switch(selectedPatientTab){
+    case 'demographics': return renderDemographics(p);
+    case 'history': return renderPMH(p);
+    case 'medications': return renderPatientMeds(p);
+    case 'allergies': return renderAllergies(p);
+    case 'encounters': return renderPatientEncounters(p);
+    case 'labs': return renderPatientLabs(p);
+    case 'vitals': return renderPatientVitals(p);
+    case 'billing': return '<div class="empty-state"><div class="empty-icon">💳</div><p>Billing integration pending — Stripe setup required</p></div>';
+    default: return '';
+  }
+}
+function renderDemographics(p){
+  const pv=db.providers.find(x=>x.id===p.providerId);const pr=db.practices.find(x=>x.id===p.practiceId);
+  return `<div class="form-grid">
+    <div class="form-group"><label>First Name</label><div style="padding:8px">${p.firstName}</div></div>
+    <div class="form-group"><label>Last Name</label><div style="padding:8px">${p.lastName}</div></div>
+    <div class="form-group"><label>Date of Birth</label><div style="padding:8px">${p.dob}</div></div>
+    <div class="form-group"><label>Gender</label><div style="padding:8px">${p.gender}</div></div>
+    <div class="form-group"><label>Phone</label><div style="padding:8px">${p.phone}</div></div>
+    <div class="form-group"><label>Email</label><div style="padding:8px">${p.email||'—'}</div></div>
+    </div><div class="section-title">Address</div><div class="form-grid-4">
+    <div class="form-group" style="grid-column:span 2"><label>Street</label><div style="padding:8px">${p.street||'—'}</div></div>
+    <div class="form-group"><label>City</label><div style="padding:8px">${p.city||'—'}</div></div>
+    <div class="form-group"><label>State</label><div style="padding:8px">${p.state||'—'}</div></div>
+    <div class="form-group"><label>Zip</label><div style="padding:8px">${p.zip||'—'}</div></div>
+    </div><div class="section-title">Insurance</div><div class="form-grid">
+    <div class="form-group"><label>Primary Insurance</label><div style="padding:8px">${p.insurancePrimary||'—'}</div></div>
+    <div class="form-group"><label>Primary ID</label><div style="padding:8px">${p.insuranceId||'—'}</div></div>
+    <div class="form-group"><label>Secondary Insurance</label><div style="padding:8px">${p.insuranceSecondary||'—'}</div></div>
+    <div class="form-group"><label>Secondary ID</label><div style="padding:8px">${p.insuranceSecondaryId||'—'}</div></div>
+    </div><div class="section-title">Pharmacy</div><div class="form-grid">
+    <div class="form-group"><label>Pharmacy</label><div style="padding:8px">${p.pharmacy||'—'}</div></div>
+    <div class="form-group"><label>Pharmacy Phone</label><div style="padding:8px">${p.pharmacyPhone||'—'}</div></div>
+    </div><div class="section-title">Emergency Contact</div><div class="form-grid-3">
+    <div class="form-group"><label>Name</label><div style="padding:8px">${p.emergencyName||'—'}</div></div>
+    <div class="form-group"><label>Phone</label><div style="padding:8px">${p.emergencyPhone||'—'}</div></div>
+    <div class="form-group"><label>Relationship</label><div style="padding:8px">${p.emergencyRelation||'—'}</div></div>
+    </div><div class="section-title">Care Team</div><div class="form-grid">
+    <div class="form-group"><label>Primary Provider</label><div style="padding:8px">${pv?pv.name:'—'}</div></div>
+    <div class="form-group"><label>Practice</label><div style="padding:8px">${pr?pr.name:'—'}</div></div>
+  </div>`;
+}
+function renderPMH(p){
+  return `<h4 style="margin-bottom:12px;">Past Medical History</h4>
+    ${(p.pmh||[]).map((h,i)=>`<div style="padding:8px 12px;background:var(--bg-input);border-radius:6px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">${h}<button class="btn btn-ghost btn-sm" onclick="removePMH('${p.id}',${i})" style="width:auto;">✕</button></div>`).join('')||'<p style="color:var(--text-dim)">No history recorded</p>'}
+    <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="addPMH('${p.id}')">+ Add History Item</button>`;
+}
+function renderAllergies(p){
+  return `<h4 style="margin-bottom:12px;">Allergies</h4>
+    ${(p.allergies||[]).map((a,i)=>`<span class="badge badge-red" style="margin:0 4px 4px 0;padding:6px 12px;cursor:pointer;" onclick="removeAllergy('${p.id}',${i})">${a} ✕</span>`).join('')||'<p style="color:var(--text-dim)">NKDA</p>'}
+    <div style="margin-top:12px;"><button class="btn btn-ghost btn-sm" onclick="addAllergy('${p.id}')">+ Add Allergy</button></div>`;
+}
+function renderPatientMeds(p){
+  const rxs=db.prescriptions.filter(rx=>rx.patientId===p.id);
+  if(!rxs.length) return '<div class="empty-state"><div class="empty-icon">💊</div><p>No prescriptions</p><button class="btn btn-primary" onclick="showNewPrescriptionModal(\''+p.id+'\')">+ New Prescription</button></div>';
+  return rxs.map(rx=>`<div class="rx-card"><div style="display:flex;justify-content:space-between;align-items:start;"><div><div class="rx-name">${rx.medication} ${rx.dose}${rx.unit}</div><div class="rx-sig">${rx.sig}</div></div><span class="badge ${rx.status==='active'?'badge-green':'badge-yellow'}">${rx.status}</span></div><div class="rx-details"><span>Freq: ${rx.frequency}</span><span>Route: ${rx.route}</span><span>Qty: ${rx.quantity}</span><span>Refills: ${rx.refills}</span><span>DAW: ${rx.daw?'Yes':'No'}</span></div><div style="margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="editPrescription('${rx.id}')">✏️ Edit</button></div></div>`).join('');
+}
+function renderPatientEncounters(p){
+  const encs=db.encounters.filter(e=>e.patientId===p.id).sort((a,b)=>b.date.localeCompare(a.date));
+  if(!encs.length) return '<div class="empty-state"><div class="empty-icon">📋</div><p>No encounters</p></div>';
+  return encs.map(e=>{
+    const pv=db.providers.find(x=>x.id===e.providerId);
+    const typeIcon=e.type==='telehealth'?'💻':e.type==='phone'?'📞':'🏥';
+    return `<div class="encounter-card" onclick="openEncounterDetail('${e.id}')"><div class="enc-header"><span class="enc-date">${typeIcon} ${e.date} — ${e.noteType||'SOAP'}</span><span class="badge ${e.status==='signed'?'badge-green':'badge-yellow'}">${e.status}</span></div><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">${pv?pv.name:''} | ${e.icd10||''} | ${e.cpt||''}</div><div class="enc-preview"><strong>CC:</strong> ${e.chiefComplaint}</div></div>`;
+  }).join('');
+}
+function renderPatientLabs(p){
+  const labs=db.labOrders.filter(l=>l.patientId===p.id).sort((a,b)=>b.orderedDate.localeCompare(a.orderedDate));
+  if(!labs.length) return '<div class="empty-state"><div class="empty-icon">🔬</div><p>No lab orders</p></div>';
+  return labs.map(l=>{
+    const pv=db.providers.find(x=>x.id===l.providerId);
+    return `<div class="rx-card"><div style="display:flex;justify-content:space-between;"><div><div class="rx-name">${l.vendor} — ${l.tests.join(', ')}</div><div class="rx-sig">Ordered: ${l.orderedDate} by ${pv?pv.name:''}</div>${l.results?`<div style="margin-top:6px;font-size:12px;color:var(--accent);">${l.results}</div>`:''}</div><span class="badge ${l.status==='resulted'?'badge-green':l.status==='pending'?'badge-yellow':'badge-blue'}">${l.status}</span></div></div>`;
+  }).join('');
+}
+function renderPatientVitals(p){
+  const encs=db.encounters.filter(e=>e.patientId===p.id&&e.vitals).sort((a,b)=>b.date.localeCompare(a.date));
+  if(!encs.length) return '<div class="empty-state"><div class="empty-icon">📈</div><p>No vitals</p></div>';
+  return `<table class="data-table"><thead><tr><th>Date</th><th>BP</th><th>HR</th><th>Temp</th><th>SpO2</th><th>Weight</th><th>Height</th><th>BMI</th></tr></thead><tbody>
+    ${encs.map(e=>{const v=e.vitals;const bmi=v.weight&&v.height?(parseFloat(v.weight)/Math.pow(parseFloat(v.height)/39.37,2)).toFixed(1):'—';
+    return `<tr><td>${e.date}</td><td>${v.bp||'—'}</td><td>${v.hr||'—'}</td><td>${v.temp||'—'}°F</td><td>${v.spo2||'—'}%</td><td>${v.weight||'—'}</td><td>${v.height||'—'}"</td><td>${bmi}</td></tr>`;}).join('')}</tbody></table>`;
+}
+function renderPatientRightPanel(rp){
+  if(!selectedPatient){rp.classList.add('hidden');return;}
+  rp.classList.remove('hidden');
+  const p=selectedPatient;const rxCnt=db.prescriptions.filter(rx=>rx.patientId===p.id).length;const encCnt=db.encounters.filter(e=>e.patientId===p.id).length;
+  rp.innerHTML=`<h4>Quick Access</h4>
+    <div class="quick-link ${selectedPatientTab==='demographics'?'active':''}" onclick="selectedPatientTab='demographics';render()">👤 Demographics</div>
+    <div class="quick-link ${selectedPatientTab==='history'?'active':''}" onclick="selectedPatientTab='history';render()">📜 Medical History</div>
+    <div class="quick-link ${selectedPatientTab==='medications'?'active':''}" onclick="selectedPatientTab='medications';render()">💊 Medications (${rxCnt})</div>
+    <div class="quick-link ${selectedPatientTab==='allergies'?'active':''}" onclick="selectedPatientTab='allergies';render()">⚠️ Allergies</div>
+    <div class="quick-link ${selectedPatientTab==='encounters'?'active':''}" onclick="selectedPatientTab='encounters';render()">📋 Encounters (${encCnt})</div>
+    <div class="quick-link ${selectedPatientTab==='vitals'?'active':''}" onclick="selectedPatientTab='vitals';render()">📈 Vitals</div>
+    <div class="quick-link ${selectedPatientTab==='labs'?'active':''}" onclick="selectedPatientTab='labs';render()">🔬 Labs</div>
+    <div class="quick-link ${selectedPatientTab==='billing'?'active':''}" onclick="selectedPatientTab='billing';render()">💳 Billing</div>
+    <hr style="border-color:var(--border);margin:16px 0;">
+    <h4>Patient Info</h4>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">
+      <div>📞 ${p.phone}</div><div>📧 ${p.email||'—'}</div><div>🏥 ${p.insurancePrimary||'—'}</div><div>💊 ${p.pharmacy||'No pharmacy'}</div>
+    </div>
+    <hr style="border-color:var(--border);margin:16px 0;">
+    <h4>Allergies</h4>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;">${(p.allergies||[]).map(a=>`<span class="badge badge-red">${a}</span>`).join('')||'<span style="color:var(--text-dim);font-size:12px;">NKDA</span>'}</div>
+    <hr style="border-color:var(--border);margin:16px 0;">
+    <h4>Emergency Contact</h4>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+      <div>${p.emergencyName||'—'}</div><div>${p.emergencyPhone||''}</div><div>${p.emergencyRelation||''}</div>
+    </div>`;
+}
+
+// ═══════ PROVIDERS ═══════
+function renderProviders(c){
+  setPageTitle('Providers');
+  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3>${db.providers.length} Providers</h3><button class="btn btn-primary" onclick="showNewProviderModal()">+ New Provider</button></div>
+    <table class="data-table"><thead><tr><th>Name</th><th>NPI</th><th>DEA</th><th>Specialty</th><th>License</th><th>Practice</th><th></th></tr></thead><tbody>
+    ${db.providers.map(p=>{const pr=db.practices.find(x=>x.id===p.practiceId);return `<tr><td><strong>${p.name}</strong></td><td>${p.npi}</td><td>${p.dea}</td><td>${p.specialty}</td><td>${p.license}</td><td>${pr?pr.name:'—'}</td><td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editProviderModal('${p.id}')" style="width:auto;">✏️</button></td></tr>`;}).join('')}</tbody></table>`;
+}
+
+// ═══════ PRACTICES ═══════
+function renderPractices(c){
+  setPageTitle('Practices');
+  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3>${db.practices.length} Practices</h3><button class="btn btn-primary" onclick="showNewPracticeModal()">+ New Practice</button></div>
+    <table class="data-table"><thead><tr><th>Name</th><th>Specialty</th><th>Phone</th><th>NPI</th><th>Address</th><th></th></tr></thead><tbody>
+    ${db.practices.map(p=>`<tr><td><strong>${p.name}</strong></td><td>${p.specialty}</td><td>${p.phone}</td><td>${p.npi}</td><td>${fmtAddr(p)}</td><td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editPracticeModal('${p.id}')" style="width:auto;">✏️</button></td></tr>`).join('')}</tbody></table>`;
+}
+
+// ═══════ ENCOUNTERS ═══════
+function renderEncounters(c){
+  setPageTitle('Encounters');
+  const sorted=[...db.encounters].sort((a,b)=>b.date.localeCompare(a.date));
+  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3>${db.encounters.length} Encounters</h3><button class="btn btn-primary" onclick="showNewEncounterModal()">+ New Encounter</button></div>
+    <div class="tabs" style="margin-bottom:16px;"><div class="tab active" onclick="filterEnc(this,'all')">All</div><div class="tab" onclick="filterEnc(this,'in-office')">🏥 In-Office</div><div class="tab" onclick="filterEnc(this,'telehealth')">💻 Telehealth</div><div class="tab" onclick="filterEnc(this,'phone')">📞 Phone</div></div>
+    <div id="encList">${renderEncList(sorted)}</div>`;
+}
+function renderEncList(encs){
+  return encs.map(e=>{
+    const p=db.patients.find(x=>x.id===e.patientId);const pv=db.providers.find(x=>x.id===e.providerId);
+    const typeIcon=e.type==='telehealth'?'💻':e.type==='phone'?'📞':'🏥';
+    return `<div class="encounter-card" onclick="openEncounterDetail('${e.id}')"><div class="enc-header"><span class="enc-date">${typeIcon} ${e.date} — ${p?p.firstName+' '+p.lastName:''}</span><div><span class="badge badge-blue" style="margin-right:4px;">${e.noteType||'SOAP'}</span><span class="badge ${e.status==='signed'?'badge-green':'badge-yellow'}">${e.status}</span></div></div><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">${pv?pv.name:''} | ${e.icd10||''} | ${e.cpt||''}</div><div class="enc-preview"><strong>CC:</strong> ${e.chiefComplaint}</div></div>`;
+  }).join('');
+}
+function filterEnc(el,type){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  const sorted=[...db.encounters].sort((a,b)=>b.date.localeCompare(a.date));
+  const f=type==='all'?sorted:sorted.filter(e=>e.type===type);
+  document.getElementById('encList').innerHTML=renderEncList(f);
+}
+
+function openEncounterDetail(id){
+  const enc=db.encounters.find(e=>e.id===id);if(!enc) return;
+  const p=db.patients.find(x=>x.id===enc.patientId);const pv=db.providers.find(x=>x.id===enc.providerId);
+  const v=enc.vitals||{};const bmi=v.weight&&v.height?(parseFloat(v.weight)/Math.pow(parseFloat(v.height)/39.37,2)).toFixed(1):'—';
+  const typeIcon=enc.type==='telehealth'?'💻':enc.type==='phone'?'📞':'🏥';
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>${typeIcon} Encounter — ${p?p.firstName+' '+p.lastName:''}</h3>
+    <div style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">${enc.date} | ${pv?pv.name:''} | ${enc.noteType||'SOAP'} | <span class="badge ${enc.status==='signed'?'badge-green':'badge-yellow'}">${enc.status}</span></div>
+    <div style="font-size:13px;margin-bottom:12px;"><strong>Chief Complaint:</strong> ${enc.chiefComplaint}</div>
+    <div class="vitals-grid">
+      <div class="vital-box"><div class="vital-label">BP</div><div class="vital-value">${v.bp||'—'}</div></div>
+      <div class="vital-box"><div class="vital-label">HR</div><div class="vital-value">${v.hr||'—'}</div></div>
+      <div class="vital-box"><div class="vital-label">Temp</div><div class="vital-value">${v.temp||'—'}°</div></div>
+      <div class="vital-box"><div class="vital-label">SpO2</div><div class="vital-value">${v.spo2||'—'}%</div></div>
+      <div class="vital-box"><div class="vital-label">Weight</div><div class="vital-value">${v.weight||'—'}</div></div>
+      <div class="vital-box"><div class="vital-label">Height</div><div class="vital-value">${v.height||'—'}"</div></div>
+      <div class="vital-box"><div class="vital-label">BMI</div><div class="vital-value">${bmi}</div></div>
+    </div>
+    <div class="soap-section soap-s"><div class="soap-label">S — Subjective</div><div style="padding:8px;font-size:13px;line-height:1.5;">${enc.subjective||'—'}</div></div>
+    <div class="soap-section soap-o"><div class="soap-label">O — Objective</div><div style="padding:8px;font-size:13px;line-height:1.5;">${enc.objective||'—'}</div></div>
+    <div class="soap-section soap-a"><div class="soap-label">A — Assessment</div><div style="padding:8px;font-size:13px;line-height:1.5;">${enc.assessment||'—'}</div></div>
+    <div class="soap-section soap-p"><div class="soap-label">P — Plan</div><div style="padding:8px;font-size:13px;line-height:1.5;">${enc.plan||'—'}</div></div>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:12px;">ICD-10: ${enc.icd10||'—'} | CPT: ${enc.cpt||'—'}</div>
+    <div class="form-actions">
+      ${enc.status!=='signed'?`<button class="btn btn-accent" onclick="signEncounter('${enc.id}')">✅ Approve & Sign</button>`:`<span style="color:var(--accent);font-size:12px;">✅ Signed ${enc.signedAt?new Date(enc.signedAt).toLocaleString():''}</span>`}
+      <button class="btn btn-ghost" onclick="editEncounterModal('${enc.id}')">✏️ Edit</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    </div>`, true);
+}
+function signEncounter(id){const e=db.encounters.find(x=>x.id===id);if(e){e.status='signed';e.signedAt=new Date().toISOString();saveDB();}closeModal();render();}
+
+// ═══════ PRESCRIPTIONS ═══════
+function renderPrescriptions(c){
+  setPageTitle('Prescriptions');
+  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3>${db.prescriptions.length} Prescriptions</h3><button class="btn btn-primary" onclick="showNewPrescriptionModal()">+ New Prescription</button></div>
+    ${db.prescriptions.map(rx=>{const p=db.patients.find(x=>x.id===rx.patientId);const pv=db.providers.find(x=>x.id===rx.providerId);
+    return `<div class="rx-card"><div style="display:flex;justify-content:space-between;align-items:start;"><div><div class="rx-name">${rx.medication} ${rx.dose}${rx.unit}</div><div class="rx-sig">${rx.sig}</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Patient: ${p?p.firstName+' '+p.lastName:''} | Prescriber: ${pv?pv.name:''}</div></div><span class="badge ${rx.status==='active'?'badge-green':'badge-yellow'}">${rx.status}</span></div><div class="rx-details"><span>Freq: ${rx.frequency}</span><span>Route: ${rx.route}</span><span>Qty: ${rx.quantity}</span><span>Refills: ${rx.refills}</span><span>DAW: ${rx.daw?'Yes':'No'}</span><span>Written: ${rx.writtenDate}</span></div><div style="margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="editPrescription('${rx.id}')">✏️ Edit</button></div></div>`;}).join('')}`;
+}
+
+// ═══════ LABS ═══════
+function renderLabs(c){
+  setPageTitle('Lab Orders');
+  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3>${db.labOrders.length} Lab Orders</h3><button class="btn btn-primary" onclick="showNewLabModal()">+ New Lab Order</button></div>
+    ${db.labOrders.sort((a,b)=>b.orderedDate.localeCompare(a.orderedDate)).map(l=>{const p=db.patients.find(x=>x.id===l.patientId);const pv=db.providers.find(x=>x.id===l.providerId);
+    return `<div class="rx-card"><div style="display:flex;justify-content:space-between;"><div><div class="rx-name">${l.vendor}: ${l.tests.join(', ')}</div><div class="rx-sig">Patient: ${p?p.firstName+' '+p.lastName:''} | Ordered: ${l.orderedDate} | ${pv?pv.name:''}</div>${l.results?`<div style="margin-top:6px;font-size:12px;padding:8px;background:var(--bg);border-radius:6px;color:var(--accent);">📊 ${l.results}</div>`:''}</div><span class="badge ${l.status==='resulted'?'badge-green':l.status==='pending'?'badge-yellow':'badge-blue'}">${l.status}</span></div></div>`;}).join('')}`;
+}
+
+// ═══════ INTEGRATIONS ═══════
+function renderIntegrations(c){
+  setPageTitle('Integrations');
+  const statusColors={connected:'badge-green',configured:'badge-blue',pending:'badge-yellow',disconnected:'badge-red'};
+  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3>System Integrations</h3><button class="btn btn-primary" onclick="showNewIntegrationModal()">+ Add Integration</button></div>
+    <div class="stats-grid">${db.integrations.map(i=>{
+      const icon=i.type==='lab'?'🔬':i.type==='escript'?'📝':i.type==='crm'?'☁️':i.type==='billing'?'💳':'🔌';
+      return `<div class="integration-card"><div class="int-icon">${icon}</div><div class="int-info"><div class="int-name">${i.name}</div><div class="int-desc">${i.notes||i.type}</div></div><span class="badge ${statusColors[i.status]||'badge-yellow'}">${i.status}</span></div>`;
+    }).join('')}</div>
+    <div class="section-title">Integration Roadmap</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:2;">
+      <div>🔬 <strong>Quest Diagnostics</strong> — HL7/FHIR lab orders + results (bi-directional)</div>
+      <div>🔬 <strong>LabCorp</strong> — HL7/FHIR lab orders + results</div>
+      <div>📝 <strong>Surescripts</strong> — NCPDP SCRIPT e-prescribing network</div>
+      <div>☁️ <strong>Rico Cloud</strong> — Patient intake form auto-population, CRM sync</div>
+      <div>💳 <strong>Stripe</strong> — Copay collection, invoicing, payment processing</div>
+      <div>📋 <strong>Availity / Change Healthcare</strong> — Insurance eligibility verification</div>
+      <div>🤖 <strong>AI/LLM Engine</strong> — Auto-generate SOAP notes from transcription via prompt templates per note type</div>
+    </div>
+    <div class="section-title">Reference EMR Systems</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:2;">
+      <div>🦴 <strong>ModMed</strong> — Ortho/Ophthalmology/Dermatology (strong iPad + image extrapolation)</div>
+      <div>🏥 <strong>CareCloud</strong> — Primary care</div>
+      <div>🏥 <strong>eClinicalWorks</strong> — Primary care</div>
+      <div>🏥 <strong>MD Vitas</strong> — Medicare HMO (strongest in that space)</div>
+    </div>`;
+}
+
+// ═══════ CALCULATORS (Dr. Michelle Lopez's 40 favorites) ═══════
+function renderCalculators(c){
+  setPageTitle('Clinical Calculators');
+  const cats=[
+    {name:'🩸 Endocrinology / Diabetes',calcs:[
+      {id:'a1c',label:'A1C ↔ eAG',desc:'Est. avg glucose from HbA1C',fn:'openCalcA1C',built:true},
+      {id:'homa',label:'HOMA-IR',desc:'Insulin resistance approximation',fn:'openCalcHOMA',built:true},
+      {id:'bw',label:'Burch-Wartofsky',desc:'Thyrotoxicosis likelihood',fn:'openCalcBW',built:true},
+      {id:'cpep',label:'C-Peptide:Glucose Ratio',desc:'Beta cell function',fn:'openCalcCPep',built:true},
+      {id:'nacorr',label:'Na⁺ Correction (Hyperglycemia)',desc:'True sodium in high glucose',fn:'openCalcNaCorr',built:true},
+      {id:'steroid',label:'Steroid Conversion',desc:'Equivalent steroid dosing',fn:'openCalcSteroid',built:true},
+      {id:'dka',label:'DKA MPM Score',desc:'In-hospital DKA mortality',fn:null,built:false},
+      {id:'ada',label:'ADA Diabetes Risk',desc:'T2DM risk assessment',fn:null,built:false},
+      {id:'gir',label:'GIR (Glucose Infusion Rate)',desc:'IV glucose administration',fn:null,built:false},
+      {id:'hypo',label:'Hypoglycemia Risk Score',desc:'Hypoglycemia prediction',fn:null,built:false},
+    ]},
+    {name:'🫘 Nephrology / Electrolytes',calcs:[
+      {id:'gfr',label:'eGFR (CKD-EPI 2021)',desc:'Kidney function',fn:'openCalcGFR',built:true},
+      {id:'ag',label:'Anion Gap',desc:'Metabolic acidosis eval',fn:'openCalcAnionGap',built:true},
+      {id:'fena',label:'FENa',desc:'Prerenal vs intrinsic',fn:'openCalcFENa',built:true},
+      {id:'fwd',label:'Free Water Deficit',desc:'Hypernatremia correction',fn:'openCalcFWD',built:true},
+      {id:'feurea',label:'FEUrea',desc:'For pts on diuretics',fn:null,built:false},
+      {id:'crcl',label:'Creatinine Clearance',desc:'Cockcroft-Gault',fn:null,built:false},
+      {id:'narate',label:'Na Correction Rate',desc:'Fluid choice & rate',fn:null,built:false},
+      {id:'nadef',label:'Sodium Deficit',desc:'Total Na missing',fn:null,built:false},
+    ]},
+    {name:'🫀 Cardiology',calcs:[
+      {id:'ascvd',label:'ASCVD Risk (10yr)',desc:'Heart/stroke risk',fn:'openCalcASCVD',built:true},
+      {id:'cha2',label:'CHA₂DS₂-VASc',desc:'Stroke risk in AFib',fn:'openCalcCHA2',built:true},
+      {id:'wells',label:"Wells' Score DVT",desc:'DVT risk',fn:null,built:false},
+      {id:'timi',label:'TIMI UA/NSTEMI',desc:'Mortality after UA/NSTEMI',fn:null,built:false},
+    ]},
+    {name:'🍔 Obesity / Metabolic',calcs:[
+      {id:'bmi',label:'BMI & BSA',desc:'Obesity classification',fn:'openCalcBMI',built:true},
+      {id:'map',label:'Mean Arterial Pressure',desc:'MAP from BP',fn:'openCalcMAP',built:true},
+      {id:'bri',label:'BRI',desc:'Body fat % & VAT %',fn:null,built:false},
+      {id:'eoss',label:'EOSS',desc:'Obesity severity staging',fn:null,built:false},
+    ]},
+    {name:'🫙 GI / Hepatology',calcs:[
+      {id:'fib4',label:'FIB-4 Index',desc:'Liver fibrosis estimate',fn:'openCalcFIB4',built:true},
+      {id:'child',label:'Child-Pugh',desc:'Cirrhosis prognosis',fn:null,built:false},
+      {id:'fni',label:'Fibrotic NASH Index',desc:'NASH screening',fn:null,built:false},
+      {id:'gbs',label:'Glasgow-Blatchford',desc:'UGI bleed risk',fn:null,built:false},
+    ]},
+    {name:'🫁 Pulm / Acid-Base',calcs:[
+      {id:'winters',label:"Winters' Formula",desc:'Expected pCO₂',fn:'openCalcWinters',built:true},
+      {id:'abg',label:'ABG Analyzer',desc:'Interprets ABGs',fn:null,built:false},
+    ]},
+    {name:'🦴 Bone / Other',calcs:[
+      {id:'cacorr',label:'Ca Correction (Albumin)',desc:'Corrected calcium',fn:'openCalcCaCorr',built:true},
+      {id:'fracture',label:'FRACTURE Index',desc:'Postmenopausal risk',fn:null,built:false},
+      {id:'gad7',label:'GAD-7',desc:'Anxiety severity',fn:null,built:false},
+    ]}
+  ];
+  const builtCount=cats.reduce((s,cat)=>s+cat.calcs.filter(c=>c.built).length,0);
+  const totalCount=cats.reduce((s,cat)=>s+cat.calcs.length,0);
+  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><div><span style="font-size:13px;color:var(--text-muted);">${builtCount} of ${totalCount} calculators built — from Dr. Michelle Lopez's clinical favorites</span></div></div>
+    ${cats.map(cat=>`<div class="section-title">${cat.name}</div><div class="stats-grid">${cat.calcs.map(cl=>`<div class="stat-card" style="cursor:${cl.built?'pointer':'default'};opacity:${cl.built?1:.5};" ${cl.built&&cl.fn?`onclick="${cl.fn}()"`:''}>
+      <div class="label">${cl.label}</div><div class="value" style="font-size:16px;color:${cl.built?'var(--primary)':'var(--text-dim)'};">${cl.built?'✅':'🔜'}</div>
+      <div class="sub">${cl.desc}</div></div>`).join('')}</div>`).join('')}`;
+}
+function openCalcBMI(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>BMI Calculator</h3><div class="form-grid"><div class="form-group"><label>Weight (lbs)</label><input type="number" id="bW"></div><div class="form-group"><label>Height (in)</label><input type="number" id="bH"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcBMI()">Calculate</button></div><div id="bR"></div>`);}
+function calcBMI(){const w=+document.getElementById('bW').value,h=+document.getElementById('bH').value;if(!w||!h)return;const b=(w/h/h*703).toFixed(1);let c='Normal',cl='var(--accent)';if(b<18.5){c='Underweight';cl='var(--primary)';}else if(b>=25&&b<30){c='Overweight';cl='var(--warning)';}else if(b>=30){c='Obese';cl='var(--danger)';}document.getElementById('bR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">BMI</div><div class="vital-value" style="color:${cl};font-size:32px;">${b}</div><div style="font-size:14px;font-weight:600;color:${cl};">${c}</div></div>`;}
+function openCalcGFR(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>eGFR (CKD-EPI 2021)</h3><div class="form-grid"><div class="form-group"><label>Creatinine (mg/dL)</label><input type="number" step="0.01" id="gC"></div><div class="form-group"><label>Age</label><input type="number" id="gA"></div><div class="form-group"><label>Sex</label><select id="gS"><option value="M">Male</option><option value="F">Female</option></select></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcGFR()">Calculate</button></div><div id="gR"></div>`);}
+function calcGFR(){const cr=+document.getElementById('gC').value,age=+document.getElementById('gA').value,sex=document.getElementById('gS').value;if(!cr||!age)return;let k=sex==='F'?.7:.9,a=sex==='F'?-.241:-.302,g=142*Math.pow(Math.min(cr/k,1),a)*Math.pow(Math.max(cr/k,1),-1.2)*Math.pow(.9938,age)*(sex==='F'?1.012:1);let s='Normal',cl='var(--accent)';if(g<15){s='Stage 5';cl='var(--danger)';}else if(g<30){s='Stage 4';cl='var(--danger)';}else if(g<60){s='Stage 3';cl='var(--warning)';}else if(g<90){s='Stage 2';cl='var(--primary)';}document.getElementById('gR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">eGFR</div><div class="vital-value" style="color:${cl};font-size:32px;">${g.toFixed(1)}</div><div style="font-size:14px;font-weight:600;color:${cl};">${s}</div><div style="font-size:11px;color:var(--text-dim);">mL/min/1.73m²</div></div>`;}
+function openCalcMAP(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Mean Arterial Pressure</h3><div class="form-grid"><div class="form-group"><label>Systolic</label><input type="number" id="mS"></div><div class="form-group"><label>Diastolic</label><input type="number" id="mD"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcMAP()">Calculate</button></div><div id="mR"></div>`);}
+function calcMAP(){const s=+document.getElementById('mS').value,d=+document.getElementById('mD').value;if(!s||!d)return;const m=(d+(s-d)/3).toFixed(0);let st='Normal',cl='var(--accent)';if(m<60){st='Hypotension';cl='var(--danger)';}else if(m>100){st='Hypertension';cl='var(--danger)';}else if(m>90){st='Elevated';cl='var(--warning)';}document.getElementById('mR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">MAP</div><div class="vital-value" style="color:${cl};font-size:32px;">${m}</div><div style="font-size:14px;font-weight:600;color:${cl};">${st}</div></div>`;}
+function openCalcA1C(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>A1C ↔ eAG</h3><div class="form-group"><label>A1C (%)</label><input type="number" step="0.1" id="a1" oninput="calcA1C()"></div><div id="aR"></div>`);}
+function calcA1C(){const a=+document.getElementById('a1').value;if(!a)return;const eag=(28.7*a-46.7).toFixed(0);let s='Normal',cl='var(--accent)';if(a>=6.5){s='Diabetic';cl='var(--danger)';}else if(a>=5.7){s='Prediabetic';cl='var(--warning)';}document.getElementById('aR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">eAG</div><div class="vital-value" style="color:${cl};font-size:32px;">${eag} mg/dL</div><div style="font-size:14px;font-weight:600;color:${cl};">${s} (A1C ${a}%)</div></div>`;}
+
+// ═══════ SETTINGS ═══════
+function renderSettings(c){
+  setPageTitle('Settings');
+  c.innerHTML=`<h3 style="margin-bottom:16px;">System Settings</h3>
+    <div class="form-group" style="margin-bottom:16px;max-width:300px;"><label>Current Role</label><select onchange="db.currentRole=this.value;saveDB();document.getElementById('roleBadge').textContent=this.options[this.selectedIndex].text;render();"><option value="admin" ${db.currentRole==='admin'?'selected':''}>Agency Admin</option><option value="provider" ${db.currentRole==='provider'?'selected':''}>Provider</option><option value="staff" ${db.currentRole==='staff'?'selected':''}>Staff</option></select></div>
+    <div class="section-title">Data Management</div>
+    <div class="btn-group" style="margin-bottom:16px;">
+      <button class="btn btn-danger" onclick="if(confirm('Reset all data?')){localStorage.removeItem('${DB_KEY}');seedDB();render();alert('Done!')}">🔄 Reset Demo Data</button>
+      <button class="btn btn-ghost" onclick="exportData()">📥 Export JSON</button>
+    </div>
+    <div class="section-title">AI/LLM Configuration</div>
+    <p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-bottom:12px;">Transcription → AI auto-SOAP generation pipeline. Each note type will have its own prompt template that the LLM uses to structure the transcribed conversation into the appropriate format. The AI engine processes the full appointment transcription, identifies speakers (doctor vs patient vs guest), and auto-populates SOAP sections for physician review → one-click Approve & Sign.</p>
+    <div class="section-title">System Info</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:2;">
+      <div>Version: 2.0.0</div>
+      <div>Storage: ${(JSON.stringify(db).length/1024).toFixed(1)} KB</div>
+      <div>Patients: ${db.patients.length} | Providers: ${db.providers.length} | Practices: ${db.practices.length}</div>
+      <div>Encounters: ${db.encounters.length} | Rx: ${db.prescriptions.length} | Labs: ${db.labOrders.length}</div>
+    </div>`;
+}
+function exportData(){const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='amor-emr-backup.json';a.click();}
+
+// ═══════ MODAL SYSTEM ═══════
+function showModal(html,large){
+  const o=document.createElement('div');o.className='modal-overlay';o.onclick=e=>{if(e.target===o)closeModal();};
+  const m=document.createElement('div');m.className='modal'+(large?' large':'');m.innerHTML=html;o.appendChild(m);document.body.appendChild(o);modalStack.push(o);
+}
+function closeModal(){const m=modalStack.pop();if(m)m.remove();}
+
+// ═══════ NEW PATIENT ═══════
+function showNewPatientModal(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Patient</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>First Name *</label><input id="npF"></div>
+      <div class="form-group"><label>Last Name *</label><input id="npL"></div>
+      <div class="form-group"><label>Date of Birth *</label><input type="date" id="npD"></div>
+      <div class="form-group"><label>Gender *</label><select id="npG"><option>Male</option><option>Female</option><option>Other</option></select></div>
+      <div class="form-group"><label>Phone</label><input id="npPh"></div>
+      <div class="form-group"><label>Email</label><input id="npEm"></div>
+    </div>
+    <div class="section-title">Address</div>
+    <div class="form-grid-4">
+      <div class="form-group" style="grid-column:span 2"><label>Street</label><input id="npSt"></div>
+      <div class="form-group"><label>City</label><input id="npCi"></div>
+      <div class="form-group"><label>State</label><input id="npSa" maxlength="2" placeholder="FL"></div>
+      <div class="form-group"><label>Zip</label><input id="npZi" maxlength="5"></div>
+    </div>
+    <div class="section-title">Insurance</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Primary Insurance</label><input id="npI1"></div>
+      <div class="form-group"><label>Primary ID</label><input id="npI1d"></div>
+      <div class="form-group"><label>Secondary Insurance</label><input id="npI2"></div>
+      <div class="form-group"><label>Secondary ID</label><input id="npI2d"></div>
+    </div>
+    <div class="section-title">Pharmacy</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Pharmacy Name & Address</label><input id="npRx"></div>
+      <div class="form-group"><label>Pharmacy Phone</label><input id="npRxP"></div>
+    </div>
+    <div class="section-title">Emergency Contact</div>
+    <div class="form-grid-3">
+      <div class="form-group"><label>Name</label><input id="npEn"></div>
+      <div class="form-group"><label>Phone</label><input id="npEp"></div>
+      <div class="form-group"><label>Relationship</label><input id="npEr"></div>
+    </div>
+    <div class="section-title">Care Assignment</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Practice *</label><select id="npPr">${db.practices.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Provider *</label><select id="npPv">${db.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createPatient()">Create Patient</button></div>`, true);
+}
+function createPatient(){
+  const p={id:genId(),firstName:document.getElementById('npF').value,lastName:document.getElementById('npL').value,dob:document.getElementById('npD').value,gender:document.getElementById('npG').value,phone:document.getElementById('npPh').value,email:document.getElementById('npEm').value,street:document.getElementById('npSt').value,city:document.getElementById('npCi').value,state:document.getElementById('npSa').value,zip:document.getElementById('npZi').value,insurancePrimary:document.getElementById('npI1').value,insuranceId:document.getElementById('npI1d').value,insuranceSecondary:document.getElementById('npI2').value,insuranceSecondaryId:document.getElementById('npI2d').value,pharmacy:document.getElementById('npRx').value,pharmacyPhone:document.getElementById('npRxP').value,emergencyName:document.getElementById('npEn').value,emergencyPhone:document.getElementById('npEp').value,emergencyRelation:document.getElementById('npEr').value,practiceId:document.getElementById('npPr').value,providerId:document.getElementById('npPv').value,allergies:[],pmh:[],createdAt:new Date().toISOString()};
+  if(!p.firstName||!p.lastName){alert('Name required');return;}
+  db.patients.push(p);saveDB();closeModal();render();
+}
+
+// ═══════ EDIT PATIENT ═══════
+function editPatientModal(id){
+  const p=db.patients.find(x=>x.id===id);if(!p)return;
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Edit — ${p.firstName} ${p.lastName}</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>First Name</label><input id="epF" value="${p.firstName}"></div>
+      <div class="form-group"><label>Last Name</label><input id="epL" value="${p.lastName}"></div>
+      <div class="form-group"><label>DOB</label><input type="date" id="epD" value="${p.dob}"></div>
+      <div class="form-group"><label>Gender</label><select id="epG"><option ${p.gender==='Male'?'selected':''}>Male</option><option ${p.gender==='Female'?'selected':''}>Female</option><option ${p.gender==='Other'?'selected':''}>Other</option></select></div>
+      <div class="form-group"><label>Phone</label><input id="epPh" value="${p.phone||''}"></div>
+      <div class="form-group"><label>Email</label><input id="epEm" value="${p.email||''}"></div>
+    </div>
+    <div class="section-title">Address</div>
+    <div class="form-grid-4">
+      <div class="form-group" style="grid-column:span 2"><label>Street</label><input id="epSt" value="${p.street||''}"></div>
+      <div class="form-group"><label>City</label><input id="epCi" value="${p.city||''}"></div>
+      <div class="form-group"><label>State</label><input id="epSa" value="${p.state||''}"></div>
+      <div class="form-group"><label>Zip</label><input id="epZi" value="${p.zip||''}"></div>
+    </div>
+    <div class="section-title">Insurance</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Primary</label><input id="epI1" value="${p.insurancePrimary||''}"></div>
+      <div class="form-group"><label>Primary ID</label><input id="epI1d" value="${p.insuranceId||''}"></div>
+      <div class="form-group"><label>Secondary</label><input id="epI2" value="${p.insuranceSecondary||''}"></div>
+      <div class="form-group"><label>Secondary ID</label><input id="epI2d" value="${p.insuranceSecondaryId||''}"></div>
+    </div>
+    <div class="section-title">Pharmacy</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Pharmacy</label><input id="epRx" value="${p.pharmacy||''}"></div>
+      <div class="form-group"><label>Pharmacy Phone</label><input id="epRxP" value="${p.pharmacyPhone||''}"></div>
+    </div>
+    <div class="section-title">Emergency Contact</div>
+    <div class="form-grid-3">
+      <div class="form-group"><label>Name</label><input id="epEn" value="${p.emergencyName||''}"></div>
+      <div class="form-group"><label>Phone</label><input id="epEp" value="${p.emergencyPhone||''}"></div>
+      <div class="form-group"><label>Relationship</label><input id="epEr" value="${p.emergencyRelation||''}"></div>
+    </div>
+    <div class="section-title">Care</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Practice</label><select id="epPr">${db.practices.map(pr=>`<option value="${pr.id}" ${pr.id===p.practiceId?'selected':''}>${pr.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Provider</label><select id="epPv">${db.providers.map(pv=>`<option value="${pv.id}" ${pv.id===p.providerId?'selected':''}>${pv.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="savePatientEdit('${id}')">Save</button></div>`, true);
+}
+function savePatientEdit(id){
+  const p=db.patients.find(x=>x.id===id);if(!p)return;
+  p.firstName=document.getElementById('epF').value;p.lastName=document.getElementById('epL').value;p.dob=document.getElementById('epD').value;p.gender=document.getElementById('epG').value;p.phone=document.getElementById('epPh').value;p.email=document.getElementById('epEm').value;p.street=document.getElementById('epSt').value;p.city=document.getElementById('epCi').value;p.state=document.getElementById('epSa').value;p.zip=document.getElementById('epZi').value;p.insurancePrimary=document.getElementById('epI1').value;p.insuranceId=document.getElementById('epI1d').value;p.insuranceSecondary=document.getElementById('epI2').value;p.insuranceSecondaryId=document.getElementById('epI2d').value;p.pharmacy=document.getElementById('epRx').value;p.pharmacyPhone=document.getElementById('epRxP').value;p.emergencyName=document.getElementById('epEn').value;p.emergencyPhone=document.getElementById('epEp').value;p.emergencyRelation=document.getElementById('epEr').value;p.practiceId=document.getElementById('epPr').value;p.providerId=document.getElementById('epPv').value;
+  saveDB();closeModal();if(selectedPatient&&selectedPatient.id===id)selectedPatient=p;render();
+}
+
+// ═══════ NEW PROVIDER ═══════
+function showNewProviderModal(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Provider</h3><div class="form-grid"><div class="form-group full"><label>Full Name *</label><input id="nvN"></div><div class="form-group"><label>NPI</label><input id="nvNp"></div><div class="form-group"><label>DEA</label><input id="nvDe"></div><div class="form-group"><label>Specialty *</label><input id="nvSp"></div><div class="form-group"><label>License</label><input id="nvLi"></div><div class="form-group"><label>Practice *</label><select id="nvPr">${db.practices.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div></div><div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createProvider()">Create</button></div>`);
+}
+function createProvider(){const p={id:genId(),name:document.getElementById('nvN').value,npi:document.getElementById('nvNp').value,dea:document.getElementById('nvDe').value,specialty:document.getElementById('nvSp').value,license:document.getElementById('nvLi').value,practiceId:document.getElementById('nvPr').value,role:'provider',createdAt:new Date().toISOString()};if(!p.name){alert('Name required');return;}db.providers.push(p);saveDB();closeModal();render();}
+function editProviderModal(id){const p=db.providers.find(x=>x.id===id);if(!p)return;showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Edit — ${p.name}</h3><div class="form-grid"><div class="form-group full"><label>Name</label><input id="evN" value="${p.name}"></div><div class="form-group"><label>NPI</label><input id="evNp" value="${p.npi||''}"></div><div class="form-group"><label>DEA</label><input id="evDe" value="${p.dea||''}"></div><div class="form-group"><label>Specialty</label><input id="evSp" value="${p.specialty||''}"></div><div class="form-group"><label>License</label><input id="evLi" value="${p.license||''}"></div><div class="form-group"><label>Practice</label><select id="evPr">${db.practices.map(pr=>`<option value="${pr.id}" ${pr.id===p.practiceId?'selected':''}>${pr.name}</option>`).join('')}</select></div></div><div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveProviderEdit('${id}')">Save</button></div>`);
+}
+function saveProviderEdit(id){const p=db.providers.find(x=>x.id===id);if(!p)return;p.name=document.getElementById('evN').value;p.npi=document.getElementById('evNp').value;p.dea=document.getElementById('evDe').value;p.specialty=document.getElementById('evSp').value;p.license=document.getElementById('evLi').value;p.practiceId=document.getElementById('evPr').value;saveDB();closeModal();render();}
+
+// ═══════ NEW PRACTICE ═══════
+function showNewPracticeModal(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Practice</h3><div class="form-grid"><div class="form-group full"><label>Name *</label><input id="nrN"></div><div class="form-group full"><label>Street</label><input id="nrSt"></div><div class="form-group"><label>City</label><input id="nrCi"></div><div class="form-group"><label>State</label><input id="nrSa" maxlength="2"></div><div class="form-group"><label>Zip</label><input id="nrZi"></div><div class="form-group"><label>Phone</label><input id="nrPh"></div><div class="form-group"><label>NPI</label><input id="nrNp"></div><div class="form-group"><label>Tax ID</label><input id="nrTx"></div><div class="form-group"><label>Specialty *</label><input id="nrSp"></div></div><div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createPractice()">Create</button></div>`);
+}
+function createPractice(){const p={id:genId(),name:document.getElementById('nrN').value,street:document.getElementById('nrSt').value,city:document.getElementById('nrCi').value,state:document.getElementById('nrSa').value,zip:document.getElementById('nrZi').value,phone:document.getElementById('nrPh').value,npi:document.getElementById('nrNp').value,taxId:document.getElementById('nrTx').value,specialty:document.getElementById('nrSp').value,createdAt:new Date().toISOString()};if(!p.name){alert('Name required');return;}db.practices.push(p);saveDB();closeModal();render();}
+function editPracticeModal(id){const p=db.practices.find(x=>x.id===id);if(!p)return;showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Edit — ${p.name}</h3><div class="form-grid"><div class="form-group full"><label>Name</label><input id="erN" value="${p.name}"></div><div class="form-group full"><label>Street</label><input id="erSt" value="${p.street||''}"></div><div class="form-group"><label>City</label><input id="erCi" value="${p.city||''}"></div><div class="form-group"><label>State</label><input id="erSa" value="${p.state||''}"></div><div class="form-group"><label>Zip</label><input id="erZi" value="${p.zip||''}"></div><div class="form-group"><label>Phone</label><input id="erPh" value="${p.phone||''}"></div><div class="form-group"><label>NPI</label><input id="erNp" value="${p.npi||''}"></div><div class="form-group"><label>Tax ID</label><input id="erTx" value="${p.taxId||''}"></div><div class="form-group"><label>Specialty</label><input id="erSp" value="${p.specialty||''}"></div></div><div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="savePracticeEdit('${id}')">Save</button></div>`);
+}
+function savePracticeEdit(id){const p=db.practices.find(x=>x.id===id);if(!p)return;p.name=document.getElementById('erN').value;p.street=document.getElementById('erSt').value;p.city=document.getElementById('erCi').value;p.state=document.getElementById('erSa').value;p.zip=document.getElementById('erZi').value;p.phone=document.getElementById('erPh').value;p.npi=document.getElementById('erNp').value;p.taxId=document.getElementById('erTx').value;p.specialty=document.getElementById('erSp').value;saveDB();closeModal();render();}
+
+// ═══════ NEW ENCOUNTER ═══════
+function showNewEncounterModal(patientId){
+  const patOpts=db.patients.map(p=>`<option value="${p.id}" ${p.id===patientId?'selected':''}>${p.firstName} ${p.lastName}</option>`).join('');
+  const pvOpts=db.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const ntOpts=db.noteTypes.map(n=>`<option>${n}</option>`).join('');
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Encounter</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Patient *</label><select id="neP">${patOpts}</select></div>
+      <div class="form-group"><label>Provider *</label><select id="nePv">${pvOpts}</select></div>
+      <div class="form-group"><label>Date *</label><input type="date" id="neD" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="form-group"><label>Encounter Type *</label><select id="neT"><option value="in-office">🏥 In-Office</option><option value="telehealth">💻 Telehealth</option><option value="phone">📞 Phone</option></select></div>
+      <div class="form-group"><label>Note Type *</label><select id="neNT">${ntOpts}</select></div>
+      <div class="form-group"><label>Chief Complaint *</label><input id="neCC"></div>
+    </div>
+    <div class="section-title">Vitals</div>
+    <div class="vitals-grid">
+      <div class="vital-box"><div class="vital-label">BP</div><input id="neBP" placeholder="120/80"></div>
+      <div class="vital-box"><div class="vital-label">HR</div><input id="neHR" placeholder="72"></div>
+      <div class="vital-box"><div class="vital-label">Temp °F</div><input id="neTp" placeholder="98.6"></div>
+      <div class="vital-box"><div class="vital-label">SpO2 %</div><input id="neO2" placeholder="99"></div>
+      <div class="vital-box"><div class="vital-label">Wt lbs</div><input id="neWt" placeholder="185"></div>
+      <div class="vital-box"><div class="vital-label">Ht in</div><input id="neHt" placeholder="70"></div>
+    </div>
+    <div class="section-title" style="display:flex;align-items:center;gap:12px;">
+      SOAP Note
+      <button class="mic-main idle" id="mainMic" onclick="toggleMainMic()" title="Record full appointment">🎙️</button>
+      <span id="micStatus" style="font-size:11px;color:var(--text-dim);"></span>
+    </div>
+    <div class="soap-section soap-s"><div style="display:flex;align-items:center;gap:8px;"><div class="soap-label">S — Subjective</div><button class="mic-btn" onclick="dictateField('neS')" title="Dictate">🎙️</button></div><textarea id="neS" rows="3" placeholder="Patient's reported symptoms..."></textarea></div>
+    <div class="soap-section soap-o"><div style="display:flex;align-items:center;gap:8px;"><div class="soap-label">O — Objective</div><button class="mic-btn" onclick="dictateField('neO')" title="Dictate">🎙️</button></div><textarea id="neO" rows="3" placeholder="Physical exam findings..."></textarea></div>
+    <div class="soap-section soap-a"><div style="display:flex;align-items:center;gap:8px;"><div class="soap-label">A — Assessment</div><button class="mic-btn" onclick="dictateField('neA')" title="Dictate">🎙️</button></div><textarea id="neA" rows="2" placeholder="Diagnosis / clinical impression..."></textarea></div>
+    <div class="soap-section soap-p"><div style="display:flex;align-items:center;gap:8px;"><div class="soap-label">P — Plan</div><button class="mic-btn" onclick="dictateField('nePl')" title="Dictate">🎙️</button></div><textarea id="nePl" rows="3" placeholder="Treatment plan..."></textarea></div>
+    <div class="form-grid" style="margin-top:12px;">
+      <div class="form-group"><label>ICD-10</label><input id="neICD"></div>
+      <div class="form-group"><label>CPT Code</label><input id="neCPT"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-ghost" onclick="createEncounter('draft')">Save Draft</button>
+      <button class="btn btn-accent" onclick="createEncounter('signed')">✅ Approve & Sign</button>
+    </div>`, true);
+}
+
+// MIC - Main full appointment recording
+let mainRecognition=null,isMainRecording=false,mainTranscript='';
+function toggleMainMic(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){alert('Use Chrome for speech recognition');return;}
+  if(isMainRecording){stopMainMic();return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  mainRecognition=new SR();mainRecognition.continuous=true;mainRecognition.interimResults=true;mainRecognition.lang='en-US';
+  mainTranscript='';
+  mainRecognition.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) mainTranscript+=e.results[i][0].transcript+' ';
+      else interim+=e.results[i][0].transcript;
+    }
+    // Auto-distribute to Subjective as default during recording
+    const el=document.getElementById('neS');
+    if(el) el.value=mainTranscript+interim;
+  };
+  mainRecognition.onerror=e=>{document.getElementById('micStatus').textContent='Error: '+e.error;stopMainMic();};
+  mainRecognition.onend=()=>{if(isMainRecording)mainRecognition.start();};
+  mainRecognition.start();
+  isMainRecording=true;
+  document.getElementById('mainMic').classList.remove('idle');
+  document.getElementById('mainMic').classList.add('recording');
+  document.getElementById('micStatus').textContent='🔴 Recording full appointment... Transcript goes to Subjective. Edit & distribute to other SOAP fields when done.';
+}
+function stopMainMic(){
+  if(mainRecognition)mainRecognition.stop();
+  isMainRecording=false;
+  const btn=document.getElementById('mainMic');
+  if(btn){btn.classList.remove('recording');btn.classList.add('idle');}
+  const st=document.getElementById('micStatus');
+  if(st) st.textContent='Recording stopped. Review and distribute text to SOAP sections. AI auto-populate coming soon.';
+}
+
+// MIC - Per-field dictation
+let fieldRecognition=null,isFieldRecording=false;
+function dictateField(fieldId){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){alert('Use Chrome');return;}
+  // Stop any existing field recording
+  if(isFieldRecording&&activeFieldDictation){
+    stopFieldDictation();
+    if(activeFieldDictation===fieldId) return; // Toggle off
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  fieldRecognition=new SR();fieldRecognition.continuous=true;fieldRecognition.interimResults=true;fieldRecognition.lang='en-US';
+  activeFieldDictation=fieldId;
+  let transcript=document.getElementById(fieldId).value;
+  const startLen=transcript.length;
+  fieldRecognition.onresult=e=>{
+    let added='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) added+=e.results[i][0].transcript+' ';
+    }
+    document.getElementById(fieldId).value=transcript+added;
+    transcript=transcript+added;
+  };
+  fieldRecognition.onerror=()=>stopFieldDictation();
+  fieldRecognition.onend=()=>{if(isFieldRecording&&activeFieldDictation===fieldId)fieldRecognition.start();};
+  fieldRecognition.start();
+  isFieldRecording=true;
+  // Visual: highlight the mic button (find closest)
+  event.target.classList.add('recording');
+}
+function stopFieldDictation(){
+  if(fieldRecognition)fieldRecognition.stop();
+  isFieldRecording=false;
+  document.querySelectorAll('.mic-btn.recording').forEach(b=>b.classList.remove('recording'));
+  activeFieldDictation=null;
+}
+
+function createEncounter(status){
+  const pat=db.patients.find(p=>p.id===document.getElementById('neP').value);
+  const e={id:genId(),patientId:document.getElementById('neP').value,providerId:document.getElementById('nePv').value,practiceId:pat?pat.practiceId:db.practices[0].id,date:document.getElementById('neD').value,type:document.getElementById('neT').value,noteType:document.getElementById('neNT').value,chiefComplaint:document.getElementById('neCC').value,subjective:document.getElementById('neS').value,objective:document.getElementById('neO').value,assessment:document.getElementById('neA').value,plan:document.getElementById('nePl').value,vitals:{bp:document.getElementById('neBP').value,hr:document.getElementById('neHR').value,temp:document.getElementById('neTp').value,spo2:document.getElementById('neO2').value,weight:document.getElementById('neWt').value,height:document.getElementById('neHt').value},icd10:document.getElementById('neICD').value,cpt:document.getElementById('neCPT').value,status:status,signedAt:status==='signed'?new Date().toISOString():null};
+  if(!e.chiefComplaint){alert('Chief complaint required');return;}
+  if(isMainRecording)stopMainMic();if(isFieldRecording)stopFieldDictation();
+  db.encounters.push(e);saveDB();closeModal();render();
+}
+
+function editEncounterModal(id){
+  const e=db.encounters.find(x=>x.id===id);if(!e)return;closeModal();const v=e.vitals||{};
+  const ntOpts=db.noteTypes.map(n=>`<option ${n===e.noteType?'selected':''}>${n}</option>`).join('');
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Edit Encounter</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Date</label><input type="date" id="eeD" value="${e.date}"></div>
+      <div class="form-group"><label>Type</label><select id="eeT"><option value="in-office" ${e.type==='in-office'?'selected':''}>🏥 In-Office</option><option value="telehealth" ${e.type==='telehealth'?'selected':''}>💻 Telehealth</option><option value="phone" ${e.type==='phone'?'selected':''}>📞 Phone</option></select></div>
+      <div class="form-group"><label>Note Type</label><select id="eeNT">${ntOpts}</select></div>
+      <div class="form-group"><label>Chief Complaint</label><input id="eeCC" value="${e.chiefComplaint||''}"></div>
+    </div>
+    <div class="vitals-grid">
+      <div class="vital-box"><div class="vital-label">BP</div><input id="eeBP" value="${v.bp||''}"></div>
+      <div class="vital-box"><div class="vital-label">HR</div><input id="eeHR" value="${v.hr||''}"></div>
+      <div class="vital-box"><div class="vital-label">Temp</div><input id="eeTp" value="${v.temp||''}"></div>
+      <div class="vital-box"><div class="vital-label">SpO2</div><input id="eeO2" value="${v.spo2||''}"></div>
+      <div class="vital-box"><div class="vital-label">Wt</div><input id="eeWt" value="${v.weight||''}"></div>
+      <div class="vital-box"><div class="vital-label">Ht</div><input id="eeHt" value="${v.height||''}"></div>
+    </div>
+    <div class="soap-section soap-s"><div class="soap-label">S</div><textarea id="eeS" rows="3">${e.subjective||''}</textarea></div>
+    <div class="soap-section soap-o"><div class="soap-label">O</div><textarea id="eeO" rows="3">${e.objective||''}</textarea></div>
+    <div class="soap-section soap-a"><div class="soap-label">A</div><textarea id="eeA" rows="2">${e.assessment||''}</textarea></div>
+    <div class="soap-section soap-p"><div class="soap-label">P</div><textarea id="eePl" rows="3">${e.plan||''}</textarea></div>
+    <div class="form-grid"><div class="form-group"><label>ICD-10</label><input id="eeICD" value="${e.icd10||''}"></div><div class="form-group"><label>CPT</label><input id="eeCPT" value="${e.cpt||''}"></div></div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveEncounterEdit('${id}')">Save</button></div>`, true);
+}
+function saveEncounterEdit(id){
+  const e=db.encounters.find(x=>x.id===id);if(!e)return;
+  e.date=document.getElementById('eeD').value;e.type=document.getElementById('eeT').value;e.noteType=document.getElementById('eeNT').value;e.chiefComplaint=document.getElementById('eeCC').value;
+  e.vitals={bp:document.getElementById('eeBP').value,hr:document.getElementById('eeHR').value,temp:document.getElementById('eeTp').value,spo2:document.getElementById('eeO2').value,weight:document.getElementById('eeWt').value,height:document.getElementById('eeHt').value};
+  e.subjective=document.getElementById('eeS').value;e.objective=document.getElementById('eeO').value;e.assessment=document.getElementById('eeA').value;e.plan=document.getElementById('eePl').value;
+  e.icd10=document.getElementById('eeICD').value;e.cpt=document.getElementById('eeCPT').value;
+  saveDB();closeModal();render();
+}
+
+// ═══════ NEW PRESCRIPTION ═══════
+function showNewPrescriptionModal(patientId){
+  const patOpts=db.patients.map(p=>`<option value="${p.id}" ${p.id===patientId?'selected':''}>${p.firstName} ${p.lastName}</option>`).join('');
+  const pvOpts=db.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const medOpts=db.medications.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Prescription</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Patient *</label><select id="nxP">${patOpts}</select></div>
+      <div class="form-group"><label>Prescriber *</label><select id="nxPv">${pvOpts}</select></div>
+      <div class="form-group"><label>Medication *</label><select id="nxM" onchange="updateDose()"><option value="">Select...</option>${medOpts}</select></div>
+      <div class="form-group"><label>Dose *</label><select id="nxD"><option>Select med first</option></select></div>
+      <div class="form-group"><label>Frequency *</label><select id="nxF"><option>QD</option><option>BID</option><option>TID</option><option>QID</option><option>QHS</option><option>PRN</option><option>BID PRN</option><option>Q4H</option><option>Q6H</option><option>Q8H</option><option>Q12H</option><option>QWeek</option><option>QMonth</option></select></div>
+      <div class="form-group"><label>Route *</label><select id="nxR"><option>Oral</option><option>Subcutaneous</option><option>Intramuscular</option><option>IV</option><option>Inhalation</option><option>Topical</option><option>Transdermal</option><option>Rectal</option><option>Ophthalmic</option><option>Otic</option></select></div>
+      <div class="form-group"><label>Quantity *</label><input type="number" id="nxQ" value="30"></div>
+      <div class="form-group"><label>Refills</label><input type="number" id="nxRf" value="0" min="0" max="11"></div>
+      <div class="form-group"><label>DAW</label><select id="nxDaw"><option value="false">No</option><option value="true">Yes — brand only</option></select></div>
+      <div class="form-group full"><label>Sig (Directions) *</label><input id="nxSig" placeholder="Take 1 tablet by mouth twice daily with meals"></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createPrescription()">Write Rx</button></div>`);
+}
+function updateDose(){const n=document.getElementById('nxM').value;const m=db.medications.find(x=>x.name===n);const s=document.getElementById('nxD');s.innerHTML=m?m.doses.map(d=>`<option>${d}</option>`).join(''):'<option>Select med</option>';if(m)document.getElementById('nxR').value=m.routes[0]||'Oral';}
+function createPrescription(){
+  const d=document.getElementById('nxD').value;const dm=d.match(/^([\d.]+)\s*(\w+)$/);
+  const rx={id:genId(),patientId:document.getElementById('nxP').value,providerId:document.getElementById('nxPv').value,medication:document.getElementById('nxM').value,dose:dm?dm[1]:d,unit:dm?dm[2]:'',frequency:document.getElementById('nxF').value,route:document.getElementById('nxR').value,quantity:+document.getElementById('nxQ').value||30,refills:+document.getElementById('nxRf').value||0,daw:document.getElementById('nxDaw').value==='true',sig:document.getElementById('nxSig').value,status:'active',writtenDate:new Date().toISOString().split('T')[0]};
+  if(!rx.medication||!rx.sig){alert('Medication and Sig required');return;}
+  db.prescriptions.push(rx);saveDB();closeModal();render();
+}
+function editPrescription(id){
+  const rx=db.prescriptions.find(x=>x.id===id);if(!rx)return;
+  const medOpts=db.medications.map(m=>`<option value="${m.name}" ${m.name===rx.medication?'selected':''}>${m.name}</option>`).join('');
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Edit Rx</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Medication</label><select id="exM">${medOpts}</select></div>
+      <div class="form-group"><label>Dose</label><input id="exD" value="${rx.dose}${rx.unit}"></div>
+      <div class="form-group"><label>Frequency</label><select id="exF">${['QD','BID','TID','QID','QHS','PRN','BID PRN','Q4H','Q6H','Q8H','Q12H','QWeek','QMonth'].map(f=>`<option ${f===rx.frequency?'selected':''}>${f}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Route</label><select id="exR">${['Oral','Subcutaneous','Intramuscular','IV','Inhalation','Topical','Transdermal'].map(r=>`<option ${r===rx.route?'selected':''}>${r}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Quantity</label><input type="number" id="exQ" value="${rx.quantity}"></div>
+      <div class="form-group"><label>Refills</label><input type="number" id="exRf" value="${rx.refills}"></div>
+      <div class="form-group"><label>DAW</label><select id="exDaw"><option value="false" ${!rx.daw?'selected':''}>No</option><option value="true" ${rx.daw?'selected':''}>Yes</option></select></div>
+      <div class="form-group"><label>Status</label><select id="exSt"><option ${rx.status==='active'?'selected':''}>active</option><option ${rx.status==='discontinued'?'selected':''}>discontinued</option><option ${rx.status==='completed'?'selected':''}>completed</option></select></div>
+      <div class="form-group full"><label>Sig</label><input id="exSig" value="${rx.sig}"></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveRxEdit('${id}')">Save</button></div>`);
+}
+function saveRxEdit(id){const rx=db.prescriptions.find(x=>x.id===id);if(!rx)return;rx.medication=document.getElementById('exM').value;const d=document.getElementById('exD').value;const dm=d.match(/^([\d.]+)\s*(\w*)$/);rx.dose=dm?dm[1]:d;rx.unit=dm?dm[2]:'';rx.frequency=document.getElementById('exF').value;rx.route=document.getElementById('exR').value;rx.quantity=+document.getElementById('exQ').value;rx.refills=+document.getElementById('exRf').value;rx.daw=document.getElementById('exDaw').value==='true';rx.status=document.getElementById('exSt').value;rx.sig=document.getElementById('exSig').value;saveDB();closeModal();render();}
+
+// ═══════ NEW LAB ORDER ═══════
+function showNewLabModal(){
+  const patOpts=db.patients.map(p=>`<option value="${p.id}">${p.firstName} ${p.lastName}</option>`).join('');
+  const pvOpts=db.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Lab Order</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Patient *</label><select id="nlP">${patOpts}</select></div>
+      <div class="form-group"><label>Ordering Provider *</label><select id="nlPv">${pvOpts}</select></div>
+      <div class="form-group"><label>Lab Vendor *</label><select id="nlV"><option>Quest Diagnostics</option><option>LabCorp</option><option>In-House</option><option>Other</option></select></div>
+      <div class="form-group"><label>ICD-10</label><input id="nlICD"></div>
+      <div class="form-group full"><label>Tests (comma-separated) *</label><input id="nlT" placeholder="CBC, CMP, A1C, Lipid Panel"></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createLabOrder()">Order Labs</button></div>`);
+}
+function createLabOrder(){
+  const l={id:genId(),patientId:document.getElementById('nlP').value,providerId:document.getElementById('nlPv').value,vendor:document.getElementById('nlV').value,tests:document.getElementById('nlT').value.split(',').map(t=>t.trim()).filter(Boolean),orderedDate:new Date().toISOString().split('T')[0],status:'pending',results:'',icd10:document.getElementById('nlICD').value};
+  if(!l.tests.length){alert('Tests required');return;}
+  db.labOrders.push(l);saveDB();closeModal();render();
+}
+
+// ═══════ NEW INTEGRATION ═══════
+function showNewIntegrationModal(){
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Add Integration</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Name *</label><input id="niN"></div>
+      <div class="form-group"><label>Type *</label><select id="niT"><option value="lab">Lab Vendor</option><option value="escript">E-Prescribing</option><option value="crm">CRM</option><option value="billing">Billing</option><option value="ehr">EHR/FHIR</option><option value="custom">Custom API</option></select></div>
+      <div class="form-group"><label>API Endpoint</label><input id="niE" placeholder="https://api.vendor.com/v1"></div>
+      <div class="form-group"><label>API Key</label><input id="niK" type="password"></div>
+      <div class="form-group full"><label>Notes</label><input id="niNo"></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createIntegration()">Add</button></div>`);
+}
+function createIntegration(){
+  const i={id:genId(),name:document.getElementById('niN').value,type:document.getElementById('niT').value,status:'configured',apiKey:document.getElementById('niK').value,endpoint:document.getElementById('niE').value,notes:document.getElementById('niNo').value};
+  if(!i.name){alert('Name required');return;}
+  db.integrations.push(i);saveDB();closeModal();render();
+}
+
+// ═══════ NEW CALCULATORS ═══════
+function openCalcHOMA(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>HOMA-IR — Insulin Resistance</h3><div class="form-grid"><div class="form-group"><label>Fasting Insulin (µU/mL)</label><input type="number" step="0.1" id="homaI"></div><div class="form-group"><label>Fasting Glucose (mg/dL)</label><input type="number" id="homaG"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcHOMA()">Calculate</button></div><div id="homaR"></div>`);}
+function calcHOMA(){const i=+document.getElementById('homaI').value,g=+document.getElementById('homaG').value;if(!i||!g)return;const h=(i*g/405).toFixed(2);let s='Normal (insulin sensitive)',cl='var(--accent)';if(h>=2.5){s='Insulin Resistant';cl='var(--danger)';}else if(h>=1.9){s='Early insulin resistance';cl='var(--warning)';}document.getElementById('homaR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">HOMA-IR</div><div class="vital-value" style="color:${cl};font-size:32px;">${h}</div><div style="font-size:14px;font-weight:600;color:${cl};">${s}</div><div style="font-size:11px;color:var(--text-dim);">Normal <1.0 | Cutoff ≥2.5</div></div>`;}
+
+function openCalcBW(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Burch-Wartofsky Point Scale — Thyroid Storm</h3>
+  <div class="form-group" style="margin-bottom:8px;"><label>Temperature</label><select id="bwT"><option value="0">99-99.9°F</option><option value="5">100-100.9°F</option><option value="10">101-101.9°F</option><option value="15">102-102.9°F</option><option value="20">103-103.9°F</option><option value="25">≥104°F</option></select></div>
+  <div class="form-group" style="margin-bottom:8px;"><label>Heart Rate</label><select id="bwHR"><option value="0"><90</option><option value="5">90-109</option><option value="10">110-119</option><option value="15">120-129</option><option value="20">130-139</option><option value="25">≥140</option></select></div>
+  <div class="form-group" style="margin-bottom:8px;"><label>CNS Effects</label><select id="bwCNS"><option value="0">Absent</option><option value="10">Mild (agitation)</option><option value="20">Moderate (delirium, psychosis)</option><option value="30">Severe (seizure, coma)</option></select></div>
+  <div class="form-group" style="margin-bottom:8px;"><label>GI-Hepatic</label><select id="bwGI"><option value="0">Absent</option><option value="10">Moderate (diarrhea, N/V, pain)</option><option value="20">Severe (jaundice)</option></select></div>
+  <div class="form-group" style="margin-bottom:8px;"><label>Heart Failure</label><select id="bwHF"><option value="0">Absent</option><option value="5">Mild (edema)</option><option value="10">Moderate (rales)</option><option value="15">Severe (pulm edema)</option></select></div>
+  <div class="form-group" style="margin-bottom:8px;"><label>Atrial Fibrillation</label><select id="bwAF"><option value="0">Absent</option><option value="10">Present</option></select></div>
+  <div class="form-group" style="margin-bottom:8px;"><label>Precipitating Event</label><select id="bwPE"><option value="0">Absent</option><option value="10">Present</option></select></div>
+  <div class="form-actions"><button class="btn btn-primary" onclick="calcBW()">Calculate</button></div><div id="bwR"></div>`);}
+function calcBW(){const t=+document.getElementById('bwT').value+Number(document.getElementById('bwHR').value)+Number(document.getElementById('bwCNS').value)+Number(document.getElementById('bwGI').value)+Number(document.getElementById('bwHF').value)+Number(document.getElementById('bwAF').value)+Number(document.getElementById('bwPE').value);let s,cl;if(t>=45){s='Highly suggestive of thyroid storm';cl='var(--danger)';}else if(t>=25){s='Impending thyroid storm';cl='var(--warning)';}else{s='Thyroid storm unlikely';cl='var(--accent)';}document.getElementById('bwR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">Burch-Wartofsky Score</div><div class="vital-value" style="color:${cl};font-size:32px;">${t}</div><div style="font-size:14px;font-weight:600;color:${cl};">${s}</div><div style="font-size:11px;color:var(--text-dim);">&lt;25 unlikely | 25-44 impending | ≥45 storm</div></div>`;}
+
+function openCalcCPep(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>C-Peptide to Glucose Ratio</h3><div class="form-grid"><div class="form-group"><label>C-Peptide (ng/mL)</label><input type="number" step="0.01" id="cpC"></div><div class="form-group"><label>Blood Glucose (mg/dL)</label><input type="number" id="cpG"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcCPep()">Calculate</button></div><div id="cpR"></div>`);}
+function calcCPep(){const c=+document.getElementById('cpC').value,g=+document.getElementById('cpG').value;if(!c||!g)return;const r=(c/g).toFixed(4);let s='Normal beta cell function',cl='var(--accent)';if(r<0.01){s='Suggests exogenous insulin / low beta cell function';cl='var(--danger)';}document.getElementById('cpR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">C-Peptide:Glucose Ratio</div><div class="vital-value" style="color:${cl};font-size:32px;">${r}</div><div style="font-size:14px;font-weight:600;color:${cl};">${s}</div></div>`;}
+
+function openCalcNaCorr(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Sodium Correction for Hyperglycemia</h3><div class="form-grid"><div class="form-group"><label>Measured Na⁺ (mEq/L)</label><input type="number" id="ncNa"></div><div class="form-group"><label>Serum Glucose (mg/dL)</label><input type="number" id="ncGl"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcNaCorr()">Calculate</button></div><div id="ncR"></div>`);}
+function calcNaCorr(){const na=+document.getElementById('ncNa').value,gl=+document.getElementById('ncGl').value;if(!na||!gl)return;const corrNa=(na+1.6*((gl-100)/100)).toFixed(1);document.getElementById('ncR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">Corrected Na⁺</div><div class="vital-value" style="color:var(--primary);font-size:32px;">${corrNa} mEq/L</div><div style="font-size:11px;color:var(--text-dim);">Katz correction: Na + 1.6 × ((Glucose-100)/100)</div></div>`;}
+
+function openCalcSteroid(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Steroid Conversion Calculator</h3>
+  <div class="form-grid"><div class="form-group"><label>From Steroid</label><select id="stFrom"><option value="1">Hydrocortisone (1x)</option><option value="4">Prednisone (4x)</option><option value="4">Prednisolone (4x)</option><option value="5">Methylprednisolone (5x)</option><option value="5">Triamcinolone (5x)</option><option value="25">Dexamethasone (25x)</option><option value="25">Betamethasone (25x)</option></select></div>
+  <div class="form-group"><label>Dose (mg)</label><input type="number" step="0.1" id="stDose"></div>
+  <div class="form-group"><label>To Steroid</label><select id="stTo"><option value="1">Hydrocortisone (1x)</option><option value="4">Prednisone (4x)</option><option value="4">Prednisolone (4x)</option><option value="5">Methylprednisolone (5x)</option><option value="5">Triamcinolone (5x)</option><option value="25">Dexamethasone (25x)</option><option value="25">Betamethasone (25x)</option></select></div></div>
+  <div class="form-actions"><button class="btn btn-primary" onclick="calcSteroid()">Convert</button></div><div id="stR"></div>`);}
+function calcSteroid(){const from=+document.getElementById('stFrom').value,to=+document.getElementById('stTo').value,dose=+document.getElementById('stDose').value;if(!dose)return;const hydro=dose/from*20;const result=(hydro*to/20).toFixed(2);document.getElementById('stR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">Equivalent Dose</div><div class="vital-value" style="color:var(--primary);font-size:32px;">${result} mg</div><div style="font-size:11px;color:var(--text-dim);">Hydrocortisone equivalent: ${hydro.toFixed(1)} mg</div></div>`;}
+
+function openCalcAnionGap(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Anion Gap</h3><div class="form-grid"><div class="form-group"><label>Na⁺ (mEq/L)</label><input type="number" id="agNa"></div><div class="form-group"><label>Cl⁻ (mEq/L)</label><input type="number" id="agCl"></div><div class="form-group"><label>HCO₃⁻ (mEq/L)</label><input type="number" id="agHco"></div><div class="form-group"><label>Albumin (g/dL, optional)</label><input type="number" step="0.1" id="agAlb" value="4.0"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcAG()">Calculate</button></div><div id="agR"></div>`);}
+function calcAG(){const na=+document.getElementById('agNa').value,cl=+document.getElementById('agCl').value,hco=+document.getElementById('agHco').value,alb=+document.getElementById('agAlb').value;if(!na||!cl||!hco)return;const ag=na-cl-hco;const corrAG=alb?ag+2.5*(4.0-alb):ag;let s='Normal',c='var(--accent)';if(corrAG>12){s='Elevated — HAGMA';c='var(--danger)';}document.getElementById('agR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">Anion Gap</div><div class="vital-value" style="color:${c};font-size:32px;">${ag.toFixed(1)}</div><div style="font-size:14px;font-weight:600;color:${c};">${s}</div>${alb?`<div style="font-size:11px;color:var(--text-dim);">Albumin-corrected: ${corrAG.toFixed(1)}</div>`:''}</div>`;}
+
+function openCalcFENa(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>FENa — Fractional Excretion of Sodium</h3><div class="form-grid"><div class="form-group"><label>Urine Na (mEq/L)</label><input type="number" id="feUNa"></div><div class="form-group"><label>Serum Na (mEq/L)</label><input type="number" id="feSNa"></div><div class="form-group"><label>Urine Cr (mg/dL)</label><input type="number" step="0.1" id="feUCr"></div><div class="form-group"><label>Serum Cr (mg/dL)</label><input type="number" step="0.01" id="feSCr"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcFENa()">Calculate</button></div><div id="feR"></div>`);}
+function calcFENa(){const un=+document.getElementById('feUNa').value,sn=+document.getElementById('feSNa').value,uc=+document.getElementById('feUCr').value,sc=+document.getElementById('feSCr').value;if(!un||!sn||!uc||!sc)return;const fe=((un*sc)/(sn*uc)*100).toFixed(2);let s='Prerenal (volume responsive)',c='var(--accent)';if(fe>2){s='Intrinsic renal disease';c='var(--danger)';}else if(fe>=1){s='Indeterminate';c='var(--warning)';}document.getElementById('feR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">FENa</div><div class="vital-value" style="color:${c};font-size:32px;">${fe}%</div><div style="font-size:14px;font-weight:600;color:${c};">${s}</div><div style="font-size:11px;color:var(--text-dim);">&lt;1% prerenal | 1-2% indeterminate | &gt;2% intrinsic</div></div>`;}
+
+function openCalcFWD(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Free Water Deficit</h3><div class="form-grid"><div class="form-group"><label>Weight (kg)</label><input type="number" id="fwW"></div><div class="form-group"><label>Serum Na⁺ (mEq/L)</label><input type="number" id="fwNa"></div><div class="form-group"><label>Sex</label><select id="fwS"><option value="0.6">Male</option><option value="0.5">Female</option></select></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcFWD()">Calculate</button></div><div id="fwR"></div>`);}
+function calcFWD(){const w=+document.getElementById('fwW').value,na=+document.getElementById('fwNa').value,tbw=+document.getElementById('fwS').value;if(!w||!na)return;const def=(tbw*w*((na/140)-1)).toFixed(1);document.getElementById('fwR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">Free Water Deficit</div><div class="vital-value" style="color:var(--primary);font-size:32px;">${def} L</div><div style="font-size:11px;color:var(--text-dim);">Replace over 48-72 hours. Correct Na &lt;10 mEq/24hr.</div></div>`;}
+
+function openCalcASCVD(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>ASCVD Risk Calculator (10-Year)</h3>
+  <div class="form-grid">
+    <div class="form-group"><label>Age</label><input type="number" id="avA"></div>
+    <div class="form-group"><label>Sex</label><select id="avS"><option value="M">Male</option><option value="F">Female</option></select></div>
+    <div class="form-group"><label>Total Cholesterol</label><input type="number" id="avTC"></div>
+    <div class="form-group"><label>HDL</label><input type="number" id="avHDL"></div>
+    <div class="form-group"><label>Systolic BP</label><input type="number" id="avSBP"></div>
+    <div class="form-group"><label>On BP Meds?</label><select id="avBPM"><option value="0">No</option><option value="1">Yes</option></select></div>
+    <div class="form-group"><label>Diabetic?</label><select id="avDM"><option value="0">No</option><option value="1">Yes</option></select></div>
+    <div class="form-group"><label>Current Smoker?</label><select id="avSmk"><option value="0">No</option><option value="1">Yes</option></select></div>
+  </div><div class="form-actions"><button class="btn btn-primary" onclick="calcASCVD()">Calculate</button></div><div id="avR"></div>`);}
+function calcASCVD(){
+  // Simplified pooled cohort — approximate
+  const a=+document.getElementById('avA').value,tc=+document.getElementById('avTC').value,hdl=+document.getElementById('avHDL').value,sbp=+document.getElementById('avSBP').value,bpm=+document.getElementById('avBPM').value,dm=+document.getElementById('avDM').value,smk=+document.getElementById('avSmk').value,sex=document.getElementById('avS').value;
+  if(!a||!tc||!hdl||!sbp) return;
+  // Rough estimation (proper PCE uses Cox model — this is illustrative)
+  let risk=0;
+  if(sex==='M'){risk=Math.max(0.5,Math.min(30,(a-20)*0.5+(tc>240?3:0)+(hdl<40?3:0)+(sbp>140?4:sbp>130?2:0)+(bpm?2:0)+(dm?4:0)+(smk?4:0)));}
+  else{risk=Math.max(0.3,Math.min(25,(a-20)*0.4+(tc>240?2.5:0)+(hdl<50?2.5:0)+(sbp>140?3.5:sbp>130?1.5:0)+(bpm?1.5:0)+(dm?4:0)+(smk?3:0)));}
+  risk=risk.toFixed(1);
+  let s='Low risk',cl='var(--accent)';if(risk>=20){s='High risk — statin indicated';cl='var(--danger)';}else if(risk>=7.5){s='Intermediate-high — consider statin';cl='var(--warning)';}else if(risk>=5){s='Borderline — risk discussion';cl='var(--primary)';}
+  document.getElementById('avR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">10-Year ASCVD Risk</div><div class="vital-value" style="color:${cl};font-size:32px;">${risk}%</div><div style="font-size:14px;font-weight:600;color:${cl};">${s}</div><div style="font-size:11px;color:var(--text-dim);">⚠️ Simplified estimate. Use ACC/AHA Pooled Cohort calculator for clinical decisions.</div></div>`;
+}
+
+function openCalcCHA2(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>CHA₂DS₂-VASc Score</h3>
+  <div style="font-size:13px;line-height:2;">
+    <label><input type="checkbox" id="ch_c" style="width:auto;margin-right:8px;">CHF history (+1)</label><br>
+    <label><input type="checkbox" id="ch_h" style="width:auto;margin-right:8px;">Hypertension (+1)</label><br>
+    <label><input type="checkbox" id="ch_a2" style="width:auto;margin-right:8px;">Age ≥75 (+2)</label><br>
+    <label><input type="checkbox" id="ch_d" style="width:auto;margin-right:8px;">Diabetes (+1)</label><br>
+    <label><input type="checkbox" id="ch_s2" style="width:auto;margin-right:8px;">Stroke/TIA/TE (+2)</label><br>
+    <label><input type="checkbox" id="ch_v" style="width:auto;margin-right:8px;">Vascular disease (+1)</label><br>
+    <label><input type="checkbox" id="ch_a" style="width:auto;margin-right:8px;">Age 65-74 (+1)</label><br>
+    <label><input type="checkbox" id="ch_sc" style="width:auto;margin-right:8px;">Female sex (+1)</label><br>
+  </div>
+  <div class="form-actions"><button class="btn btn-primary" onclick="calcCHA2()">Calculate</button></div><div id="chR"></div>`);}
+function calcCHA2(){const s=(document.getElementById('ch_c').checked?1:0)+(document.getElementById('ch_h').checked?1:0)+(document.getElementById('ch_a2').checked?2:0)+(document.getElementById('ch_d').checked?1:0)+(document.getElementById('ch_s2').checked?2:0)+(document.getElementById('ch_v').checked?1:0)+(document.getElementById('ch_a').checked?1:0)+(document.getElementById('ch_sc').checked?1:0);const annRisk=['0','1.3','2.2','3.2','4.0','6.7','9.8','9.6','6.7','15.2'];let rec='No anticoagulation needed',cl='var(--accent)';if(s>=2){rec='Anticoagulation recommended';cl='var(--danger)';}else if(s===1){rec='Consider anticoagulation';cl='var(--warning)';}document.getElementById('chR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">CHA₂DS₂-VASc</div><div class="vital-value" style="color:${cl};font-size:32px;">${s}</div><div style="font-size:14px;font-weight:600;color:${cl};">${rec}</div><div style="font-size:11px;color:var(--text-dim);">Annual stroke risk: ~${annRisk[s]||'>15'}%</div></div>`;}
+
+function openCalcFIB4(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>FIB-4 Index — Liver Fibrosis</h3><div class="form-grid"><div class="form-group"><label>Age</label><input type="number" id="f4A"></div><div class="form-group"><label>AST (U/L)</label><input type="number" id="f4AST"></div><div class="form-group"><label>ALT (U/L)</label><input type="number" id="f4ALT"></div><div class="form-group"><label>Platelets (×10⁹/L)</label><input type="number" id="f4Plt"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcFIB4()">Calculate</button></div><div id="f4R"></div>`);}
+function calcFIB4(){const a=+document.getElementById('f4A').value,ast=+document.getElementById('f4AST').value,alt=+document.getElementById('f4ALT').value,plt=+document.getElementById('f4Plt').value;if(!a||!ast||!alt||!plt)return;const f=(a*ast/(plt*Math.sqrt(alt))).toFixed(2);let s='Low risk — advanced fibrosis unlikely',cl='var(--accent)';if(f>3.25){s='High risk — advanced fibrosis likely';cl='var(--danger)';}else if(f>=1.45){s='Indeterminate — consider further testing';cl='var(--warning)';}document.getElementById('f4R').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">FIB-4</div><div class="vital-value" style="color:${cl};font-size:32px;">${f}</div><div style="font-size:14px;font-weight:600;color:${cl};">${s}</div><div style="font-size:11px;color:var(--text-dim);">&lt;1.45 low | 1.45-3.25 indeterminate | &gt;3.25 high</div></div>`;}
+
+function openCalcWinters(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Winters' Formula — Expected pCO₂</h3><div class="form-group"><label>HCO₃⁻ (mEq/L)</label><input type="number" id="wHco"></div><div class="form-actions"><button class="btn btn-primary" onclick="calcWinters()">Calculate</button></div><div id="wR"></div>`);}
+function calcWinters(){const hco=+document.getElementById('wHco').value;if(!hco)return;const lo=(1.5*hco+8-2).toFixed(0);const hi=(1.5*hco+8+2).toFixed(0);document.getElementById('wR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">Expected pCO₂</div><div class="vital-value" style="color:var(--primary);font-size:32px;">${lo} — ${hi} mmHg</div><div style="font-size:11px;color:var(--text-dim);">If measured pCO₂ is lower → concomitant respiratory alkalosis<br>If higher → concomitant respiratory acidosis</div></div>`;}
+
+function openCalcCaCorr(){showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Calcium Correction for Albumin</h3><div class="form-grid"><div class="form-group"><label>Total Calcium (mg/dL)</label><input type="number" step="0.1" id="ccCa"></div><div class="form-group"><label>Albumin (g/dL)</label><input type="number" step="0.1" id="ccAlb"></div></div><div class="form-actions"><button class="btn btn-primary" onclick="calcCaCorr()">Calculate</button></div><div id="ccR"></div>`);}
+function calcCaCorr(){const ca=+document.getElementById('ccCa').value,alb=+document.getElementById('ccAlb').value;if(!ca||!alb)return;const corr=(ca+0.8*(4.0-alb)).toFixed(1);let s='Normal',cl='var(--accent)';if(corr>10.5){s='Hypercalcemia';cl='var(--danger)';}else if(corr<8.5){s='Hypocalcemia';cl='var(--warning)';}document.getElementById('ccR').innerHTML=`<div class="vital-box" style="text-align:center;margin-top:12px;"><div class="vital-label">Corrected Ca²⁺</div><div class="vital-value" style="color:${cl};font-size:32px;">${corr} mg/dL</div><div style="font-size:14px;font-weight:600;color:${cl};">${s}</div><div style="font-size:11px;color:var(--text-dim);">Normal: 8.5–10.5 mg/dL</div></div>`;}
+
+// ═══════ ENCOUNTER PDF GENERATION ═══════
+function generateEncounterPDF(encId){
+  const enc=db.encounters.find(e=>e.id===encId);if(!enc)return;
+  const p=db.patients.find(x=>x.id===enc.patientId);
+  const pv=db.providers.find(x=>x.id===enc.providerId);
+  const pr=db.practices.find(x=>x.id===enc.practiceId);
+  const v=enc.vitals||{};
+  const bmi=v.weight&&v.height?(parseFloat(v.weight)/Math.pow(parseFloat(v.height)/39.37,2)).toFixed(1):'N/A';
+  const now=new Date().toLocaleString();
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Encounter — ${p?p.firstName+' '+p.lastName:''} — ${enc.date}</title>
+  <style>body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#111;font-size:12px;line-height:1.6;}
+  h1{font-size:18px;border-bottom:2px solid #0EA5E9;padding-bottom:8px;margin-bottom:4px;}
+  h2{font-size:14px;margin-top:16px;border-bottom:1px solid #ddd;padding-bottom:4px;}
+  .header{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:2px solid #333;padding-bottom:12px;}
+  .header .practice{font-size:16px;font-weight:bold;}
+  .header .info{text-align:right;font-size:11px;color:#555;}
+  table{width:100%;border-collapse:collapse;margin:8px 0;}
+  td{padding:4px 8px;border:1px solid #ddd;}
+  .vitals td{text-align:center;font-weight:bold;}
+  .soap-label{font-weight:bold;background:#f0f8ff;padding:4px 8px;margin-top:12px;border-left:3px solid #0EA5E9;}
+  .signature{margin-top:40px;border-top:2px solid #333;padding-top:16px;}
+  .sig-line{border-bottom:1px solid #333;width:300px;display:inline-block;margin-top:8px;}
+  @media print{body{padding:20px;}}</style></head>
+  <body>
+  <div class="header"><div><div class="practice">${pr?pr.name:'Practice'}</div><div>${pr?fmtAddr(pr):''}</div><div>${pr?pr.phone:''}</div></div>
+  <div class="info"><div>NPI: ${pr?pr.npi:''}</div><div>Generated: ${now}</div></div></div>
+  <h1>CLINICAL ENCOUNTER — ${enc.noteType||'SOAP Note'}</h1>
+  <table><tr><td><strong>Patient:</strong> ${p?p.firstName+' '+p.lastName:''}</td><td><strong>DOB:</strong> ${p?p.dob:''}</td><td><strong>Gender:</strong> ${p?p.gender:''}</td></tr>
+  <tr><td><strong>Date:</strong> ${enc.date}</td><td><strong>Type:</strong> ${enc.type||'In-Office'}</td><td><strong>Insurance:</strong> ${p?p.insurancePrimary:''}</td></tr>
+  <tr><td colspan="2"><strong>Provider:</strong> ${pv?pv.name:''} | NPI: ${pv?pv.npi:''}</td><td><strong>DEA:</strong> ${pv?pv.dea:''}</td></tr></table>
+  <h2>Chief Complaint</h2><p>${enc.chiefComplaint}</p>
+  <h2>Vitals</h2><table class="vitals"><tr><td>BP<br>${v.bp||'—'}</td><td>HR<br>${v.hr||'—'}</td><td>Temp<br>${v.temp||'—'}°F</td><td>SpO₂<br>${v.spo2||'—'}%</td><td>Weight<br>${v.weight||'—'} lbs</td><td>Height<br>${v.height||'—'}"</td><td>BMI<br>${bmi}</td></tr></table>
+  <div class="soap-label">SUBJECTIVE</div><p>${enc.subjective||'—'}</p>
+  <div class="soap-label">OBJECTIVE</div><p>${enc.objective||'—'}</p>
+  <div class="soap-label">ASSESSMENT</div><p>${enc.assessment||'—'}</p>
+  <div class="soap-label">PLAN</div><p>${enc.plan||'—'}</p>
+  <h2>Coding</h2><table><tr><td><strong>ICD-10:</strong> ${enc.icd10||'—'}</td><td><strong>CPT:</strong> ${enc.cpt||'—'}</td></tr></table>
+  <div class="signature"><strong>Provider Signature</strong><br><br>
+  <div class="sig-line"></div><br>
+  <strong>${pv?pv.name:''}</strong> | ${pv?pv.specialty:''} | License: ${pv?pv.license:''}<br>
+  ${enc.status==='signed'?`<em>Electronically signed: ${enc.signedAt?new Date(enc.signedAt).toLocaleString():now}</em>`:
+  '<em style="color:red;">⚠️ UNSIGNED — DRAFT</em>'}</div>
+  <div style="margin-top:30px;font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:8px;">Amor Medical EMR — Confidential Medical Record — Generated ${now}</div>
+  </body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+// ═══════ CREDENTIALING ═══════
+function renderCredentialing(c){
+  setPageTitle('Provider Credentialing');
+  c.innerHTML=`
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">Manage provider onboarding, credentialing documents, and compliance tracking.</p>
+    <div class="section-title">Provider Credentialing Status</div>
+    <table class="data-table"><thead><tr><th>Provider</th><th>NPI</th><th>DEA</th><th>License</th><th>Practice</th><th>Status</th><th>Action</th></tr></thead><tbody>
+    ${db.providers.map(p=>{const pr=db.practices.find(x=>x.id===p.practiceId);
+      return `<tr><td><strong>${p.name}</strong></td><td>${p.npi||'⚠️ Missing'}</td><td>${p.dea||'⚠️ Missing'}</td><td>${p.license||'⚠️ Missing'}</td><td>${pr?pr.name:'—'}</td>
+      <td><span class="badge ${p.npi&&p.dea&&p.license?'badge-green':'badge-yellow'}">${p.npi&&p.dea&&p.license?'Complete':'Incomplete'}</span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="editProviderModal('${p.id}')" style="width:auto;">✏️ Edit</button></td></tr>`;
+    }).join('')}</tbody></table>
+    <div class="section-title">Credentialing Checklist (Per Provider)</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:2.2;">
+      <div>☐ Active NPI Number verified</div>
+      <div>☐ DEA Registration (if prescribing)</div>
+      <div>☐ State Medical License — active & unrestricted</div>
+      <div>☐ Board Certification (if applicable)</div>
+      <div>☐ Malpractice Insurance — current COI on file</div>
+      <div>☐ CV / Resume on file</div>
+      <div>☐ Proof of Education (medical school diploma)</div>
+      <div>☐ Residency/Fellowship completion letter</div>
+      <div>☐ Background check completed</div>
+      <div>☐ Hospital privilege letters (if applicable)</div>
+      <div>☐ CAQH profile current</div>
+      <div>☐ Medicare/Medicaid enrollment (PECOS)</div>
+      <div>☐ Payer credentialing applications submitted</div>
+      <div>☐ E-Prescribing enrollment (Surescripts EPCS)</div>
+      <div>☐ Electronic signature on file</div>
+      <div>☐ Compliance training completed</div>
+      <div>☐ HIPAA attestation signed</div>
+    </div>
+    <div class="section-title">Onboarding Protocol</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">
+      <p><strong>Step 1:</strong> Provider completes credentialing application (all documents above)</p>
+      <p><strong>Step 2:</strong> Practice admin verifies NPI, DEA, license via primary source</p>
+      <p><strong>Step 3:</strong> Submit payer credentialing applications (30-90 day process)</p>
+      <p><strong>Step 4:</strong> Set up provider in EMR — assign practice, create login, configure e-prescribing</p>
+      <p><strong>Step 5:</strong> Training on EMR system, encounter workflow, e-signature</p>
+      <p><strong>Step 6:</strong> First encounter → auto-generates PDF with e-signature → credentialing file</p>
+    </div>
+    <div class="section-title">Encounter → Auto PDF Protocol</div>
+    <p style="font-size:13px;color:var(--text-muted);">Every completed encounter automatically generates a downloadable PDF with full SOAP note, vitals, coding, provider signature, and practice letterhead. This serves as the legal medical record and is stored for compliance/credentialing audits.</p>
+  `;
+}
+
+// ═══════ ADD PDF BUTTON TO ENCOUNTER DETAIL ═══════
+// (Patching openEncounterDetail to include PDF download)
+const _origOpenEncDetail = openEncounterDetail;
+openEncounterDetail = function(id){
+  _origOpenEncDetail(id);
+  // Add PDF button after modal renders
+  setTimeout(()=>{
+    const actions = document.querySelector('.modal .form-actions');
+    if(actions && !actions.querySelector('.pdf-btn')){
+      const btn = document.createElement('button');
+      btn.className='btn btn-purple pdf-btn';
+      btn.innerHTML='📄 Download PDF';
+      btn.onclick=()=>generateEncounterPDF(id);
+      actions.prepend(btn);
+    }
+  },100);
+};
+
+// ═══════ PMH / ALLERGY HELPERS ═══════
+function addPMH(id){const item=prompt('Enter past medical history item:');if(!item)return;const p=db.patients.find(x=>x.id===id);if(!p.pmh)p.pmh=[];p.pmh.push(item);saveDB();render();}
+function removePMH(id,idx){const p=db.patients.find(x=>x.id===id);p.pmh.splice(idx,1);saveDB();render();}
+function addAllergy(id){const item=prompt('Enter allergy:');if(!item)return;const p=db.patients.find(x=>x.id===id);if(!p.allergies)p.allergies=[];p.allergies.push(item);saveDB();render();}
+function removeAllergy(id,idx){const p=db.patients.find(x=>x.id===id);p.allergies.splice(idx,1);saveDB();render();}
+
+// ═══════ INIT ═══════
+loadDB();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Amor Medical">
+<meta name="theme-color" content="#0B1120">
+<meta name="description" content="Amor Medical Platform — EMR, Calculators, Command Center">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Amor Medical Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B1120;--card:#111827;--input:#1F2937;--hover:#1a2332;--primary:#0EA5E9;--accent:#10B981;--danger:#EF4444;--warn:#F59E0B;--purple:#8B5CF6;--border:#1F2937;--text:#F1F5F9;--muted:#94A3B8;--dim:#64748B;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased;}
+button{cursor:pointer;font-family:inherit;}
+input,select,textarea{font-family:inherit;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;outline:none;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);}
+textarea{resize:vertical;min-height:60px;}
+
+/* APP SHELL */
+.shell{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+
+/* TOP NAV */
+.top-nav{display:flex;align-items:center;padding:0 16px;height:52px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;}
+.top-nav .logo{font-size:18px;font-weight:800;color:var(--primary);white-space:nowrap;}
+.top-nav .spacer{flex:1;}
+.install-btn{background:var(--primary);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;display:none;width:auto;}
+
+/* MODULE TABS */
+.module-tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.module-tab{padding:10px 16px;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;text-align:center;flex:1;min-width:0;}
+.module-tab:hover{color:var(--text);}
+.module-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.module-tab .tab-icon{font-size:16px;display:block;margin-bottom:2px;}
+
+/* CONTENT */
+.module-content{flex:1;overflow:hidden;position:relative;}
+.module-frame{position:absolute;top:0;left:0;width:100%;height:100%;border:none;display:none;}
+.module-frame.active{display:block;}
+
+/* FALLBACK CONTENT (when iframes aren't used) */
+.inline-content{position:absolute;top:0;left:0;width:100%;height:100%;overflow-y:auto;padding:20px;display:none;}
+.inline-content.active{display:block;}
+
+/* CARDS */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.sc .sl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
+.sc .sv{font-size:22px;font-weight:800;}
+.sc.blue .sv{color:var(--primary);}
+.sc.green .sv{color:var(--accent);}
+.sc.yellow .sv{color:var(--warn);}
+.sc.red .sv{color:var(--danger);}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;border:none;width:auto;transition:all .15s;}
+.btn-p{background:var(--primary);color:#fff;}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-a{background:var(--accent);color:#fff;}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;}
+.bg{background:rgba(16,185,129,.15);color:var(--accent);}
+.by{background:rgba(245,158,11,.15);color:var(--warn);}
+.br{background:rgba(239,68,68,.15);color:var(--danger);}
+.bb{background:rgba(14,165,233,.15);color:var(--primary);}
+
+.stitle{font-size:14px;font-weight:700;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+
+.link-card{display:flex;align-items:center;gap:10px;padding:10px;background:var(--input);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;text-decoration:none;color:var(--text);font-size:12px;}
+.link-card:hover{border-color:var(--primary);}
+
+.progress-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.progress-row .pr-name{flex:1;}
+.progress-row .pr-bar{width:80px;height:6px;background:var(--input);border-radius:3px;overflow:hidden;}
+.progress-row .pr-fill{height:100%;border-radius:3px;}
+.progress-row .pr-pct{width:32px;text-align:right;font-weight:700;font-size:11px;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- TOP -->
+  <div class="top-nav">
+    <div class="logo">💙 Amor Medical</div>
+    <div class="spacer"></div>
+    <button class="install-btn" id="installBtn" onclick="installPWA()">📲 Install App</button>
+  </div>
+
+  <!-- MODULE TABS -->
+  <div class="module-tabs" id="moduleTabs">
+    <div class="module-tab active" onclick="switchModule('home')"><span class="tab-icon">🏠</span>Home</div>
+    <div class="module-tab" onclick="switchModule('emr')"><span class="tab-icon">🏥</span>EMR</div>
+    <div class="module-tab" onclick="switchModule('calc')"><span class="tab-icon">🧮</span>Calc</div>
+    <div class="module-tab" onclick="switchModule('cmd')"><span class="tab-icon">📋</span>Command</div>
+    <div class="module-tab" onclick="switchModule('learn')"><span class="tab-icon">📚</span>Learn</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="module-content" id="moduleContent">
+    <!-- HOME -->
+    <div class="inline-content active" id="mod-home"></div>
+    <!-- EMR (iframe) -->
+    <iframe class="module-frame" id="mod-emr" src="" data-src="amor-medical-emr.html"></iframe>
+    <!-- CALCULATOR (iframe) -->
+    <iframe class="module-frame" id="mod-calc" src="" data-src="amor-medical-calculator.html"></iframe>
+    <!-- COMMAND CENTER (iframe) -->
+    <iframe class="module-frame" id="mod-cmd" src="" data-src="command-center.html"></iframe>
+    <!-- LEARN -->
+    <div class="inline-content" id="mod-learn"></div>
+  </div>
+</div>
+
+<script>
+// PWA Install
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display='block';});
+function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{if(r.outcome==='accepted')document.getElementById('installBtn').style.display='none';deferredPrompt=null;});}}
+
+// Service Worker
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+
+// Module switching
+let currentModule='home';
+const loaded={};
+
+function switchModule(mod){
+  currentModule=mod;
+  // Update tabs
+  document.querySelectorAll('.module-tab').forEach((t,i)=>{
+    const mods=['home','emr','calc','cmd','learn'];
+    t.classList.toggle('active',mods[i]===mod);
+  });
+  // Hide all
+  document.querySelectorAll('.module-frame,.inline-content').forEach(el=>{
+    el.classList.remove('active');
+    if(el.tagName==='IFRAME') el.style.display='none';
+    else el.style.display='none';
+  });
+  // Show target
+  const el=document.getElementById('mod-'+mod);
+  if(el.tagName==='IFRAME'){
+    if(!loaded[mod]&&el.dataset.src){el.src=el.dataset.src;loaded[mod]=true;}
+    el.style.display='block';el.classList.add('active');
+  } else {
+    el.style.display='block';el.classList.add('active');
+    if(mod==='home') renderHome();
+    if(mod==='learn') renderLearn();
+  }
+}
+
+// HOME
+function renderHome(){
+  document.getElementById('mod-home').innerHTML=`
+    <div style="text-align:center;padding:20px 0 10px;">
+      <div style="font-size:32px;">💙</div>
+      <h1 style="font-size:20px;margin:8px 0;">Amor Medical Platform</h1>
+      <p style="color:var(--muted);font-size:13px;">EMR · Calculators · Command Center</p>
+    </div>
+
+    <div class="sg">
+      <div class="sc blue"><div class="sl">EMR Version</div><div class="sv">2.1</div></div>
+      <div class="sc green"><div class="sl">Calculators</div><div class="sv">20/40</div></div>
+      <div class="sc yellow"><div class="sl">Projects</div><div class="sv">7</div></div>
+      <div class="sc red"><div class="sl">Blockers</div><div class="sv">3</div></div>
+    </div>
+
+    <div class="stitle">📊 Project Progress</div>
+    <div class="progress-row"><span class="pr-name">🏥 EMR Platform</span><div class="pr-bar"><div class="pr-fill" style="width:45%;background:var(--primary);"></div></div><span class="pr-pct">45%</span></div>
+    <div class="progress-row"><span class="pr-name">🧮 Calculators</span><div class="pr-bar"><div class="pr-fill" style="width:50%;background:var(--accent);"></div></div><span class="pr-pct">50%</span></div>
+    <div class="progress-row"><span class="pr-name">🏋️ KRU Deploy</span><div class="pr-bar"><div class="pr-fill" style="width:86%;background:var(--accent);"></div></div><span class="pr-pct">86%</span></div>
+    <div class="progress-row"><span class="pr-name">🦉 OWL / Bobo AI</span><div class="pr-bar"><div class="pr-fill" style="width:60%;background:var(--warn);"></div></div><span class="pr-pct">60%</span></div>
+    <div class="progress-row"><span class="pr-name">🔥 Sales Resources</span><div class="pr-bar"><div class="pr-fill" style="width:0%;background:var(--danger);"></div></div><span class="pr-pct">0%</span></div>
+
+    <div class="stitle">⚡ Quick Launch</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn btn-p" onclick="switchModule('emr')" style="justify-content:center;">🏥 Open EMR</button>
+      <button class="btn btn-a" onclick="switchModule('calc')" style="justify-content:center;">🧮 Calculators</button>
+      <button class="btn btn-g" onclick="switchModule('cmd')" style="justify-content:center;">📋 Command Center</button>
+      <button class="btn btn-g" onclick="switchModule('learn')" style="justify-content:center;">📚 Learn</button>
+    </div>
+
+    <div class="stitle">🔗 External Links</div>
+    <a class="link-card" href="https://docs.google.com/spreadsheets/d/1LDSTvUH3tRcm2a0LjM86nSnDZ-7EkLaL7ePrULngLbE/edit" target="_blank">📊 Master Command Center (Google Sheets)</a>
+    <a class="link-card" href="https://docs.google.com/spreadsheets/d/1KO35f08pDJwd-70YwqdeXdxgSi1b5ki8cKzkPbeU0Z0/edit" target="_blank">🏋️ KRU Executive Sheet</a>
+    <a class="link-card" href="https://app.ricocloud.net" target="_blank">☁️ Rico Cloud Platform</a>
+
+    <div class="stitle">🤖 Agent Team</div>
+    <div style="font-size:12px;color:var(--muted);line-height:2;">
+      <div>🌿 <strong>Emily</strong> — Personal Assistant (Agent 1)</div>
+      <div>💜 <strong>Ashley</strong> — Development (Agent 2)</div>
+      <div>🪓 <strong>Axe</strong> — Marketing / RRM (Agent 3)</div>
+    </div>
+
+    <div style="text-align:center;padding:20px 0;font-size:11px;color:var(--dim);">
+      Amor Medical Platform v1.0 · Built by Emily 🌿 + Ashley 💜<br>
+      © 2026 Dr. Roger Gonzalez · Rico Solutions
+    </div>
+  `;
+}
+
+// LEARN
+function renderLearn(){
+  const sections=[
+    {title:'🏥 EMR Development',links:[
+      {t:'How to Build an EHR from Scratch',u:'https://www.youtube.com/watch?v=bDnB0vGkOFY',d:'EMR architecture & FHIR standards'},
+      {t:'FHIR for Developers — HL7 Intro',u:'https://www.youtube.com/watch?v=Oe421EPjeBE',d:'Healthcare data interoperability'},
+      {t:'What is HIPAA? Compliance Explained',u:'https://www.youtube.com/watch?v=WnBqBnQ0bTk',d:'Every healthcare app needs this'},
+      {t:'OpenEMR — Open Source EMR Demo',u:'https://www.youtube.com/watch?v=nu_pCVPKzTk',d:'Reference architecture'},
+    ]},
+    {title:'💻 Coding Foundations',links:[
+      {t:'JavaScript Full Course — freeCodeCamp',u:'https://www.youtube.com/watch?v=PkZNo7MFNFg',d:'Foundation of everything we build'},
+      {t:'React Tutorial for Beginners',u:'https://www.youtube.com/watch?v=SqcY0GlETPk',d:'Where our EMR is headed'},
+      {t:'JavaScript & APIs — Fetch Data',u:'https://www.youtube.com/watch?v=W6NZfCO5SIk',d:'How apps talk to Rico Cloud, labs'},
+    ]},
+    {title:'🖥️ Servers & Hosting',links:[
+      {t:'What is a Server? — Simply Explained',u:'https://www.youtube.com/watch?v=9a9WcVSS2EI',d:'Where our apps live'},
+      {t:'GitHub Pages Deployment',u:'https://www.youtube.com/watch?v=ENrzD9HAZK4',d:'Free hosting — deploy today'},
+      {t:'DNS & Domains Explained',u:'https://www.youtube.com/watch?v=goToXTC96Co',d:'How amormedical.co connects'},
+      {t:'Vercel & Next.js Deployment',u:'https://www.youtube.com/watch?v=RqTEHSBrYFw',d:'Production scaling path'},
+    ]},
+    {title:'🔒 IT Security',links:[
+      {t:'Cybersecurity for Small Business',u:'https://www.youtube.com/watch?v=inWWhr5tnEA',d:'Essential as we scale'},
+      {t:'SSL/TLS & HTTPS Explained',u:'https://www.youtube.com/watch?v=r1nJT63BFQ0',d:'Protecting patient data in transit'},
+      {t:'API Security Best Practices',u:'https://www.youtube.com/watch?v=T4Df5_cojAs',d:'Protecting API connections'},
+      {t:'Database Security & Encryption',u:'https://www.youtube.com/watch?v=pGcHREkAS4Q',d:'For real database migration'},
+    ]},
+    {title:'🤖 AI / LLM Integration',links:[
+      {t:'Build AI Apps with Claude API',u:'https://www.youtube.com/watch?v=jkrNMKz9pWU',d:'AI auto-SOAP generation'},
+      {t:'Voice AI — Speech-to-Text in Healthcare',u:'https://www.youtube.com/watch?v=Q52VIiZBwBk',d:'Medical transcription tech'},
+      {t:'Neural Networks — 3Blue1Brown',u:'https://www.youtube.com/watch?v=aircAruvnKk',d:'Best visual explanation of AI'},
+    ]},
+    {title:'📱 PWA & App Development',links:[
+      {t:'PWA Tutorial — Build Installable Web Apps',u:'https://www.youtube.com/watch?v=sFsRylCQblw',d:'Exactly what we are building'},
+      {t:'Build a Dashboard with Chart.js',u:'https://www.youtube.com/watch?v=K74l26pE4YA',d:'Executive dashboards with charts'},
+    ]}
+  ];
+  document.getElementById('mod-learn').innerHTML=`
+    <h2 style="font-size:18px;margin-bottom:4px;">📚 Learning Resources</h2>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:16px;">Curated YouTube research for Dr. Roger — EMR, coding, servers, security, AI</p>
+    ${sections.map(s=>`<div class="stitle">${s.title}</div>${s.links.map(l=>`<a class="link-card" href="${l.u}" target="_blank"><span>▶️</span><div><strong>${l.t}</strong><br><span style="color:var(--dim);font-size:11px;">${l.d}</span></div></a>`).join('')}`).join('')}
+  `;
+}
+
+// Init
+renderHome();
+</script>
+</body>
+</html>

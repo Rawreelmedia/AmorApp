@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Amor Medical — Clinical Calculator Suite</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  
+  :root {
+    --primary: #0EA5E9;
+    --primary-dark: #0284C7;
+    --primary-light: #38BDF8;
+    --accent: #10B981;
+    --danger: #EF4444;
+    --warning: #F59E0B;
+    --bg: #0B1120;
+    --bg-card: #111827;
+    --bg-input: #1F2937;
+    --border: #1F2937;
+    --text: #F1F5F9;
+    --text-muted: #94A3B8;
+    --text-dim: #64748B;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── APP SHELL ─────────────────────── */
+  .app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ── STATUS BAR ────────────────────── */
+  .status-bar {
+    padding: 8px 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* ── HEADER ────────────────────────── */
+  .app-header {
+    padding: 16px 20px 20px;
+    background: linear-gradient(180deg, var(--bg) 0%, transparent 100%);
+  }
+  .greeting {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .app-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .app-title span { color: var(--primary); }
+  
+  /* ── SEARCH ────────────────────────── */
+  .search-bar {
+    margin: 0 20px 20px;
+    position: relative;
+  }
+  .search-bar input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px 14px 44px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-bar input:focus {
+    border-color: var(--primary);
+  }
+  .search-bar input::placeholder {
+    color: var(--text-dim);
+  }
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: var(--text-dim);
+  }
+
+  /* ── QUICK STATS ───────────────────── */
+  .quick-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 0 20px 20px;
+  }
+  .quick-stat {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    text-align: center;
+  }
+  .quick-stat .number {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+  .quick-stat .label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* ── SECTION HEADER ────────────────── */
+  .section-header {
+    padding: 0 20px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .see-all {
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  /* ── CATEGORY PILLS ────────────────── */
+  .category-scroll {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .category-scroll::-webkit-scrollbar { display: none; }
+  .pill {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .pill.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .pill:hover:not(.active) {
+    border-color: var(--primary);
+    color: var(--primary-light);
+  }
+
+  /* ── CALCULATOR CARDS ──────────────── */
+  .calc-list {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 100px;
+  }
+  .calc-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .calc-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(14, 165, 233, 0.1);
+  }
+  .calc-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .calc-card.endo::before { background: #8B5CF6; }
+  .calc-card.cardio::before { background: #EF4444; }
+  .calc-card.renal::before { background: #F59E0B; }
+  .calc-card.general::before { background: #10B981; }
+  .calc-card.hepatic::before { background: #F97316; }
+  
+  .calc-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .calc-icon.endo { background: rgba(139,92,246,0.15); }
+  .calc-icon.cardio { background: rgba(239,68,68,0.15); }
+  .calc-icon.renal { background: rgba(245,158,11,0.15); }
+  .calc-icon.general { background: rgba(16,185,129,0.15); }
+  .calc-icon.hepatic { background: rgba(249,115,22,0.15); }
+  
+  .calc-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .calc-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .calc-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .calc-arrow {
+    color: var(--text-dim);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .calc-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-essential {
+    background: rgba(14,165,233,0.15);
+    color: var(--primary-light);
+  }
+  .badge-new {
+    background: rgba(16,185,129,0.15);
+    color: #34D399;
+  }
+
+  /* ── CALCULATOR DETAIL VIEW ────────── */
+  .calc-detail {
+    display: none;
+    padding: 20px;
+    padding-bottom: 100px;
+  }
+  .calc-detail.active {
+    display: block;
+  }
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .detail-title {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  
+  .input-group {
+    margin-bottom: 16px;
+  }
+  .input-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .input-unit {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+  .input-field {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 16px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .input-field:focus {
+    border-color: var(--primary);
+  }
+  
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  .radio-group {
+    display: flex;
+    gap: 8px;
+  }
+  .radio-btn {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .radio-btn.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+  }
+  
+  .calculate-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: background 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .calculate-btn:hover {
+    background: var(--primary-dark);
+  }
+  
+  .result-card {
+    background: linear-gradient(135deg, rgba(14,165,233,0.1) 0%, rgba(16,185,129,0.1) 100%);
+    border: 1px solid rgba(14,165,233,0.3);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    margin-top: 20px;
+    display: none;
+  }
+  .result-card.show {
+    display: block;
+  }
+  .result-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .result-value {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--primary-light);
+  }
+  .result-unit {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .result-interpretation {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .result-interpretation .stage {
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .result-interpretation .stage.normal { color: #10B981; }
+  .result-interpretation .stage.mild { color: #F59E0B; }
+  .result-interpretation .stage.moderate { color: #F97316; }
+  .result-interpretation .stage.severe { color: #EF4444; }
+  
+  .evidence-box {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .evidence-box strong {
+    color: var(--text-muted);
+  }
+
+  /* ── BOTTOM NAV ────────────────────── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: rgba(11,17,32,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+    z-index: 100;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: color 0.2s;
+    text-decoration: none;
+  }
+  .nav-item.active { color: var(--primary); }
+  .nav-item:hover { color: var(--primary-light); }
+  .nav-icon { font-size: 22px; }
+  .nav-label { font-size: 10px; font-weight: 600; }
+
+  /* ── POWERED BY ────────────────────── */
+  .powered-by {
+    text-align: center;
+    padding: 20px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .powered-by span { color: #CC0000; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>Amor Medical</span>
+    <span>📶 🔋</span>
+  </div>
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="greeting">Good evening, Dr. Lopez</div>
+    <div class="app-title">Clinical <span>Calculators</span></div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Search calculators..." id="searchInput" oninput="filterCalcs()">
+  </div>
+
+  <!-- QUICK STATS -->
+  <div class="quick-stats">
+    <div class="quick-stat">
+      <div class="number">20</div>
+      <div class="label">Functional</div>
+    </div>
+    <div class="quick-stat">
+      <div class="number">6</div>
+      <div class="label">Specialties</div>
+    </div>
+    <div class="quick-stat">
+      <div class="number">∞</div>
+      <div class="label">Evidence-Based</div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div class="section-header">
+    <span class="section-title">Specialty</span>
+  </div>
+  <div class="category-scroll">
+    <div class="pill active" onclick="filterByCategory('all', this)">All</div>
+    <div class="pill" onclick="filterByCategory('endo', this)">🧬 Endocrinology</div>
+    <div class="pill" onclick="filterByCategory('renal', this)">🫘 Renal</div>
+    <div class="pill" onclick="filterByCategory('cardio', this)">❤️ Cardiology</div>
+    <div class="pill" onclick="filterByCategory('hepatic', this)">🫁 Hepatology</div>
+    <div class="pill" onclick="filterByCategory('general', this)">🩺 General</div>
+  </div>
+
+  <!-- CALCULATOR LIST (HOME VIEW) -->
+  <div id="homeView">
+    <div class="section-header">
+      <span class="section-title">All Calculators</span>
+      <a class="see-all" href="#">24 available</a>
+    </div>
+    <div class="calc-list" id="calcList">
+      
+      <!-- ENDOCRINOLOGY -->
+      <div class="calc-card endo" data-category="endo" data-name="BMI Body Mass Index" onclick="showDetail('bmi')">
+        <div class="calc-icon endo">⚖️</div>
+        <div class="calc-info">
+          <div class="calc-name">BMI — Body Mass Index</div>
+          <div class="calc-desc">Weight status classification</div>
+        </div>
+        <span class="calc-badge badge-essential">Essential</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card endo" data-category="endo" data-name="BSA Body Surface Area" onclick="showDetail('bsa')">
+        <div class="calc-icon endo">📐</div>
+        <div class="calc-info">
+          <div class="calc-name">BSA — Body Surface Area</div>
+          <div class="calc-desc">Mosteller formula for drug dosing</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card endo" data-category="endo" data-name="Calcium Correction Albumin" onclick="showDetail('calcium')">
+        <div class="calc-icon endo">🦴</div>
+        <div class="calc-info">
+          <div class="calc-name">Corrected Calcium</div>
+          <div class="calc-desc">Calcium correction for hypoalbuminemia</div>
+        </div>
+        <span class="calc-badge badge-essential">Essential</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card endo" data-category="endo" data-name="HOMA-IR Insulin Resistance" onclick="showDetail('homaIR')">
+        <div class="calc-icon endo">🔬</div>
+        <div class="calc-info">
+          <div class="calc-name">HOMA-IR</div>
+          <div class="calc-desc">Insulin resistance estimation</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card endo" data-category="endo" data-name="HbA1c eAG Converter" onclick="showDetail('hba1c')">
+        <div class="calc-icon endo">🩸</div>
+        <div class="calc-info">
+          <div class="calc-name">HbA1c ↔ eAG Converter</div>
+          <div class="calc-desc">Estimated average glucose from A1c</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card endo" data-category="endo" data-name="Burch-Wartofsky Thyroid Storm Score" onclick="showDetail('burchwart')">
+        <div class="calc-icon endo">🌡️</div>
+        <div class="calc-info">
+          <div class="calc-name">Burch-Wartofsky Score</div>
+          <div class="calc-desc">Thyroid storm likelihood scoring</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card endo" data-category="endo" data-name="Steroid Conversion Equivalency" onclick="showDetail('steroid')">
+        <div class="calc-icon endo">💊</div>
+        <div class="calc-info">
+          <div class="calc-name">Steroid Conversion</div>
+          <div class="calc-desc">Corticosteroid dose equivalency table</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card endo" data-category="endo" data-name="Insulin Dose Adjustment">
+        <div class="calc-icon endo">💉</div>
+        <div class="calc-info">
+          <div class="calc-name">Insulin Dose Calculator</div>
+          <div class="calc-desc">Basal + correction dose estimation</div>
+        </div>
+        <span class="calc-badge badge-new">New</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card endo" data-category="endo" data-name="Thyroid TSH Free T4">
+        <div class="calc-icon endo">🦋</div>
+        <div class="calc-info">
+          <div class="calc-name">Thyroid Function Interpreter</div>
+          <div class="calc-desc">TSH + Free T4 pattern analysis</div>
+        </div>
+        <span class="calc-badge badge-new">New</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <!-- RENAL -->
+      <div class="calc-card renal" data-category="renal" data-name="CKD-EPI GFR" onclick="showDetail('gfr')">
+        <div class="calc-icon renal">🫘</div>
+        <div class="calc-info">
+          <div class="calc-name">CKD-EPI — eGFR</div>
+          <div class="calc-desc">Estimated glomerular filtration rate (2021)</div>
+        </div>
+        <span class="calc-badge badge-essential">Essential</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card renal" data-category="renal" data-name="Creatinine Clearance Cockcroft-Gault" onclick="showDetail('crclear')">
+        <div class="calc-icon renal">💧</div>
+        <div class="calc-info">
+          <div class="calc-name">Creatinine Clearance</div>
+          <div class="calc-desc">Cockcroft-Gault equation</div>
+        </div>
+        <span class="calc-badge badge-essential">Essential</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card renal" data-category="renal" data-name="FENa Fractional Excretion Sodium" onclick="showDetail('fena')">
+        <div class="calc-icon renal">🧪</div>
+        <div class="calc-info">
+          <div class="calc-name">FENa — Fractional Excretion of Na</div>
+          <div class="calc-desc">Pre-renal vs intrinsic renal failure</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <!-- CARDIOLOGY -->
+      <div class="calc-card cardio" data-category="cardio" data-name="CHA2DS2-VASc Stroke Risk" onclick="showDetail('chadsvasc')">
+        <div class="calc-icon cardio">❤️</div>
+        <div class="calc-info">
+          <div class="calc-name">CHA₂DS₂-VASc Score</div>
+          <div class="calc-desc">Stroke risk in atrial fibrillation</div>
+        </div>
+        <span class="calc-badge badge-essential">Essential</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card cardio" data-category="cardio" data-name="MAP Mean Arterial Pressure" onclick="showDetail('map')">
+        <div class="calc-icon cardio">🩺</div>
+        <div class="calc-info">
+          <div class="calc-name">MAP — Mean Arterial Pressure</div>
+          <div class="calc-desc">From systolic and diastolic BP</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card cardio" data-category="cardio" data-name="Corrected QT QTc Bazett" onclick="showDetail('qtc')">
+        <div class="calc-icon cardio">📊</div>
+        <div class="calc-info">
+          <div class="calc-name">Corrected QT (QTc)</div>
+          <div class="calc-desc">Bazett, Fridericia, Framingham formulas</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card cardio" data-category="cardio" data-name="Wells DVT Score" onclick="showDetail('wells')">
+        <div class="calc-icon cardio">🦵</div>
+        <div class="calc-info">
+          <div class="calc-name">Wells' Score for DVT</div>
+          <div class="calc-desc">Risk stratification for deep vein thrombosis</div>
+        </div>
+        <span class="calc-badge badge-new">New</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <!-- HEPATOLOGY -->
+      <div class="calc-card hepatic" data-category="hepatic" data-name="FIB-4 Liver Fibrosis" onclick="showDetail('fib4')">
+        <div class="calc-icon hepatic">🫁</div>
+        <div class="calc-info">
+          <div class="calc-name">FIB-4 Index</div>
+          <div class="calc-desc">Non-invasive liver fibrosis scoring</div>
+        </div>
+        <span class="calc-badge badge-essential">Essential</span>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card hepatic" data-category="hepatic" data-name="Child Pugh Score Cirrhosis" onclick="showDetail('childpugh')">
+        <div class="calc-icon hepatic">⚕️</div>
+        <div class="calc-info">
+          <div class="calc-name">Child-Pugh Score</div>
+          <div class="calc-desc">Prognosis in cirrhosis</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <!-- GENERAL -->
+      <div class="calc-card general" data-category="general" data-name="Anion Gap" onclick="showDetail('anion')">
+        <div class="calc-icon general">⚡</div>
+        <div class="calc-info">
+          <div class="calc-name">Anion Gap</div>
+          <div class="calc-desc">Metabolic acidosis evaluation</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card general" data-category="general" data-name="Sodium Correction Glucose" onclick="showDetail('sodiumcorr')">
+        <div class="calc-icon general">🧂</div>
+        <div class="calc-info">
+          <div class="calc-name">Corrected Sodium</div>
+          <div class="calc-desc">Sodium correction for hyperglycemia</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card general" data-category="general" data-name="IV Fluid Rate Drip" onclick="showDetail('ivfluid')">
+        <div class="calc-icon general">💧</div>
+        <div class="calc-info">
+          <div class="calc-name">IV Fluid Rate Calculator</div>
+          <div class="calc-desc">4-2-1 maintenance fluid rate by weight</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card general" data-category="general" data-name="Winters Formula pCO2" onclick="showDetail('winters')">
+        <div class="calc-icon general">🫁</div>
+        <div class="calc-info">
+          <div class="calc-name">Winters' Formula</div>
+          <div class="calc-desc">Expected pCO₂ in metabolic acidosis</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+      <div class="calc-card general" data-category="general" data-name="Free Water Deficit Hypernatremia" onclick="showDetail('freewater')">
+        <div class="calc-icon general">🚰</div>
+        <div class="calc-info">
+          <div class="calc-name">Free Water Deficit</div>
+          <div class="calc-desc">Free water deficit in hypernatremia</div>
+        </div>
+        <div class="calc-arrow">›</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════ GFR DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="gfrDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">CKD-EPI — eGFR</div>
+        <div style="font-size: 12px; color: var(--text-dim);">2021 CKD-EPI Creatinine Equation</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Sex <span class="input-unit">biological</span></div>
+      <div class="radio-group">
+        <div class="radio-btn selected" id="sexF" onclick="selectSex('F')">Female</div>
+        <div class="radio-btn" id="sexM" onclick="selectSex('M')">Male</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Age <span class="input-unit">years</span></div>
+      <input type="number" class="input-field" id="gfrAge" placeholder="e.g. 55" inputmode="numeric">
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Serum Creatinine <span class="input-unit">mg/dL</span></div>
+      <input type="number" class="input-field" id="gfrCr" placeholder="e.g. 1.2" step="0.01" inputmode="decimal">
+    </div>
+
+    <button class="calculate-btn" onclick="calcGFR()">Calculate eGFR</button>
+
+    <div class="result-card" id="gfrResult">
+      <div class="result-label">Estimated GFR</div>
+      <div class="result-value" id="gfrValue">—</div>
+      <div class="result-unit">mL/min/1.73 m²</div>
+      <div class="result-interpretation" id="gfrInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Inker LA, et al. "New Creatinine- and Cystatin C–Based Equations to Estimate GFR without Race." <em>N Engl J Med.</em> 2021;385:1737-1749. doi:10.1056/NEJMoa2102953
+    </div>
+  </div>
+
+  <!-- ═══════ BMI DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="bmiDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">BMI — Body Mass Index</div>
+        <div style="font-size: 12px; color: var(--text-dim);">WHO Classification</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Weight <span class="input-unit">lbs</span></div>
+      <input type="number" class="input-field" id="bmiWeight" placeholder="e.g. 175" inputmode="numeric">
+    </div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <div class="input-label">Height <span class="input-unit">feet</span></div>
+        <input type="number" class="input-field" id="bmiFeet" placeholder="5" inputmode="numeric">
+      </div>
+      <div class="input-group">
+        <div class="input-label">&nbsp;<span class="input-unit">inches</span></div>
+        <input type="number" class="input-field" id="bmiInches" placeholder="10" inputmode="numeric">
+      </div>
+    </div>
+
+    <button class="calculate-btn" onclick="calcBMI()">Calculate BMI</button>
+
+    <div class="result-card" id="bmiResult">
+      <div class="result-label">Body Mass Index</div>
+      <div class="result-value" id="bmiValue">—</div>
+      <div class="result-unit">kg/m²</div>
+      <div class="result-interpretation" id="bmiInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> WHO Expert Consultation. "Appropriate body-mass index for Asian populations and its implications for policy and intervention strategies." <em>Lancet.</em> 2004;363(9403):157-163.
+    </div>
+  </div>
+
+  <!-- ═══════ HOMA-IR DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="homaIRDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">HOMA-IR</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Homeostatic Model Assessment of Insulin Resistance</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Fasting Insulin <span class="input-unit">µU/mL</span></div>
+      <input type="number" class="input-field" id="homaInsulin" placeholder="e.g. 12" step="0.1" inputmode="decimal">
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Fasting Glucose <span class="input-unit">mg/dL</span></div>
+      <input type="number" class="input-field" id="homaGlucose" placeholder="e.g. 95" inputmode="numeric">
+    </div>
+
+    <button class="calculate-btn" onclick="calcHomaIR()">Calculate HOMA-IR</button>
+
+    <div class="result-card" id="homaIRResult">
+      <div class="result-label">HOMA-IR Score</div>
+      <div class="result-value" id="homaIRValue">—</div>
+      <div class="result-unit">index</div>
+      <div class="result-interpretation" id="homaIRInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Matthews DR, et al. "Homeostasis model assessment: insulin resistance and β-cell function from fasting plasma glucose and insulin concentrations in man." <em>Diabetologia.</em> 1985;28:412-419.
+    </div>
+  </div>
+
+  <!-- ═══════ HbA1c ↔ eAG DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="hba1cDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">HbA1c ↔ eAG Converter</div>
+        <div style="font-size: 12px; color: var(--text-dim);">ADA/ADAG Conversion Formula</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Conversion Direction</div>
+      <div class="radio-group">
+        <div class="radio-btn selected" id="hba1cDirA" onclick="selectHba1cDir('a1c_to_eag')">A1c → eAG</div>
+        <div class="radio-btn" id="hba1cDirE" onclick="selectHba1cDir('eag_to_a1c')">eAG → A1c</div>
+      </div>
+    </div>
+
+    <div class="input-group" id="hba1cInputA">
+      <div class="input-label">HbA1c <span class="input-unit">%</span></div>
+      <input type="number" class="input-field" id="hba1cA1c" placeholder="e.g. 7.2" step="0.1" inputmode="decimal">
+    </div>
+
+    <div class="input-group" id="hba1cInputE" style="display:none">
+      <div class="input-label">eAG <span class="input-unit">mg/dL</span></div>
+      <input type="number" class="input-field" id="hba1cEag" placeholder="e.g. 154" inputmode="numeric">
+    </div>
+
+    <button class="calculate-btn" onclick="calcHba1c()">Convert</button>
+
+    <div class="result-card" id="hba1cResult">
+      <div class="result-label">Result</div>
+      <div class="result-value" id="hba1cValue">—</div>
+      <div class="result-unit" id="hba1cUnit">—</div>
+      <div class="result-interpretation" id="hba1cInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Nathan DM, et al. "Translating the A1C assay into estimated average glucose values." <em>Diabetes Care.</em> 2008;31(8):1473-1478.
+    </div>
+  </div>
+
+  <!-- ═══════ BURCH-WARTOFSKY DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="burchwartDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Burch-Wartofsky Score</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Thyroid Storm Likelihood</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Temperature</div>
+      <select class="input-field" id="bwTemp">
+        <option value="0">Select temperature...</option>
+        <option value="5">37.2–37.7°C (99–99.9°F) — +5</option>
+        <option value="10">37.8–38.2°C (100–100.7°F) — +10</option>
+        <option value="15">38.3–38.8°C (101–101.8°F) — +15</option>
+        <option value="20">38.9–39.3°C (102–102.7°F) — +20</option>
+        <option value="25">39.4–39.9°C (103–103.8°F) — +25</option>
+        <option value="30">≥40°C (≥104°F) — +30</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">CNS Effects</div>
+      <select class="input-field" id="bwCNS">
+        <option value="0">Absent — +0</option>
+        <option value="10">Mild agitation — +10</option>
+        <option value="20">Delirium / psychosis / extreme lethargy — +20</option>
+        <option value="30">Seizure / coma — +30</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">GI-Hepatic Dysfunction</div>
+      <select class="input-field" id="bwGI">
+        <option value="0">Absent — +0</option>
+        <option value="10">Moderate nausea / vomiting / diarrhea — +10</option>
+        <option value="20">Extreme nausea / vomiting / diarrhea / jaundice — +20</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Heart Rate (beats/min)</div>
+      <select class="input-field" id="bwHR">
+        <option value="0">Select heart rate...</option>
+        <option value="0">&lt;90 — +0</option>
+        <option value="5">90–109 — +5</option>
+        <option value="10">110–119 — +10</option>
+        <option value="15">120–129 — +15</option>
+        <option value="20">130–139 — +20</option>
+        <option value="25">≥140 — +25</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Congestive Heart Failure</div>
+      <select class="input-field" id="bwCHF">
+        <option value="0">Absent — +0</option>
+        <option value="5">Mild pulmonary edema — +5</option>
+        <option value="10">Moderate pulmonary edema — +10</option>
+        <option value="25">Frank pulmonary edema — +25</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Atrial Fibrillation</div>
+      <select class="input-field" id="bwAfib">
+        <option value="0">Absent — +0</option>
+        <option value="10">Present — +10</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Precipitating Event</div>
+      <select class="input-field" id="bwPrecip">
+        <option value="0">Absent — +0</option>
+        <option value="10">Present — +10</option>
+      </select>
+    </div>
+
+    <button class="calculate-btn" onclick="calcBurchwart()">Calculate Score</button>
+
+    <div class="result-card" id="burchwartResult">
+      <div class="result-label">Burch-Wartofsky Score</div>
+      <div class="result-value" id="burchwartValue">—</div>
+      <div class="result-unit">points</div>
+      <div class="result-interpretation" id="burchwartInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Burch HB, Wartofsky L. "Life-threatening thyrotoxicosis: thyroid storm." <em>Endocrinol Metab Clin North Am.</em> 1993;22(2):263-277.
+    </div>
+  </div>
+
+  <!-- ═══════ STEROID CONVERSION DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="steroidDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Steroid Conversion</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Corticosteroid Dose Equivalency</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Drug</div>
+      <select class="input-field" id="steroidDrug">
+        <option value="">Select corticosteroid...</option>
+        <option value="hydrocortisone">Hydrocortisone</option>
+        <option value="cortisone">Cortisone</option>
+        <option value="prednisone">Prednisone</option>
+        <option value="prednisolone">Prednisolone</option>
+        <option value="methylprednisolone">Methylprednisolone</option>
+        <option value="triamcinolone">Triamcinolone</option>
+        <option value="dexamethasone">Dexamethasone</option>
+        <option value="betamethasone">Betamethasone</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Dose <span class="input-unit">mg</span></div>
+      <input type="number" class="input-field" id="steroidDose" placeholder="e.g. 20" step="0.1" inputmode="decimal">
+    </div>
+
+    <button class="calculate-btn" onclick="calcSteroid()">Calculate Equivalents</button>
+
+    <div class="result-card" id="steroidResult">
+      <div class="result-label">Equivalent Doses</div>
+      <div id="steroidEquivList" style="text-align:left; margin-top:12px; font-size:14px;"></div>
+      <div class="result-interpretation" id="steroidInterp" style="text-align:left; font-size:12px; color:var(--text-dim);">Based on anti-inflammatory potency equivalency. These are approximate values — mineralocorticoid activity differs. Consult clinical pharmacist for critical dose conversions.</div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Liu D, et al. "A practical guide to the monitoring and management of the complications of systemic corticosteroid therapy." <em>Allergy Asthma Clin Immunol.</em> 2013;9(1):30.
+    </div>
+  </div>
+
+  <!-- ═══════ CORRECTED CALCIUM DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="calciumDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Corrected Calcium</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Calcium correction for hypoalbuminemia</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Serum Calcium <span class="input-unit">mg/dL</span></div>
+      <input type="number" class="input-field" id="calciumCa" placeholder="e.g. 7.8" step="0.1" inputmode="decimal">
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Serum Albumin <span class="input-unit">g/dL</span></div>
+      <input type="number" class="input-field" id="calciumAlb" placeholder="e.g. 2.5" step="0.1" inputmode="decimal">
+    </div>
+
+    <button class="calculate-btn" onclick="calcCalcium()">Calculate Corrected Ca</button>
+
+    <div class="result-card" id="calciumResult">
+      <div class="result-label">Corrected Calcium</div>
+      <div class="result-value" id="calciumValue">—</div>
+      <div class="result-unit">mg/dL</div>
+      <div class="result-interpretation" id="calciumInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Payne RB, et al. "Interpretation of serum calcium in patients with abnormal serum proteins." <em>Br Med J.</em> 1973;4(5893):643-646.
+    </div>
+  </div>
+
+  <!-- ═══════ BSA DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="bsaDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">BSA — Body Surface Area</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Mosteller Formula</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Weight <span class="input-unit">lbs</span></div>
+      <input type="number" class="input-field" id="bsaWeight" placeholder="e.g. 175" inputmode="numeric">
+    </div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <div class="input-label">Height <span class="input-unit">feet</span></div>
+        <input type="number" class="input-field" id="bsaFeet" placeholder="5" inputmode="numeric">
+      </div>
+      <div class="input-group">
+        <div class="input-label">&nbsp;<span class="input-unit">inches</span></div>
+        <input type="number" class="input-field" id="bsaInches" placeholder="10" inputmode="numeric">
+      </div>
+    </div>
+
+    <button class="calculate-btn" onclick="calcBSA()">Calculate BSA</button>
+
+    <div class="result-card" id="bsaResult">
+      <div class="result-label">Body Surface Area</div>
+      <div class="result-value" id="bsaValue">—</div>
+      <div class="result-unit">m²</div>
+      <div class="result-interpretation" id="bsaInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Mosteller RD. "Simplified calculation of body-surface area." <em>N Engl J Med.</em> 1987;317(17):1098.
+    </div>
+  </div>
+
+  <!-- ═══════ CREATININE CLEARANCE DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="crclearDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Creatinine Clearance</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Cockcroft-Gault Equation</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Sex <span class="input-unit">biological</span></div>
+      <div class="radio-group">
+        <div class="radio-btn selected" id="cgSexM" onclick="selectCGSex('M')">Male</div>
+        <div class="radio-btn" id="cgSexF" onclick="selectCGSex('F')">Female</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Age <span class="input-unit">years</span></div>
+      <input type="number" class="input-field" id="cgAge" placeholder="e.g. 60" inputmode="numeric">
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Weight <span class="input-unit">lbs</span></div>
+      <input type="number" class="input-field" id="cgWeight" placeholder="e.g. 165" inputmode="numeric">
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Serum Creatinine <span class="input-unit">mg/dL</span></div>
+      <input type="number" class="input-field" id="cgCr" placeholder="e.g. 1.2" step="0.01" inputmode="decimal">
+    </div>
+
+    <button class="calculate-btn" onclick="calcCrClear()">Calculate CrCl</button>
+
+    <div class="result-card" id="crClearResult">
+      <div class="result-label">Creatinine Clearance</div>
+      <div class="result-value" id="crClearValue">—</div>
+      <div class="result-unit">mL/min</div>
+      <div class="result-interpretation" id="crClearInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Cockcroft DW, Gault MH. "Prediction of creatinine clearance from serum creatinine." <em>Nephron.</em> 1976;16(1):31-41.
+    </div>
+  </div>
+
+  <!-- ═══════ FENa DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="fenaDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">FENa</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Fractional Excretion of Sodium</div>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <div class="input-label">Urine Sodium <span class="input-unit">mEq/L</span></div>
+        <input type="number" class="input-field" id="fenaUNa" placeholder="e.g. 20" inputmode="numeric">
+      </div>
+      <div class="input-group">
+        <div class="input-label">Serum Sodium <span class="input-unit">mEq/L</span></div>
+        <input type="number" class="input-field" id="fenaSNa" placeholder="e.g. 138" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <div class="input-label">Urine Cr <span class="input-unit">mg/dL</span></div>
+        <input type="number" class="input-field" id="fenaUCr" placeholder="e.g. 80" inputmode="numeric">
+      </div>
+      <div class="input-group">
+        <div class="input-label">Serum Cr <span class="input-unit">mg/dL</span></div>
+        <input type="number" class="input-field" id="fenaSCr" placeholder="e.g. 1.5" step="0.01" inputmode="decimal">
+      </div>
+    </div>
+
+    <button class="calculate-btn" onclick="calcFENa()">Calculate FENa</button>
+
+    <div class="result-card" id="fenaResult">
+      <div class="result-label">FENa</div>
+      <div class="result-value" id="fenaValue">—</div>
+      <div class="result-unit">%</div>
+      <div class="result-interpretation" id="fenaInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Espinel CH. "The FENa test: use in the differential diagnosis of acute renal failure." <em>Arch Intern Med.</em> 1976;136(7):827-829.
+    </div>
+  </div>
+
+  <!-- ═══════ ANION GAP DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="anionDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Anion Gap</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Metabolic Acidosis Evaluation</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Sodium <span class="input-unit">mEq/L</span></div>
+      <input type="number" class="input-field" id="agNa" placeholder="e.g. 140" inputmode="numeric">
+    </div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <div class="input-label">Chloride <span class="input-unit">mEq/L</span></div>
+        <input type="number" class="input-field" id="agCl" placeholder="e.g. 102" inputmode="numeric">
+      </div>
+      <div class="input-group">
+        <div class="input-label">Bicarbonate <span class="input-unit">mEq/L</span></div>
+        <input type="number" class="input-field" id="agHCO3" placeholder="e.g. 24" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Albumin <span class="input-unit">g/dL — optional, for correction</span></div>
+      <input type="number" class="input-field" id="agAlb" placeholder="e.g. 4.0" step="0.1" inputmode="decimal">
+    </div>
+
+    <button class="calculate-btn" onclick="calcAnionGap()">Calculate Anion Gap</button>
+
+    <div class="result-card" id="anionResult">
+      <div class="result-label">Anion Gap</div>
+      <div class="result-value" id="anionValue">—</div>
+      <div class="result-unit">mEq/L</div>
+      <div class="result-interpretation" id="anionInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Kraut JA, Madias NE. "Serum anion gap: its uses and limitations in clinical medicine." <em>N Engl J Med.</em> 2014;371(19):1821-1831.
+    </div>
+  </div>
+
+  <!-- ═══════ CORRECTED SODIUM DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="sodiumcorrDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Corrected Sodium</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Katz Formula for Hyperglycemia</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Measured Sodium <span class="input-unit">mEq/L</span></div>
+      <input type="number" class="input-field" id="sncNa" placeholder="e.g. 128" inputmode="numeric">
+    </div>
+
+    <div class="input-group">
+      <div class="input-label">Serum Glucose <span class="input-unit">mg/dL</span></div>
+      <input type="number" class="input-field" id="sncGlucose" placeholder="e.g. 600" inputmode="numeric">
+    </div>
+
+    <button class="calculate-btn" onclick="calcSodiumCorr()">Calculate Corrected Na</button>
+
+    <div class="result-card" id="sodiumCorrResult">
+      <div class="result-label">Corrected Sodium</div>
+      <div class="result-value" id="sodiumCorrValue">—</div>
+      <div class="result-unit">mEq/L</div>
+      <div class="result-interpretation" id="sodiumCorrInterp"></div>
+    </div>
+
+    <div class="evidence-box">
+      <strong>📚 Evidence:</strong> Katz MA. "Hyperglycemia-induced hyponatremia — calculation of expected serum sodium depression." <em>N Engl J Med.</em> 1973;289(16):843-844.
+    </div>
+  </div>
+
+  <!-- ═══════ CHA₂DS₂-VASc DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="chadsvascDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">CHA₂DS₂-VASc Score</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Stroke Risk in Atrial Fibrillation</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">Congestive Heart Failure</div><div class="radio-group"><div class="radio-btn selected" id="cvCHF0" onclick="setCvVal('cvCHF',0)">No (+0)</div><div class="radio-btn" id="cvCHF1" onclick="setCvVal('cvCHF',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Hypertension</div><div class="radio-group"><div class="radio-btn selected" id="cvHTN0" onclick="setCvVal('cvHTN',0)">No (+0)</div><div class="radio-btn" id="cvHTN1" onclick="setCvVal('cvHTN',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Age ≥ 75</div><div class="radio-group"><div class="radio-btn selected" id="cvAge750" onclick="setCvVal('cvAge75',0)">No (+0)</div><div class="radio-btn" id="cvAge751" onclick="setCvVal('cvAge75',2)">Yes (+2)</div></div></div>
+    <div class="input-group"><div class="input-label">Diabetes</div><div class="radio-group"><div class="radio-btn selected" id="cvDM0" onclick="setCvVal('cvDM',0)">No (+0)</div><div class="radio-btn" id="cvDM1" onclick="setCvVal('cvDM',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Stroke / TIA / Thromboembolism</div><div class="radio-group"><div class="radio-btn selected" id="cvStroke0" onclick="setCvVal('cvStroke',0)">No (+0)</div><div class="radio-btn" id="cvStroke1" onclick="setCvVal('cvStroke',2)">Yes (+2)</div></div></div>
+    <div class="input-group"><div class="input-label">Vascular Disease (prior MI, PAD, aortic plaque)</div><div class="radio-group"><div class="radio-btn selected" id="cvVasc0" onclick="setCvVal('cvVasc',0)">No (+0)</div><div class="radio-btn" id="cvVasc1" onclick="setCvVal('cvVasc',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Age 65–74</div><div class="radio-group"><div class="radio-btn selected" id="cvAge650" onclick="setCvVal('cvAge65',0)">No (+0)</div><div class="radio-btn" id="cvAge651" onclick="setCvVal('cvAge65',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Sex Category</div><div class="radio-group"><div class="radio-btn selected" id="cvSex0" onclick="setCvVal('cvSex',0)">Male (+0)</div><div class="radio-btn" id="cvSex1" onclick="setCvVal('cvSex',1)">Female (+1)</div></div></div>
+    <button class="calculate-btn" onclick="calcChadsvasc()">Calculate Score</button>
+    <div class="result-card" id="chadsvascResult"><div class="result-label">CHA₂DS₂-VASc Score</div><div class="result-value" id="chadsvascValue">—</div><div class="result-unit">points</div><div class="result-interpretation" id="chadsvascInterp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Lip GY, et al. "Refining clinical risk stratification for predicting stroke and thromboembolism in atrial fibrillation." <em>Chest.</em> 2010;137(2):263-272.</div>
+  </div>
+
+  <!-- ═══════ MAP DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="mapDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">MAP — Mean Arterial Pressure</div>
+        <div style="font-size: 12px; color: var(--text-dim);">From Systolic & Diastolic BP</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">Systolic BP <span class="input-unit">mmHg</span></div><input type="number" class="input-field" id="mapSBP" placeholder="e.g. 120" inputmode="numeric"></div>
+    <div class="input-group"><div class="input-label">Diastolic BP <span class="input-unit">mmHg</span></div><input type="number" class="input-field" id="mapDBP" placeholder="e.g. 80" inputmode="numeric"></div>
+    <button class="calculate-btn" onclick="calcMAP()">Calculate MAP</button>
+    <div class="result-card" id="mapResult"><div class="result-label">Mean Arterial Pressure</div><div class="result-value" id="mapValue">—</div><div class="result-unit">mmHg</div><div class="result-interpretation" id="mapInterp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Standard hemodynamic formula: MAP = DBP + ⅓(SBP − DBP). Target MAP ≥ 65 mmHg for adequate organ perfusion (Surviving Sepsis Campaign Guidelines, 2021).</div>
+  </div>
+
+  <!-- ═══════ QTc DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="qtcDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Corrected QT (QTc)</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Bazett, Fridericia & Framingham</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">QT Interval <span class="input-unit">msec</span></div><input type="number" class="input-field" id="qtcQT" placeholder="e.g. 420" inputmode="numeric"></div>
+    <div class="input-group"><div class="input-label">Heart Rate <span class="input-unit">bpm</span></div><input type="number" class="input-field" id="qtcHR" placeholder="e.g. 72" inputmode="numeric"></div>
+    <button class="calculate-btn" onclick="calcQTc()">Calculate QTc</button>
+    <div class="result-card" id="qtcResult"><div class="result-label">Corrected QT Interval</div><div class="result-value" id="qtcValue">—</div><div class="result-unit">msec (Bazett)</div><div class="result-interpretation" id="qtcInterp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Bazett HC. "An analysis of the time-relations of electrocardiograms." <em>Heart.</em> 1920;7:353-370. Fridericia LS. <em>Acta Med Scand.</em> 1920;53:469-486.</div>
+  </div>
+
+  <!-- ═══════ WELLS' DVT DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="wellsDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Wells' Score for DVT</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Deep Vein Thrombosis Risk</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">Active cancer (treatment within 6 months)</div><div class="radio-group"><div class="radio-btn selected" id="wCan0" onclick="setWellsVal('wCan',0)">No</div><div class="radio-btn" id="wCan1" onclick="setWellsVal('wCan',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Paralysis, paresis, or recent cast of lower extremity</div><div class="radio-group"><div class="radio-btn selected" id="wPar0" onclick="setWellsVal('wPar',0)">No</div><div class="radio-btn" id="wPar1" onclick="setWellsVal('wPar',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Bedridden >3 days or major surgery within 12 weeks</div><div class="radio-group"><div class="radio-btn selected" id="wBed0" onclick="setWellsVal('wBed',0)">No</div><div class="radio-btn" id="wBed1" onclick="setWellsVal('wBed',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Localized tenderness along deep venous system</div><div class="radio-group"><div class="radio-btn selected" id="wTend0" onclick="setWellsVal('wTend',0)">No</div><div class="radio-btn" id="wTend1" onclick="setWellsVal('wTend',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Entire leg swollen</div><div class="radio-group"><div class="radio-btn selected" id="wSwell0" onclick="setWellsVal('wSwell',0)">No</div><div class="radio-btn" id="wSwell1" onclick="setWellsVal('wSwell',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Calf swelling ≥3 cm compared to other leg</div><div class="radio-group"><div class="radio-btn selected" id="wCalf0" onclick="setWellsVal('wCalf',0)">No</div><div class="radio-btn" id="wCalf1" onclick="setWellsVal('wCalf',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Pitting edema (greater in symptomatic leg)</div><div class="radio-group"><div class="radio-btn selected" id="wPit0" onclick="setWellsVal('wPit',0)">No</div><div class="radio-btn" id="wPit1" onclick="setWellsVal('wPit',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Collateral superficial veins (non-varicose)</div><div class="radio-group"><div class="radio-btn selected" id="wColl0" onclick="setWellsVal('wColl',0)">No</div><div class="radio-btn" id="wColl1" onclick="setWellsVal('wColl',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Previously documented DVT</div><div class="radio-group"><div class="radio-btn selected" id="wPrev0" onclick="setWellsVal('wPrev',0)">No</div><div class="radio-btn" id="wPrev1" onclick="setWellsVal('wPrev',1)">Yes (+1)</div></div></div>
+    <div class="input-group"><div class="input-label">Alternative diagnosis at least as likely as DVT</div><div class="radio-group"><div class="radio-btn selected" id="wAlt0" onclick="setWellsVal('wAlt',0)">No</div><div class="radio-btn" id="wAlt1" onclick="setWellsVal('wAlt',-2)">Yes (−2)</div></div></div>
+    <button class="calculate-btn" onclick="calcWells()">Calculate Score</button>
+    <div class="result-card" id="wellsResult"><div class="result-label">Wells' Score</div><div class="result-value" id="wellsValue">—</div><div class="result-unit">points</div><div class="result-interpretation" id="wellsInterp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Wells PS, et al. "Evaluation of D-dimer in the diagnosis of suspected deep-vein thrombosis." <em>N Engl J Med.</em> 2003;349(13):1227-1235.</div>
+  </div>
+
+  <!-- ═══════ FIB-4 DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="fib4Detail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">FIB-4 Index</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Non-Invasive Liver Fibrosis</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">Age <span class="input-unit">years</span></div><input type="number" class="input-field" id="fib4Age" placeholder="e.g. 52" inputmode="numeric"></div>
+    <div class="input-group"><div class="input-label">AST <span class="input-unit">U/L</span></div><input type="number" class="input-field" id="fib4AST" placeholder="e.g. 45" inputmode="numeric"></div>
+    <div class="input-group"><div class="input-label">ALT <span class="input-unit">U/L</span></div><input type="number" class="input-field" id="fib4ALT" placeholder="e.g. 38" inputmode="numeric"></div>
+    <div class="input-group"><div class="input-label">Platelet Count <span class="input-unit">× 10⁹/L</span></div><input type="number" class="input-field" id="fib4Plt" placeholder="e.g. 180" inputmode="numeric"></div>
+    <button class="calculate-btn" onclick="calcFib4()">Calculate FIB-4</button>
+    <div class="result-card" id="fib4Result"><div class="result-label">FIB-4 Index</div><div class="result-value" id="fib4Value">—</div><div class="result-unit">score</div><div class="result-interpretation" id="fib4Interp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Sterling RK, et al. "Development of a simple noninvasive index to predict significant fibrosis in patients with HIV/HCV coinfection." <em>Hepatology.</em> 2006;43(6):1317-1325.</div>
+  </div>
+
+  <!-- ═══════ CHILD-PUGH DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="childpughDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Child-Pugh Score</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Prognosis in Cirrhosis</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">Total Bilirubin</div><select class="input-field" id="cpBili"><option value="1">&lt; 2 mg/dL (+1)</option><option value="2">2–3 mg/dL (+2)</option><option value="3">&gt; 3 mg/dL (+3)</option></select></div>
+    <div class="input-group"><div class="input-label">Serum Albumin</div><select class="input-field" id="cpAlb"><option value="1">&gt; 3.5 g/dL (+1)</option><option value="2">2.8–3.5 g/dL (+2)</option><option value="3">&lt; 2.8 g/dL (+3)</option></select></div>
+    <div class="input-group"><div class="input-label">INR / PT</div><select class="input-field" id="cpINR"><option value="1">&lt; 1.7 (+1)</option><option value="2">1.7–2.3 (+2)</option><option value="3">&gt; 2.3 (+3)</option></select></div>
+    <div class="input-group"><div class="input-label">Ascites</div><select class="input-field" id="cpAscites"><option value="1">Absent (+1)</option><option value="2">Slight (+2)</option><option value="3">Moderate (+3)</option></select></div>
+    <div class="input-group"><div class="input-label">Hepatic Encephalopathy</div><select class="input-field" id="cpHE"><option value="1">None (+1)</option><option value="2">Grade 1–2 (+2)</option><option value="3">Grade 3–4 (+3)</option></select></div>
+    <button class="calculate-btn" onclick="calcChildPugh()">Calculate Score</button>
+    <div class="result-card" id="childpughResult"><div class="result-label">Child-Pugh Score</div><div class="result-value" id="childpughValue">—</div><div class="result-unit">points</div><div class="result-interpretation" id="childpughInterp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Pugh RN, et al. "Transection of the oesophagus for bleeding oesophageal varices." <em>Br J Surg.</em> 1973;60(8):646-649.</div>
+  </div>
+
+  <!-- ═══════ IV FLUID RATE DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="ivfluidDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">IV Fluid Rate</div>
+        <div style="font-size: 12px; color: var(--text-dim);">4-2-1 Maintenance Rule (Holliday-Segar)</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">Weight <span class="input-unit">lbs</span></div><input type="number" class="input-field" id="ivWeight" placeholder="e.g. 154" inputmode="numeric"></div>
+    <button class="calculate-btn" onclick="calcIVFluid()">Calculate Rate</button>
+    <div class="result-card" id="ivfluidResult"><div class="result-label">Maintenance IV Rate</div><div class="result-value" id="ivfluidValue">—</div><div class="result-unit">mL/hr</div><div class="result-interpretation" id="ivfluidInterp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Holliday MA, Segar WE. "The maintenance need for water in parenteral fluid therapy." <em>Pediatrics.</em> 1957;19(5):823-832.</div>
+  </div>
+
+  <!-- ═══════ WINTERS' FORMULA DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="wintersDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Winters' Formula</div>
+        <div style="font-size: 12px; color: var(--text-dim);">Expected pCO₂ in Metabolic Acidosis</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">Serum Bicarbonate (HCO₃⁻) <span class="input-unit">mEq/L</span></div><input type="number" class="input-field" id="wintersHCO3" placeholder="e.g. 14" inputmode="numeric"></div>
+    <button class="calculate-btn" onclick="calcWinters()">Calculate Expected pCO₂</button>
+    <div class="result-card" id="wintersResult"><div class="result-label">Expected pCO₂</div><div class="result-value" id="wintersValue">—</div><div class="result-unit">mmHg</div><div class="result-interpretation" id="wintersInterp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Winters RW, et al. "The body fluids in pediatrics." <em>Little, Brown and Company.</em> 1973. Albert MS, et al. <em>Ann Intern Med.</em> 1967;66(2):312-322.</div>
+  </div>
+
+  <!-- ═══════ FREE WATER DEFICIT DETAIL VIEW ═══════ -->
+  <div class="calc-detail" id="freewaterDetail">
+    <div class="detail-header">
+      <button class="back-btn" onclick="showHome()">←</button>
+      <div>
+        <div class="detail-title">Free Water Deficit</div>
+        <div style="font-size: 12px; color: var(--text-dim);">For Hypernatremia Correction</div>
+      </div>
+    </div>
+    <div class="input-group"><div class="input-label">Sex</div><div class="radio-group"><div class="radio-btn selected" id="fwSexM" onclick="selectFWSex('M')">Male</div><div class="radio-btn" id="fwSexF" onclick="selectFWSex('F')">Female</div></div></div>
+    <div class="input-group"><div class="input-label">Weight <span class="input-unit">lbs</span></div><input type="number" class="input-field" id="fwWeight" placeholder="e.g. 165" inputmode="numeric"></div>
+    <div class="input-group"><div class="input-label">Serum Sodium <span class="input-unit">mEq/L</span></div><input type="number" class="input-field" id="fwNa" placeholder="e.g. 155" inputmode="numeric"></div>
+    <button class="calculate-btn" onclick="calcFreeWater()">Calculate Deficit</button>
+    <div class="result-card" id="freewaterResult"><div class="result-label">Free Water Deficit</div><div class="result-value" id="freewaterValue">—</div><div class="result-unit">liters</div><div class="result-interpretation" id="freewaterInterp"></div></div>
+    <div class="evidence-box"><strong>📚 Evidence:</strong> Adrogué HJ, Madias NE. "Hypernatremia." <em>N Engl J Med.</em> 2000;342(20):1493-1499.</div>
+  </div>
+
+  <!-- POWERED BY -->
+  <div class="powered-by">
+    Powered by <span>Amor Medical</span> × <span>Rico Cloud</span><br>
+    Built by Emily 🌿 for Dr. Roger Gonzalez
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <a class="nav-item active" onclick="showHome()">
+      <span class="nav-icon">🧮</span>
+      <span class="nav-label">Calculate</span>
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">History</span>
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">⭐</span>
+      <span class="nav-label">Favorites</span>
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">📚</span>
+      <span class="nav-label">Evidence</span>
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Settings</span>
+    </a>
+  </div>
+</div>
+
+<script>
+  let selectedSex = 'F';
+
+  function selectSex(sex) {
+    selectedSex = sex;
+    document.getElementById('sexF').classList.toggle('selected', sex === 'F');
+    document.getElementById('sexM').classList.toggle('selected', sex === 'M');
+  }
+
+  function showDetail(calc) {
+    document.getElementById('homeView').style.display = 'none';
+    document.querySelectorAll('.calc-detail').forEach(d => d.classList.remove('active'));
+    document.getElementById(calc + 'Detail').classList.add('active');
+  }
+
+  function showHome() {
+    document.getElementById('homeView').style.display = 'block';
+    document.querySelectorAll('.calc-detail').forEach(d => d.classList.remove('active'));
+  }
+
+  // CKD-EPI 2021 (race-free)
+  function calcGFR() {
+    const age = parseFloat(document.getElementById('gfrAge').value);
+    const cr = parseFloat(document.getElementById('gfrCr').value);
+    if (!age || !cr) return;
+
+    let gfr;
+    if (selectedSex === 'F') {
+      const kappa = 0.7;
+      const alpha = cr <= kappa ? -0.241 : -1.200;
+      gfr = 142 * Math.pow(Math.min(cr/kappa, 1), alpha) * Math.pow(Math.max(cr/kappa, 1), -1.200) * Math.pow(0.9938, age) * 1.012;
+    } else {
+      const kappa = 0.9;
+      const alpha = cr <= kappa ? -0.302 : -1.200;
+      gfr = 142 * Math.pow(Math.min(cr/kappa, 1), alpha) * Math.pow(Math.max(cr/kappa, 1), -1.200) * Math.pow(0.9938, age);
+    }
+
+    gfr = Math.round(gfr * 10) / 10;
+    document.getElementById('gfrValue').textContent = gfr;
+    document.getElementById('gfrResult').classList.add('show');
+
+    let interp = '';
+    if (gfr >= 90) interp = '<span class="stage normal">G1 — Normal or High</span><br>eGFR ≥ 90. Kidney function is normal.';
+    else if (gfr >= 60) interp = '<span class="stage mild">G2 — Mildly Decreased</span><br>eGFR 60–89. Mildly reduced kidney function.';
+    else if (gfr >= 45) interp = '<span class="stage moderate">G3a — Mild to Moderate</span><br>eGFR 45–59. Mild-to-moderately reduced.';
+    else if (gfr >= 30) interp = '<span class="stage moderate">G3b — Moderate to Severe</span><br>eGFR 30–44. Moderately-to-severely reduced.';
+    else if (gfr >= 15) interp = '<span class="stage severe">G4 — Severely Decreased</span><br>eGFR 15–29. Severely reduced kidney function.';
+    else interp = '<span class="stage severe">G5 — Kidney Failure</span><br>eGFR < 15. Kidney failure. Consider dialysis/transplant evaluation.';
+
+    document.getElementById('gfrInterp').innerHTML = interp;
+  }
+
+  // BMI
+  function calcBMI() {
+    const weight = parseFloat(document.getElementById('bmiWeight').value);
+    const feet = parseFloat(document.getElementById('bmiFeet').value);
+    const inches = parseFloat(document.getElementById('bmiInches').value) || 0;
+    if (!weight || !feet) return;
+
+    const totalInches = (feet * 12) + inches;
+    const bmi = (weight / (totalInches * totalInches)) * 703;
+    const rounded = Math.round(bmi * 10) / 10;
+
+    document.getElementById('bmiValue').textContent = rounded;
+    document.getElementById('bmiResult').classList.add('show');
+
+    let interp = '';
+    if (bmi < 18.5) interp = '<span class="stage mild">Underweight</span><br>BMI < 18.5';
+    else if (bmi < 25) interp = '<span class="stage normal">Normal Weight</span><br>BMI 18.5–24.9';
+    else if (bmi < 30) interp = '<span class="stage mild">Overweight</span><br>BMI 25.0–29.9';
+    else if (bmi < 35) interp = '<span class="stage moderate">Obesity Class I</span><br>BMI 30.0–34.9';
+    else if (bmi < 40) interp = '<span class="stage severe">Obesity Class II</span><br>BMI 35.0–39.9';
+    else interp = '<span class="stage severe">Obesity Class III</span><br>BMI ≥ 40.0';
+
+    document.getElementById('bmiInterp').innerHTML = interp;
+  }
+
+  // Category filter
+  function filterByCategory(cat, el) {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.calc-card').forEach(card => {
+      if (cat === 'all' || card.dataset.category === cat) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  // Search filter
+  function filterCalcs() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('.calc-card').forEach(card => {
+      const name = card.dataset.name.toLowerCase();
+      card.style.display = name.includes(q) ? 'flex' : 'none';
+    });
+  }
+
+  // ═══════ HOMA-IR ═══════
+  function calcHomaIR() {
+    const insulin = parseFloat(document.getElementById('homaInsulin').value);
+    const glucose = parseFloat(document.getElementById('homaGlucose').value);
+    if (!insulin || !glucose) return;
+
+    const homa = (insulin * glucose) / 405;
+    const rounded = Math.round(homa * 100) / 100;
+
+    document.getElementById('homaIRValue').textContent = rounded;
+    document.getElementById('homaIRResult').classList.add('show');
+
+    let interp = '';
+    if (homa < 1.0) interp = '<span class="stage normal">Insulin Sensitive</span><br>HOMA-IR < 1.0. Excellent insulin sensitivity.';
+    else if (homa < 2.0) interp = '<span class="stage normal">Normal</span><br>HOMA-IR 1.0–1.9. Normal insulin sensitivity.';
+    else if (homa < 3.0) interp = '<span class="stage mild">Early Insulin Resistance</span><br>HOMA-IR 2.0–2.9. Consider lifestyle modifications, dietary changes, and monitoring.';
+    else interp = '<span class="stage severe">Significant Insulin Resistance</span><br>HOMA-IR ≥ 3.0. High risk for metabolic syndrome and Type 2 diabetes. Intervention recommended.';
+
+    document.getElementById('homaIRInterp').innerHTML = interp;
+  }
+
+  // ═══════ HbA1c ↔ eAG ═══════
+  let hba1cDirection = 'a1c_to_eag';
+
+  function selectHba1cDir(dir) {
+    hba1cDirection = dir;
+    document.getElementById('hba1cDirA').classList.toggle('selected', dir === 'a1c_to_eag');
+    document.getElementById('hba1cDirE').classList.toggle('selected', dir === 'eag_to_a1c');
+    document.getElementById('hba1cInputA').style.display = dir === 'a1c_to_eag' ? 'block' : 'none';
+    document.getElementById('hba1cInputE').style.display = dir === 'eag_to_a1c' ? 'block' : 'none';
+  }
+
+  function calcHba1c() {
+    let result, unit, interp;
+
+    if (hba1cDirection === 'a1c_to_eag') {
+      const a1c = parseFloat(document.getElementById('hba1cA1c').value);
+      if (!a1c) return;
+      const eag = Math.round((28.7 * a1c) - 46.7);
+      result = eag;
+      unit = 'mg/dL (eAG)';
+
+      if (a1c < 5.7) interp = '<span class="stage normal">Normal</span><br>A1c ' + a1c + '% = eAG ' + eag + ' mg/dL. Normal glucose control.';
+      else if (a1c < 6.5) interp = '<span class="stage mild">Prediabetes</span><br>A1c ' + a1c + '% = eAG ' + eag + ' mg/dL. Prediabetic range. Lifestyle intervention recommended.';
+      else interp = '<span class="stage severe">Diabetes</span><br>A1c ' + a1c + '% = eAG ' + eag + ' mg/dL. Diabetic range. Treatment and monitoring required.';
+    } else {
+      const eag = parseFloat(document.getElementById('hba1cEag').value);
+      if (!eag) return;
+      const a1c = Math.round(((eag + 46.7) / 28.7) * 10) / 10;
+      result = a1c;
+      unit = '% (HbA1c)';
+
+      if (a1c < 5.7) interp = '<span class="stage normal">Normal</span><br>eAG ' + eag + ' mg/dL = A1c ' + a1c + '%. Normal glucose control.';
+      else if (a1c < 6.5) interp = '<span class="stage mild">Prediabetes</span><br>eAG ' + eag + ' mg/dL = A1c ' + a1c + '%. Prediabetic range.';
+      else interp = '<span class="stage severe">Diabetes</span><br>eAG ' + eag + ' mg/dL = A1c ' + a1c + '%. Diabetic range.';
+    }
+
+    document.getElementById('hba1cValue').textContent = result;
+    document.getElementById('hba1cUnit').textContent = unit;
+    document.getElementById('hba1cResult').classList.add('show');
+    document.getElementById('hba1cInterp').innerHTML = interp;
+  }
+
+  // ═══════ BURCH-WARTOFSKY ═══════
+  function calcBurchwart() {
+    const temp = parseInt(document.getElementById('bwTemp').value) || 0;
+    const cns = parseInt(document.getElementById('bwCNS').value) || 0;
+    const gi = parseInt(document.getElementById('bwGI').value) || 0;
+    const hr = parseInt(document.getElementById('bwHR').value) || 0;
+    const chf = parseInt(document.getElementById('bwCHF').value) || 0;
+    const afib = parseInt(document.getElementById('bwAfib').value) || 0;
+    const precip = parseInt(document.getElementById('bwPrecip').value) || 0;
+
+    const total = temp + cns + gi + hr + chf + afib + precip;
+
+    document.getElementById('burchwartValue').textContent = total;
+    document.getElementById('burchwartResult').classList.add('show');
+
+    let interp = '';
+    if (total < 25) interp = '<span class="stage normal">Thyroid Storm Unlikely</span><br>Score < 25. Thyrotoxicosis without storm features. Standard management.';
+    else if (total < 45) interp = '<span class="stage mild">Impending Thyroid Storm</span><br>Score 25–44. Suggestive of impending storm. Close monitoring and aggressive treatment warranted.';
+    else interp = '<span class="stage severe">Thyroid Storm</span><br>Score ≥ 45. Highly suggestive of thyroid storm. Emergency management required — ICU admission, beta-blockers, PTU/methimazole, iodine, steroids.';
+
+    document.getElementById('burchwartInterp').innerHTML = interp;
+  }
+
+  // ═══════ STEROID CONVERSION ═══════
+  const steroidEquiv = {
+    hydrocortisone: { equiv: 20, name: 'Hydrocortisone' },
+    cortisone: { equiv: 25, name: 'Cortisone' },
+    prednisone: { equiv: 5, name: 'Prednisone' },
+    prednisolone: { equiv: 5, name: 'Prednisolone' },
+    methylprednisolone: { equiv: 4, name: 'Methylprednisolone' },
+    triamcinolone: { equiv: 4, name: 'Triamcinolone' },
+    dexamethasone: { equiv: 0.75, name: 'Dexamethasone' },
+    betamethasone: { equiv: 0.6, name: 'Betamethasone' }
+  };
+
+  function calcSteroid() {
+    const drug = document.getElementById('steroidDrug').value;
+    const dose = parseFloat(document.getElementById('steroidDose').value);
+    if (!drug || !dose) return;
+
+    const source = steroidEquiv[drug];
+    const ratio = dose / source.equiv;
+
+    let html = '';
+    for (const [key, val] of Object.entries(steroidEquiv)) {
+      const equivDose = Math.round(ratio * val.equiv * 100) / 100;
+      const highlight = key === drug ? 'color: var(--primary-light); font-weight: 700;' : 'color: var(--text-muted);';
+      html += '<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06); ' + highlight + '">';
+      html += '<span>' + val.name + '</span>';
+      html += '<span style="font-weight:700;">' + equivDose + ' mg</span>';
+      html += '</div>';
+    }
+
+    document.getElementById('steroidEquivList').innerHTML = html;
+    document.getElementById('steroidResult').classList.add('show');
+  }
+
+  // ═══════ CORRECTED CALCIUM ═══════
+  function calcCalcium() {
+    const ca = parseFloat(document.getElementById('calciumCa').value);
+    const alb = parseFloat(document.getElementById('calciumAlb').value);
+    if (!ca || !alb) return;
+
+    const corrected = Math.round((ca + 0.8 * (4.0 - alb)) * 10) / 10;
+
+    document.getElementById('calciumValue').textContent = corrected;
+    document.getElementById('calciumResult').classList.add('show');
+
+    let interp = '';
+    if (corrected < 8.5) interp = '<span class="stage severe">Hypocalcemia</span><br>Corrected Ca ' + corrected + ' mg/dL (< 8.5). Evaluate for vitamin D deficiency, hypoparathyroidism, or CKD. Check PTH, 25-OH Vitamin D, Mg.';
+    else if (corrected <= 10.5) interp = '<span class="stage normal">Normal</span><br>Corrected Ca ' + corrected + ' mg/dL (8.5–10.5). Within normal range.';
+    else interp = '<span class="stage severe">Hypercalcemia</span><br>Corrected Ca ' + corrected + ' mg/dL (> 10.5). Evaluate for primary hyperparathyroidism, malignancy, or vitamin D toxicity. Check PTH, PTHrP.';
+
+    document.getElementById('calciumInterp').innerHTML = interp;
+  }
+
+  // ═══════ BSA ═══════
+  function calcBSA() {
+    const weight = parseFloat(document.getElementById('bsaWeight').value);
+    const feet = parseFloat(document.getElementById('bsaFeet').value);
+    const inches = parseFloat(document.getElementById('bsaInches').value) || 0;
+    if (!weight || !feet) return;
+
+    const weightKg = weight * 0.453592;
+    const heightCm = ((feet * 12) + inches) * 2.54;
+    const bsa = Math.sqrt((heightCm * weightKg) / 3600);
+    const rounded = Math.round(bsa * 100) / 100;
+
+    document.getElementById('bsaValue').textContent = rounded;
+    document.getElementById('bsaResult').classList.add('show');
+
+    let interp = '';
+    if (rounded < 1.7) interp = '<span class="stage mild">Below Average</span><br>BSA ' + rounded + ' m². Average adult BSA is ~1.7–2.0 m².';
+    else if (rounded <= 2.0) interp = '<span class="stage normal">Average</span><br>BSA ' + rounded + ' m². Within typical adult range (1.7–2.0 m²).';
+    else interp = '<span class="stage mild">Above Average</span><br>BSA ' + rounded + ' m². Above average. Relevant for drug dosing calculations (chemotherapy, immunosuppressants).';
+
+    document.getElementById('bsaInterp').innerHTML = interp;
+  }
+
+  // ═══════ CREATININE CLEARANCE (Cockcroft-Gault) ═══════
+  let cgSex = 'M';
+
+  function selectCGSex(sex) {
+    cgSex = sex;
+    document.getElementById('cgSexM').classList.toggle('selected', sex === 'M');
+    document.getElementById('cgSexF').classList.toggle('selected', sex === 'F');
+  }
+
+  function calcCrClear() {
+    const age = parseFloat(document.getElementById('cgAge').value);
+    const weightLbs = parseFloat(document.getElementById('cgWeight').value);
+    const cr = parseFloat(document.getElementById('cgCr').value);
+    if (!age || !weightLbs || !cr) return;
+
+    const weightKg = weightLbs * 0.453592;
+    let crcl = ((140 - age) * weightKg) / (72 * cr);
+    if (cgSex === 'F') crcl *= 0.85;
+    const rounded = Math.round(crcl * 10) / 10;
+
+    document.getElementById('crClearValue').textContent = rounded;
+    document.getElementById('crClearResult').classList.add('show');
+
+    let interp = '';
+    if (rounded > 90) interp = '<span class="stage normal">Normal</span><br>CrCl > 90 mL/min. Normal kidney function.';
+    else if (rounded >= 60) interp = '<span class="stage mild">Mildly Decreased</span><br>CrCl 60–89 mL/min. Mild reduction. May require dose adjustment for renally-cleared drugs.';
+    else if (rounded >= 30) interp = '<span class="stage moderate">Moderately Decreased</span><br>CrCl 30–59 mL/min. Moderate reduction. Dose adjustments required for many medications.';
+    else if (rounded >= 15) interp = '<span class="stage severe">Severely Decreased</span><br>CrCl 15–29 mL/min. Severe reduction. Significant dose adjustments or drug avoidance required.';
+    else interp = '<span class="stage severe">Kidney Failure</span><br>CrCl < 15 mL/min. Kidney failure. Consider dialysis. Most renally-cleared drugs contraindicated.';
+
+    document.getElementById('crClearInterp').innerHTML = interp;
+  }
+
+  // ═══════ FENa ═══════
+  function calcFENa() {
+    const uNa = parseFloat(document.getElementById('fenaUNa').value);
+    const sNa = parseFloat(document.getElementById('fenaSNa').value);
+    const uCr = parseFloat(document.getElementById('fenaUCr').value);
+    const sCr = parseFloat(document.getElementById('fenaSCr').value);
+    if (!uNa || !sNa || !uCr || !sCr) return;
+
+    const fena = ((uNa * sCr) / (sNa * uCr)) * 100;
+    const rounded = Math.round(fena * 100) / 100;
+
+    document.getElementById('fenaValue').textContent = rounded;
+    document.getElementById('fenaResult').classList.add('show');
+
+    let interp = '';
+    if (fena < 1) interp = '<span class="stage mild">Pre-Renal (< 1%)</span><br>FENa ' + rounded + '%. Suggests pre-renal etiology (volume depletion, decreased renal perfusion). Kidneys are appropriately retaining sodium. Note: may be unreliable on diuretics — use FEUrea instead.';
+    else if (fena <= 2) interp = '<span class="stage moderate">Indeterminate (1–2%)</span><br>FENa ' + rounded + '%. Intermediate zone — could be either pre-renal or intrinsic. Clinical correlation required.';
+    else interp = '<span class="stage severe">Intrinsic Renal Disease (> 2%)</span><br>FENa ' + rounded + '%. Suggests intrinsic renal damage (ATN, interstitial nephritis). Kidneys are unable to conserve sodium appropriately.';
+
+    document.getElementById('fenaInterp').innerHTML = interp;
+  }
+
+  // ═══════ ANION GAP ═══════
+  function calcAnionGap() {
+    const na = parseFloat(document.getElementById('agNa').value);
+    const cl = parseFloat(document.getElementById('agCl').value);
+    const hco3 = parseFloat(document.getElementById('agHCO3').value);
+    if (!na || !cl || !hco3) return;
+
+    const ag = na - (cl + hco3);
+    const rounded = Math.round(ag * 10) / 10;
+
+    const alb = parseFloat(document.getElementById('agAlb').value);
+    let correctedAG = null;
+    if (alb) {
+      correctedAG = Math.round((ag + 2.5 * (4.0 - alb)) * 10) / 10;
+    }
+
+    document.getElementById('anionValue').textContent = rounded;
+    document.getElementById('anionResult').classList.add('show');
+
+    let interp = '';
+    const displayAG = correctedAG !== null ? correctedAG : rounded;
+    const corrNote = correctedAG !== null ? '<br><br>Albumin-corrected AG: <strong>' + correctedAG + ' mEq/L</strong>' : '';
+
+    if (displayAG <= 12) interp = '<span class="stage normal">Normal Anion Gap</span><br>AG ' + rounded + ' mEq/L (normal 8–12).' + corrNote + '<br><br>If metabolic acidosis is present with normal AG → consider non-anion-gap metabolic acidosis (NAGMA): diarrhea, RTA, saline infusion.';
+    else interp = '<span class="stage severe">Elevated Anion Gap</span><br>AG ' + rounded + ' mEq/L (> 12).' + corrNote + '<br><br>Consider MUDPILES: Methanol, Uremia, DKA, Propylene glycol, INH/Iron, Lactic acidosis, Ethylene glycol, Salicylates.';
+
+    document.getElementById('anionInterp').innerHTML = interp;
+  }
+
+  // ═══════ CHA₂DS₂-VASc ═══════
+  const cvScores = { cvCHF: 0, cvHTN: 0, cvAge75: 0, cvDM: 0, cvStroke: 0, cvVasc: 0, cvAge65: 0, cvSex: 0 };
+
+  function setCvVal(key, val) {
+    cvScores[key] = val;
+    // Toggle buttons
+    document.getElementById(key + '0').classList.toggle('selected', val === 0);
+    document.getElementById(key + '1').classList.toggle('selected', val !== 0);
+  }
+
+  function calcChadsvasc() {
+    const total = Object.values(cvScores).reduce((a, b) => a + b, 0);
+    document.getElementById('chadsvascValue').textContent = total;
+    document.getElementById('chadsvascResult').classList.add('show');
+
+    const riskTable = [0, 1.3, 2.2, 3.2, 4.0, 6.7, 9.8, 9.6, 6.7, 15.2];
+    const risk = total <= 9 ? riskTable[total] : '>15';
+    let interp = '';
+    if (total === 0) interp = '<span class="stage normal">Low Risk</span><br>Score 0 (male) — Annual stroke risk ~0%. Anticoagulation generally not recommended.';
+    else if (total === 1) interp = '<span class="stage mild">Low-Moderate Risk</span><br>Score 1 — Annual stroke risk ~1.3%. Consider anticoagulation (especially if score is 1 from a factor other than sex).';
+    else interp = '<span class="stage severe">Moderate-High Risk</span><br>Score ' + total + ' — Annual stroke risk ~' + risk + '%. Oral anticoagulation recommended (DOAC preferred over warfarin per AHA/ACC guidelines).';
+
+    document.getElementById('chadsvascInterp').innerHTML = interp;
+  }
+
+  // ═══════ MAP ═══════
+  function calcMAP() {
+    const sbp = parseFloat(document.getElementById('mapSBP').value);
+    const dbp = parseFloat(document.getElementById('mapDBP').value);
+    if (!sbp || !dbp) return;
+
+    const map = Math.round((dbp + (sbp - dbp) / 3) * 10) / 10;
+    document.getElementById('mapValue').textContent = map;
+    document.getElementById('mapResult').classList.add('show');
+
+    let interp = '';
+    if (map < 60) interp = '<span class="stage severe">Critically Low</span><br>MAP ' + map + ' mmHg (< 60). Inadequate organ perfusion. Vasopressors and IV fluids likely needed.';
+    else if (map < 65) interp = '<span class="stage moderate">Low</span><br>MAP ' + map + ' mmHg (60–64). Below target. Monitor closely — target ≥ 65 mmHg for adequate organ perfusion.';
+    else if (map <= 100) interp = '<span class="stage normal">Normal</span><br>MAP ' + map + ' mmHg (65–100). Adequate organ perfusion.';
+    else interp = '<span class="stage mild">Elevated</span><br>MAP ' + map + ' mmHg (> 100). Elevated — assess for hypertensive urgency/emergency if symptomatic.';
+
+    document.getElementById('mapInterp').innerHTML = interp;
+  }
+
+  // ═══════ QTc ═══════
+  function calcQTc() {
+    const qt = parseFloat(document.getElementById('qtcQT').value);
+    const hr = parseFloat(document.getElementById('qtcHR').value);
+    if (!qt || !hr) return;
+
+    const rr = 60 / hr;
+    const bazett = Math.round(qt / Math.sqrt(rr));
+    const fridericia = Math.round(qt / Math.pow(rr, 1/3));
+    const framingham = Math.round(qt + 154 * (1 - rr));
+
+    document.getElementById('qtcValue').textContent = bazett;
+    document.getElementById('qtcResult').classList.add('show');
+
+    let interp = '<strong>Bazett:</strong> ' + bazett + ' ms | <strong>Fridericia:</strong> ' + fridericia + ' ms | <strong>Framingham:</strong> ' + framingham + ' ms<br><br>';
+
+    if (bazett < 440) interp += '<span class="stage normal">Normal QTc</span><br>QTc < 440 ms. Within normal limits.';
+    else if (bazett < 470) interp += '<span class="stage mild">Borderline Prolonged</span><br>QTc 440–469 ms. Monitor for QT-prolonging drugs. Repeat ECG if clinically indicated.';
+    else if (bazett < 500) interp += '<span class="stage moderate">Prolonged</span><br>QTc 470–499 ms. Increased arrhythmia risk. Review medications. Consider cardiology consult.';
+    else interp += '<span class="stage severe">Markedly Prolonged</span><br>QTc ≥ 500 ms. High risk for Torsades de Pointes. Discontinue QT-prolonging drugs. Urgent cardiology consult.';
+
+    interp += '<br><br><em>Note: Bazett overcorrects at high HR. Fridericia is more accurate at HR > 100 bpm.</em>';
+    document.getElementById('qtcInterp').innerHTML = interp;
+  }
+
+  // ═══════ WELLS' DVT ═══════
+  const wellsScores = { wCan: 0, wPar: 0, wBed: 0, wTend: 0, wSwell: 0, wCalf: 0, wPit: 0, wColl: 0, wPrev: 0, wAlt: 0 };
+
+  function setWellsVal(key, val) {
+    wellsScores[key] = val;
+    document.getElementById(key + '0').classList.toggle('selected', val === 0);
+    document.getElementById(key + '1').classList.toggle('selected', val !== 0);
+  }
+
+  function calcWells() {
+    const total = Object.values(wellsScores).reduce((a, b) => a + b, 0);
+    document.getElementById('wellsValue').textContent = total;
+    document.getElementById('wellsResult').classList.add('show');
+
+    let interp = '';
+    if (total <= 0) interp = '<span class="stage normal">Low Probability</span><br>Score ≤ 0 — DVT prevalence ~5%. D-dimer recommended. If negative, DVT effectively ruled out.';
+    else if (total <= 2) interp = '<span class="stage mild">Moderate Probability</span><br>Score 1–2 — DVT prevalence ~17%. D-dimer recommended. If positive → ultrasound.';
+    else interp = '<span class="stage severe">High Probability</span><br>Score ≥ 3 — DVT prevalence ~53%. Ultrasound recommended. Do NOT rely on D-dimer alone to rule out.';
+
+    document.getElementById('wellsInterp').innerHTML = interp;
+  }
+
+  // ═══════ FIB-4 ═══════
+  function calcFib4() {
+    const age = parseFloat(document.getElementById('fib4Age').value);
+    const ast = parseFloat(document.getElementById('fib4AST').value);
+    const alt = parseFloat(document.getElementById('fib4ALT').value);
+    const plt = parseFloat(document.getElementById('fib4Plt').value);
+    if (!age || !ast || !alt || !plt) return;
+
+    const fib4 = (age * ast) / (plt * Math.sqrt(alt));
+    const rounded = Math.round(fib4 * 100) / 100;
+
+    document.getElementById('fib4Value').textContent = rounded;
+    document.getElementById('fib4Result').classList.add('show');
+
+    let interp = '';
+    if (fib4 < 1.3) interp = '<span class="stage normal">Low Risk of Fibrosis</span><br>FIB-4 < 1.3. Advanced fibrosis can be excluded with high confidence (NPV ~90%). Repeat in 1–3 years.';
+    else if (fib4 <= 2.67) interp = '<span class="stage mild">Indeterminate</span><br>FIB-4 1.3–2.67. Cannot reliably exclude or confirm fibrosis. Consider further evaluation: FibroScan, ELF test, or liver biopsy.';
+    else interp = '<span class="stage severe">High Risk of Advanced Fibrosis</span><br>FIB-4 > 2.67. Suggestive of advanced fibrosis (F3–F4). Refer to hepatology. Consider FibroScan or biopsy for staging.';
+
+    document.getElementById('fib4Interp').innerHTML = interp;
+  }
+
+  // ═══════ CHILD-PUGH ═══════
+  function calcChildPugh() {
+    const bili = parseInt(document.getElementById('cpBili').value);
+    const alb = parseInt(document.getElementById('cpAlb').value);
+    const inr = parseInt(document.getElementById('cpINR').value);
+    const ascites = parseInt(document.getElementById('cpAscites').value);
+    const he = parseInt(document.getElementById('cpHE').value);
+
+    const total = bili + alb + inr + ascites + he;
+    document.getElementById('childpughValue').textContent = total;
+    document.getElementById('childpughResult').classList.add('show');
+
+    let interp = '';
+    if (total <= 6) interp = '<span class="stage normal">Class A — Well-Compensated</span><br>Score 5–6. 1-year survival ~100%. 2-year survival ~85%. Good operative candidate.';
+    else if (total <= 9) interp = '<span class="stage mild">Class B — Significant Functional Compromise</span><br>Score 7–9. 1-year survival ~81%. 2-year survival ~57%. Increased operative risk — consider TIPS or transplant evaluation.';
+    else interp = '<span class="stage severe">Class C — Decompensated</span><br>Score 10–15. 1-year survival ~45%. 2-year survival ~35%. High operative mortality. Transplant evaluation recommended.';
+
+    document.getElementById('childpughInterp').innerHTML = interp;
+  }
+
+  // ═══════ IV FLUID RATE (4-2-1) ═══════
+  function calcIVFluid() {
+    const weightLbs = parseFloat(document.getElementById('ivWeight').value);
+    if (!weightLbs) return;
+
+    const kg = weightLbs * 0.453592;
+    let rate;
+    if (kg <= 10) rate = kg * 4;
+    else if (kg <= 20) rate = 40 + (kg - 10) * 2;
+    else rate = 60 + (kg - 20) * 1;
+
+    const rounded = Math.round(rate * 10) / 10;
+    const daily = Math.round(rounded * 24);
+
+    document.getElementById('ivfluidValue').textContent = rounded;
+    document.getElementById('ivfluidResult').classList.add('show');
+    document.getElementById('ivfluidInterp').innerHTML = '<span class="stage normal">Maintenance Rate</span><br>' + rounded + ' mL/hr (~' + daily + ' mL/day)<br><br><strong>4-2-1 Rule:</strong><br>• First 10 kg: 4 mL/kg/hr<br>• Next 10 kg: 2 mL/kg/hr<br>• Each kg above 20: 1 mL/kg/hr<br><br>Patient weight: ' + Math.round(kg * 10) / 10 + ' kg (' + weightLbs + ' lbs)<br><br><em>This is maintenance only. Adjust for ongoing losses, fever (+10% per °C above 37), NPO status, or surgical needs.</em>';
+  }
+
+  // ═══════ WINTERS' FORMULA ═══════
+  function calcWinters() {
+    const hco3 = parseFloat(document.getElementById('wintersHCO3').value);
+    if (!hco3) return;
+
+    const expectedLow = Math.round((1.5 * hco3 + 8) - 2);
+    const expectedHigh = Math.round((1.5 * hco3 + 8) + 2);
+    const midpoint = Math.round(1.5 * hco3 + 8);
+
+    document.getElementById('wintersValue').textContent = expectedLow + '–' + expectedHigh;
+    document.getElementById('wintersResult').classList.add('show');
+    document.getElementById('wintersInterp').innerHTML = '<span class="stage normal">Expected pCO₂ Range</span><br>' + expectedLow + '–' + expectedHigh + ' mmHg (midpoint: ' + midpoint + ')<br><br>Formula: Expected pCO₂ = (1.5 × HCO₃⁻) + 8 ± 2<br><br><strong>Interpretation:</strong><br>• If actual pCO₂ is <strong>within range</strong> → appropriate respiratory compensation<br>• If actual pCO₂ is <strong>lower</strong> than expected → concomitant respiratory alkalosis<br>• If actual pCO₂ is <strong>higher</strong> than expected → concomitant respiratory acidosis<br><br><em>Note: Respiratory compensation is never complete. If pCO₂ returns to 40 mmHg with low HCO₃⁻, suspect a mixed disorder.</em>';
+  }
+
+  // ═══════ FREE WATER DEFICIT ═══════
+  let fwSex = 'M';
+
+  function selectFWSex(sex) {
+    fwSex = sex;
+    document.getElementById('fwSexM').classList.toggle('selected', sex === 'M');
+    document.getElementById('fwSexF').classList.toggle('selected', sex === 'F');
+  }
+
+  function calcFreeWater() {
+    const weightLbs = parseFloat(document.getElementById('fwWeight').value);
+    const na = parseFloat(document.getElementById('fwNa').value);
+    if (!weightLbs || !na) return;
+
+    const kg = weightLbs * 0.453592;
+    const tbw = kg * (fwSex === 'M' ? 0.6 : 0.5);
+    const deficit = tbw * ((na / 140) - 1);
+    const rounded = Math.round(deficit * 10) / 10;
+
+    document.getElementById('freewaterValue').textContent = rounded;
+    document.getElementById('freewaterResult').classList.add('show');
+
+    let interp = '<span class="stage ' + (rounded > 3 ? 'severe' : rounded > 1 ? 'mild' : 'normal') + '">Free Water Deficit: ' + rounded + ' L</span><br><br>';
+    interp += 'TBW estimate: ' + Math.round(tbw * 10) / 10 + ' L (' + (fwSex === 'M' ? '60%' : '50%') + ' of ' + Math.round(kg * 10) / 10 + ' kg)<br>';
+    interp += 'Serum Na: ' + na + ' mEq/L (target: 140 mEq/L)<br><br>';
+    interp += '<strong>Correction guidelines:</strong><br>';
+    interp += '• Correct no faster than <strong>10–12 mEq/L per 24 hours</strong><br>';
+    interp += '• Replace deficit over <strong>48–72 hours</strong><br>';
+    interp += '• Use D5W or 0.45% NaCl<br>';
+    interp += '• Monitor sodium every 4–6 hours during correction<br>';
+    interp += '<br><em>⚠️ Rapid correction risks cerebral edema. Slow and steady.</em>';
+
+    document.getElementById('freewaterInterp').innerHTML = interp;
+  }
+
+  // ═══════ CORRECTED SODIUM ═══════
+  function calcSodiumCorr() {
+    const na = parseFloat(document.getElementById('sncNa').value);
+    const glucose = parseFloat(document.getElementById('sncGlucose').value);
+    if (!na || !glucose) return;
+
+    // Katz formula: 1.6 mEq/L per 100 mg/dL glucose above 100
+    const corrected16 = Math.round((na + 1.6 * ((glucose - 100) / 100)) * 10) / 10;
+    // Hillier 2.4 factor for glucose > 400
+    const corrected24 = Math.round((na + 2.4 * ((glucose - 100) / 100)) * 10) / 10;
+
+    document.getElementById('sodiumCorrValue').textContent = corrected16;
+    document.getElementById('sodiumCorrResult').classList.add('show');
+
+    let interp = '<span class="stage normal">Katz Correction (1.6 factor)</span><br>Corrected Na: <strong>' + corrected16 + ' mEq/L</strong>';
+    if (glucose > 400) {
+      interp += '<br><br><span class="stage mild">Hillier Correction (2.4 factor, glucose > 400)</span><br>Corrected Na: <strong>' + corrected24 + ' mEq/L</strong>';
+    }
+    interp += '<br><br>Measured Na ' + na + ' mEq/L with glucose ' + glucose + ' mg/dL. Hyperglycemia causes osmotic water shifts that dilute sodium. The corrected value estimates what sodium would be at normal glucose.';
+
+    if (corrected16 < 135) interp += '<br><br>⚠️ True hyponatremia even after correction — evaluate further.';
+    else if (corrected16 > 145) interp += '<br><br>⚠️ True hypernatremia after correction — consider free water deficit.';
+
+    document.getElementById('sodiumCorrInterp').innerHTML = interp;
+  }
+</script>
+</body>
+</html>

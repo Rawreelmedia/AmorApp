@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dr. Rog Team — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B1120;--bg-card:#111827;--bg-input:#1F2937;--bg-hover:#1a2332;--primary:#0EA5E9;--accent:#10B981;--danger:#EF4444;--warning:#F59E0B;--purple:#8B5CF6;--border:#1F2937;--text:#F1F5F9;--text-muted:#94A3B8;--text-dim:#64748B;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden;}
+button{cursor:pointer;font-family:inherit;}
+
+.app{display:flex;height:100vh;position:relative;}
+
+/* LEFT PANEL - Categories (slides in/out) */
+.left-panel{width:280px;background:var(--bg-card);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:margin-left .3s ease;flex-shrink:0;z-index:50;overflow-y:auto;}
+.left-panel.collapsed{margin-left:-280px;}
+.left-panel h3{padding:16px;border-bottom:1px solid var(--border);font-size:16px;}
+.left-cat{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:all .15s;font-size:13px;}
+.left-cat:hover{background:var(--bg-hover);}
+.left-cat.active{background:rgba(14,165,233,.12);border-left:3px solid var(--primary);color:var(--primary);}
+.left-cat .cat-title{font-weight:600;margin-bottom:2px;}
+.left-cat .cat-sub{font-size:11px;color:var(--text-dim);}
+.left-cat .cat-badge{float:right;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;}
+
+/* MAIN CONTENT */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.topbar{height:56px;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;}
+.topbar h2{font-size:18px;font-weight:700;flex:1;}
+.toggle-btn{background:var(--bg-input);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;width:auto;}
+.toggle-btn:hover{color:var(--text);border-color:var(--primary);}
+.content{flex:1;overflow-y:auto;padding:24px;}
+.content::-webkit-scrollbar{width:6px;}
+.content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* RIGHT PANEL - Detail drill-down (slides in/out) */
+.right-panel{width:340px;background:var(--bg-card);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:margin-right .3s ease;flex-shrink:0;z-index:50;overflow-y:auto;padding:16px;}
+.right-panel.collapsed{margin-right:-340px;}
+.right-panel h4{font-size:13px;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;letter-spacing:.5px;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.stat-card .label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.stat-card .value{font-size:24px;font-weight:800;}
+.stat-card.blue .value{color:var(--primary);}
+.stat-card.green .value{color:var(--accent);}
+.stat-card.yellow .value{color:var(--warning);}
+.stat-card.red .value{color:var(--danger);}
+.stat-card.purple .value{color:var(--purple);}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
+.data-table th{text-align:left;padding:8px 10px;color:var(--text-dim);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.5px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);}
+.data-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
+.data-table tr:hover td{background:var(--bg-hover);}
+.data-table tr{cursor:pointer;}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;}
+.badge-green{background:rgba(16,185,129,.15);color:var(--accent);}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--warning);}
+.badge-red{background:rgba(239,68,68,.15);color:var(--danger);}
+.badge-blue{background:rgba(14,165,233,.15);color:var(--primary);}
+.badge-purple{background:rgba(139,92,246,.15);color:var(--purple);}
+
+.section-title{font-size:15px;font-weight:700;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+
+/* CHART BARS */
+.chart-bar{height:20px;background:var(--bg-input);border-radius:4px;overflow:hidden;margin:4px 0;}
+.chart-fill{height:100%;border-radius:4px;transition:width .5s;}
+
+/* CONTACT CARD */
+.contact-card{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;}
+.contact-card .cc-name{font-weight:600;font-size:13px;}
+.contact-card .cc-role{font-size:11px;color:var(--text-muted);}
+.contact-card .cc-details{font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.6;}
+
+/* PROGRESS */
+.progress-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.progress-item .pi-name{flex:1;font-size:13px;}
+.progress-item .pi-bar{width:120px;height:8px;background:var(--bg-input);border-radius:4px;overflow:hidden;}
+.progress-item .pi-fill{height:100%;border-radius:4px;}
+.progress-item .pi-pct{font-size:11px;font-weight:700;width:40px;text-align:right;}
+
+/* LINKS */
+.link-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color .15s;text-decoration:none;color:var(--text);}
+.link-card:hover{border-color:var(--primary);}
+.link-card .lc-icon{font-size:20px;}
+.link-card .lc-title{font-size:13px;font-weight:600;}
+.link-card .lc-sub{font-size:11px;color:var(--text-dim);}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LEFT PANEL -->
+  <div class="left-panel" id="leftPanel">
+    <h3>📋 Project Categories</h3>
+    <div class="left-cat active" onclick="showCategory('overview')">
+      <div class="cat-title">📊 Executive Overview</div>
+      <div class="cat-sub">Dashboard, stats, diagrams</div>
+    </div>
+    <div class="left-cat" onclick="showCategory('emr')">
+      <div class="cat-title">🏥 Amor Medical EMR</div>
+      <div class="cat-sub">EMR platform development</div>
+      <span class="cat-badge badge-green">Active</span>
+    </div>
+    <div class="left-cat" onclick="showCategory('calculators')">
+      <div class="cat-title">🧮 Clinical Calculators</div>
+      <div class="cat-sub">Dr. Lopez's 40 favorites</div>
+      <span class="cat-badge badge-yellow">20/40</span>
+    </div>
+    <div class="left-cat" onclick="showCategory('ricocloud')">
+      <div class="cat-title">☁️ Rico Cloud</div>
+      <div class="cat-sub">CRM, sub-accounts, API</div>
+      <span class="cat-badge badge-blue">Active</span>
+    </div>
+    <div class="left-cat" onclick="showCategory('kru')">
+      <div class="cat-title">🏋️ KRU Performance</div>
+      <div class="cat-sub">Snapshot deployment</div>
+      <span class="cat-badge badge-green">86%</span>
+    </div>
+    <div class="left-cat" onclick="showCategory('owl')">
+      <div class="cat-title">🦉 OWL Services</div>
+      <div class="cat-sub">Bobo AI Agent</div>
+      <span class="cat-badge badge-yellow">Demo</span>
+    </div>
+    <div class="left-cat" onclick="showCategory('sales')">
+      <div class="cat-title">🔥 Blaze Camp / Sales</div>
+      <div class="cat-sub">11 sales resources</div>
+      <span class="cat-badge badge-red">Queued</span>
+    </div>
+    <div class="left-cat" onclick="showCategory('agents')">
+      <div class="cat-title">🤖 Agent Team</div>
+      <div class="cat-sub">Emily, Ashley, Axe</div>
+    </div>
+    <div class="left-cat" onclick="showCategory('research')">
+      <div class="cat-title">📚 Learning Resources</div>
+      <div class="cat-sub">YouTube research links</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <button class="toggle-btn" onclick="toggleLeft()">☰ Categories</button>
+      <h2 id="pageTitle">Executive Overview</h2>
+      <button class="toggle-btn" onclick="toggleRight()">Details ▸</button>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel collapsed" id="rightPanel">
+    <div id="rightContent"></div>
+  </div>
+</div>
+
+<script>
+let currentCat='overview';
+
+function toggleLeft(){document.getElementById('leftPanel').classList.toggle('collapsed');}
+function toggleRight(){document.getElementById('rightPanel').classList.toggle('collapsed');}
+
+function showCategory(cat){
+  currentCat=cat;
+  document.querySelectorAll('.left-cat').forEach(c=>c.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  render();
+}
+
+function render(){
+  const c=document.getElementById('content');
+  const r=document.getElementById('rightPanel');
+  const rc=document.getElementById('rightContent');
+  switch(currentCat){
+    case 'overview': renderOverview(c); renderOverviewRight(rc); r.classList.remove('collapsed'); break;
+    case 'emr': renderEMR(c); renderEMRRight(rc); r.classList.remove('collapsed'); break;
+    case 'calculators': renderCalcs(c); renderCalcsRight(rc); r.classList.remove('collapsed'); break;
+    case 'ricocloud': renderRicoCloud(c); r.classList.add('collapsed'); break;
+    case 'kru': renderKRU(c); r.classList.add('collapsed'); break;
+    case 'owl': renderOWL(c); r.classList.add('collapsed'); break;
+    case 'sales': renderSales(c); r.classList.add('collapsed'); break;
+    case 'agents': renderAgents(c); renderAgentsRight(rc); r.classList.remove('collapsed'); break;
+    case 'research': renderResearch(c); r.classList.add('collapsed'); break;
+  }
+  document.getElementById('pageTitle').textContent={overview:'Executive Overview',emr:'Amor Medical EMR',calculators:'Clinical Calculators',ricocloud:'Rico Cloud Platform',kru:'KRU Performance',owl:'OWL Services — Bobo AI',sales:'Blaze Camp / Sales Resources',agents:'Agent Team',research:'Learning Resources'}[currentCat];
+}
+
+// ═══════ OVERVIEW ═══════
+function renderOverview(c){
+  c.innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="label">Active Projects</div><div class="value">7</div></div>
+      <div class="stat-card green"><div class="label">Completed Tasks</div><div class="value">86+</div></div>
+      <div class="stat-card yellow"><div class="label">Pending Items</div><div class="value">123</div></div>
+      <div class="stat-card red"><div class="label">Blockers</div><div class="value">3</div></div>
+      <div class="stat-card purple"><div class="label">Agents Active</div><div class="value">3</div></div>
+    </div>
+
+    <div class="section-title">📊 Project Progress</div>
+    <div class="progress-item"><span class="pi-name">🏥 Amor Medical EMR</span><div class="pi-bar"><div class="pi-fill" style="width:45%;background:var(--primary);"></div></div><span class="pi-pct">45%</span></div>
+    <div class="progress-item"><span class="pi-name">🧮 Clinical Calculators (20/40)</span><div class="pi-bar"><div class="pi-fill" style="width:50%;background:var(--accent);"></div></div><span class="pi-pct">50%</span></div>
+    <div class="progress-item"><span class="pi-name">🏋️ KRU Snapshot Deployment</span><div class="pi-bar"><div class="pi-fill" style="width:86%;background:var(--accent);"></div></div><span class="pi-pct">86%</span></div>
+    <div class="progress-item"><span class="pi-name">🦉 OWL Services — Bobo AI</span><div class="pi-bar"><div class="pi-fill" style="width:60%;background:var(--warning);"></div></div><span class="pi-pct">60%</span></div>
+    <div class="progress-item"><span class="pi-name">☁️ Rico Cloud Platform</span><div class="pi-bar"><div class="pi-fill" style="width:70%;background:var(--primary);"></div></div><span class="pi-pct">70%</span></div>
+    <div class="progress-item"><span class="pi-name">🔥 Sales Resources (0/11)</span><div class="pi-bar"><div class="pi-fill" style="width:0%;background:var(--danger);"></div></div><span class="pi-pct">0%</span></div>
+    <div class="progress-item"><span class="pi-name">📱 WhatsApp Integration</span><div class="pi-bar"><div class="pi-fill" style="width:30%;background:var(--warning);"></div></div><span class="pi-pct">30%</span></div>
+
+    <div class="section-title">🔴 Critical Blockers</div>
+    <table class="data-table">
+      <thead><tr><th>Blocker</th><th>Project</th><th>Impact</th><th>Owner</th></tr></thead>
+      <tbody>
+        <tr><td>A2P Compliance (opt-in + privacy policy)</td><td>KRU</td><td><span class="badge badge-red">CRITICAL</span></td><td>Dr. Roger</td></tr>
+        <tr><td>Domain connection for EMR hosting</td><td>Amor EMR</td><td><span class="badge badge-yellow">HIGH</span></td><td>Dr. Roger (GoDaddy)</td></tr>
+        <tr><td>Dr. Lopez EMR screenshots / note types</td><td>Amor EMR</td><td><span class="badge badge-yellow">HIGH</span></td><td>Dr. Michelle</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">🔗 Quick Links</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <a class="link-card" href="https://docs.google.com/spreadsheets/d/1LDSTvUH3tRcm2a0LjM86nSnDZ-7EkLaL7ePrULngLbE/edit" target="_blank"><span class="lc-icon">📊</span><div><div class="lc-title">Master Command Center</div><div class="lc-sub">Google Sheets</div></div></a>
+      <a class="link-card" href="https://docs.google.com/spreadsheets/d/1KO35f08pDJwd-70YwqdeXdxgSi1b5ki8cKzkPbeU0Z0/edit" target="_blank"><span class="lc-icon">🏋️</span><div><div class="lc-title">KRU Executive Sheet</div><div class="lc-sub">10 tabs</div></div></a>
+      <a class="link-card" href="https://app.ricocloud.net" target="_blank"><span class="lc-icon">☁️</span><div><div class="lc-title">Rico Cloud</div><div class="lc-sub">app.ricocloud.net</div></div></a>
+      <a class="link-card" href="https://docs.google.com/document/d/1hi7pOUcY1AJad_3k2V7HiQU1tcyQP7YpQxYt7Ph3gXA/edit" target="_blank"><span class="lc-icon">📝</span><div><div class="lc-title">Emily Working Log</div><div class="lc-sub">Google Docs</div></div></a>
+    </div>`;
+}
+
+function renderOverviewRight(rc){
+  rc.innerHTML=`
+    <h4>📅 Upcoming</h4>
+    <div style="font-size:12px;color:var(--text-muted);line-height:2;">
+      <div>🎂 Jun 1 — Plan Michelle's birthday gift</div>
+      <div>🎂 Jun 7 — Michelle Lopez Birthday</div>
+      <div>🎓 Jul 2026 — Michelle starts Baylor Endo Fellowship</div>
+    </div>
+    <h4 style="margin-top:16px;">📌 Priority Queue</h4>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">
+      <div>1. 🏥 EMR — implement Dr. Lopez EMR templates</div>
+      <div>2. 🧮 Build remaining 20 calculators</div>
+      <div>3. 🌐 Deploy EMR to emr.amormedical.co</div>
+      <div>4. 🏋️ KRU — finish A2P compliance</div>
+      <div>5. 🔥 Sales deck + pricing cheat sheet</div>
+      <div>6. 🦉 OWL — demo with Jose</div>
+      <div>7. 📱 WhatsApp business API setup</div>
+    </div>
+    <h4 style="margin-top:16px;">🏢 Companies</h4>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">
+      <div>☁️ Rico Cloud — CRM Platform</div>
+      <div>🎨 Raw Reel Media — Agency</div>
+      <div>🏥 Amor Medical — Medical Practice</div>
+      <div>🤖 Rico Solutions — AI Implementation</div>
+      <div>⚾ Reps With Rog — Baseball Coaching</div>
+      <div>🔥 Blaze Camp — Sales Team (internal)</div>
+    </div>`;
+}
+
+// ═══════ EMR ═══════
+function renderEMR(c){
+  c.innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="label">EMR Version</div><div class="value">2.1</div></div>
+      <div class="stat-card green"><div class="label">Features Built</div><div class="value">14</div></div>
+      <div class="stat-card yellow"><div class="label">Pending</div><div class="value">8</div></div>
+      <div class="stat-card purple"><div class="label">Calculators</div><div class="value">20</div></div>
+    </div>
+    <div class="section-title">✅ Features Completed</div>
+    <table class="data-table">
+      <thead><tr><th>Feature</th><th>Status</th><th>Version</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard with stats + quick actions</td><td><span class="badge badge-green">Done</span></td><td>v1</td></tr>
+        <tr><td>Patient CRUD (create/edit/search/detail)</td><td><span class="badge badge-green">Done</span></td><td>v1</td></tr>
+        <tr><td>Provider management (all fields editable)</td><td><span class="badge badge-green">Done</span></td><td>v1</td></tr>
+        <tr><td>Practice management</td><td><span class="badge badge-green">Done</span></td><td>v1</td></tr>
+        <tr><td>SOAP encounters + vitals + BMI auto-calc</td><td><span class="badge badge-green">Done</span></td><td>v1</td></tr>
+        <tr><td>Prescriptions / E-Script (55+ meds)</td><td><span class="badge badge-green">Done</span></td><td>v1</td></tr>
+        <tr><td>Voice transcription (main mic + per-field)</td><td><span class="badge badge-green">Done</span></td><td>v2</td></tr>
+        <tr><td>Encounter types (in-office/telehealth/phone)</td><td><span class="badge badge-green">Done</span></td><td>v2</td></tr>
+        <tr><td>13 note type categories</td><td><span class="badge badge-green">Done</span></td><td>v2</td></tr>
+        <tr><td>Patient pharmacy + split emergency contact</td><td><span class="badge badge-green">Done</span></td><td>v2</td></tr>
+        <tr><td>Address split (street/city/state/zip)</td><td><span class="badge badge-green">Done</span></td><td>v2</td></tr>
+        <tr><td>Executive Dashboard</td><td><span class="badge badge-green">Done</span></td><td>v2</td></tr>
+        <tr><td>Encounter PDF generation + e-signature</td><td><span class="badge badge-green">Done</span></td><td>v2.1</td></tr>
+        <tr><td>Provider credentialing section</td><td><span class="badge badge-green">Done</span></td><td>v2.1</td></tr>
+      </tbody>
+    </table>
+    <div class="section-title">🔨 In Progress / Planned</div>
+    <table class="data-table">
+      <thead><tr><th>Feature</th><th>Priority</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>AI/LLM auto-SOAP from transcription</td><td><span class="badge badge-red">P1</span></td><td><span class="badge badge-yellow">Design</span></td></tr>
+        <tr><td>Dr. Lopez EMR template categories</td><td><span class="badge badge-red">P1</span></td><td><span class="badge badge-yellow">Waiting</span></td></tr>
+        <tr><td>Lab integration (Quest/LabCorp)</td><td><span class="badge badge-yellow">P2</span></td><td><span class="badge badge-blue">Planned</span></td></tr>
+        <tr><td>E-Prescribing (Surescripts)</td><td><span class="badge badge-yellow">P2</span></td><td><span class="badge badge-blue">Planned</span></td></tr>
+        <tr><td>Billing (Stripe)</td><td><span class="badge badge-yellow">P2</span></td><td><span class="badge badge-blue">Planned</span></td></tr>
+        <tr><td>Rico Cloud form → patient auto-populate</td><td><span class="badge badge-yellow">P2</span></td><td><span class="badge badge-blue">Planned</span></td></tr>
+        <tr><td>Insurance eligibility verification</td><td><span class="badge badge-purple">P3</span></td><td><span class="badge badge-blue">Future</span></td></tr>
+        <tr><td>Deploy to emr.amormedical.co</td><td><span class="badge badge-red">P1</span></td><td><span class="badge badge-yellow">Need domain</span></td></tr>
+      </tbody>
+    </table>
+    <div class="section-title">🏥 Reference EMR Systems</div>
+    <div style="font-size:12px;color:var(--text-muted);line-height:2;">
+      <div>🦴 <strong>ModMed</strong> — Ortho/Ophthalmology/Derm (iPad + image capture)</div>
+      <div>🏥 <strong>CareCloud</strong> — Primary care</div>
+      <div>🏥 <strong>eClinicalWorks</strong> — Primary care (Dr. Michelle uses)</div>
+      <div>🏥 <strong>MD Vitas</strong> — Medicare HMO (strongest)</div>
+    </div>`;
+}
+function renderEMRRight(rc){
+  rc.innerHTML=`
+    <h4>EMR Architecture</h4>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">
+      <div><strong>Frontend:</strong> HTML/CSS/JS (single file)</div>
+      <div><strong>Storage:</strong> localStorage (JSON)</div>
+      <div><strong>Future:</strong> React + PostgreSQL + FHIR</div>
+      <div><strong>AI Pipeline:</strong> Transcription → LLM → SOAP</div>
+    </div>
+    <h4 style="margin-top:16px;">Dr. Lopez Clinical Templates</h4>
+    <div style="font-size:11px;color:var(--text-muted);line-height:1.8;">
+      <div>✅ DM Clinic Visit Template</div>
+      <div>✅ Diabetes Order Set</div>
+      <div>✅ CGM Templates</div>
+      <div>✅ 10 Inpatient Endo Protocols</div>
+      <div>✅ Hyperthyroidism Lecture (26 slides)</div>
+      <div>✅ Diabetes Outpatient Lecture (32 slides)</div>
+      <div>✅ Guideline-Backed Tool Specs</div>
+      <div>⏳ EMR screenshots (waiting on Michelle)</div>
+    </div>
+    <h4 style="margin-top:16px;">File Locations</h4>
+    <div style="font-size:11px;color:var(--text-dim);line-height:1.6;">
+      <div>EMR: Desktop/AmorMedical/App/amor-medical-emr.html</div>
+      <div>Calc: Desktop/AmorMedical/App/amor-medical-calculator.html</div>
+      <div>Templates: Projects/endocalc/clinical-templates/</div>
+    </div>`;
+}
+
+// ═══════ CALCULATORS ═══════
+function renderCalcs(c){
+  const calcs=[
+    {name:'BMI & BSA',cat:'Obesity',status:'done'},{name:'eGFR (CKD-EPI)',cat:'Nephrology',status:'done'},{name:'MAP',cat:'Cardio',status:'done'},{name:'A1C ↔ eAG',cat:'Endo',status:'done'},
+    {name:'HOMA-IR',cat:'Endo',status:'done'},{name:'Burch-Wartofsky',cat:'Endo',status:'done'},{name:'C-Peptide:Glucose',cat:'Endo',status:'done'},{name:'Na⁺ Correction',cat:'Endo',status:'done'},
+    {name:'Steroid Conversion',cat:'Endo',status:'done'},{name:'Anion Gap',cat:'Nephro',status:'done'},{name:'FENa',cat:'Nephro',status:'done'},{name:'Free Water Deficit',cat:'Nephro',status:'done'},
+    {name:'ASCVD 10yr',cat:'Cardio',status:'done'},{name:'CHA₂DS₂-VASc',cat:'Cardio',status:'done'},{name:'FIB-4',cat:'GI/Hepat',status:'done'},{name:"Winters'",cat:'Pulm',status:'done'},
+    {name:'Ca Correction',cat:'Bone',status:'done'},
+    {name:'DKA MPM Score',cat:'Endo',status:'queued'},{name:'ADA Diabetes Risk',cat:'Endo',status:'queued'},{name:'GIR',cat:'Endo',status:'queued'},
+    {name:'Hypoglycemia Risk',cat:'Endo',status:'queued'},{name:'IDF-DAR Fasting',cat:'Endo',status:'queued'},{name:'FEUrea',cat:'Nephro',status:'queued'},
+    {name:'Creatinine Clearance',cat:'Nephro',status:'queued'},{name:'Na Correction Rate',cat:'Nephro',status:'queued'},{name:'Na Deficit',cat:'Nephro',status:'queued'},
+    {name:'Urine Anion Gap',cat:'Nephro',status:'queued'},{name:'Urine Output',cat:'Nephro',status:'queued'},{name:'Urinary Protein',cat:'Nephro',status:'queued'},
+    {name:'ASCVD (full PCE)',cat:'Cardio',status:'queued'},{name:"Wells' DVT",cat:'Cardio',status:'queued'},{name:'TIMI UA/NSTEMI',cat:'Cardio',status:'queued'},
+    {name:'BRI',cat:'Obesity',status:'queued'},{name:'EOSS',cat:'Obesity',status:'queued'},{name:'Child-Pugh',cat:'GI',status:'queued'},
+    {name:'Fibrotic NASH Index',cat:'GI',status:'queued'},{name:'Glasgow-Blatchford',cat:'GI',status:'queued'},{name:'ABG Analyzer',cat:'Pulm',status:'queued'},
+    {name:'FRACTURE Index',cat:'Bone',status:'queued'},{name:'GAD-7',cat:'Psych',status:'queued'},
+    {name:'Corrected Retic',cat:'Heme',status:'queued'},{name:'High-dose Insulin',cat:'Tox',status:'queued'}
+  ];
+  const done=calcs.filter(c=>c.status==='done').length;
+  c.innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card green"><div class="label">Built</div><div class="value">${done}</div></div>
+      <div class="stat-card yellow"><div class="label">Remaining</div><div class="value">${calcs.length-done}</div></div>
+      <div class="stat-card blue"><div class="label">Total (Dr. Lopez)</div><div class="value">${calcs.length}</div></div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Calculator</th><th>Category</th><th>Status</th></tr></thead>
+      <tbody>${calcs.map((c,i)=>`<tr><td>${i+1}</td><td>${c.name}</td><td>${c.cat}</td><td><span class="badge ${c.status==='done'?'badge-green':'badge-yellow'}">${c.status==='done'?'✅ Built':'🔜 Queued'}</span></td></tr>`).join('')}</tbody>
+    </table>`;
+}
+function renderCalcsRight(rc){
+  rc.innerHTML=`<h4>Calculator Categories</h4>
+    <div style="font-size:12px;line-height:2;color:var(--text-muted);">
+      <div>🩸 Endocrinology/Diabetes — 10</div>
+      <div>🫘 Nephrology/Electrolytes — 11</div>
+      <div>🫀 Cardiology — 4</div>
+      <div>🍔 Obesity/Metabolic — 3</div>
+      <div>🫙 GI/Hepatology — 4</div>
+      <div>🫁 Pulm/Acid-Base — 2</div>
+      <div>🦴 Bone — 2</div>
+      <div>🧠 Psych — 1</div>
+      <div>🏥 Critical Care — 1</div>
+      <div>🩸 Hematology — 1</div>
+    </div>
+    <h4 style="margin-top:16px;">Source</h4>
+    <p style="font-size:12px;color:var(--text-dim);">Dr. Michelle Lopez-Baez's personal MDCalc favorites list — compiled July 2025. Organized by specialty for the Amor Medical platform.</p>
+    <h4 style="margin-top:16px;">Future Phase</h4>
+    <p style="font-size:12px;color:var(--text-dim);">~147 total tools mapped across calculators, dosing tools, decision support, risk stratifiers, clinical bundles, unit conversions, patient tools, and learning mode.</p>`;
+}
+
+// ═══════ OTHER SECTIONS ═══════
+function renderRicoCloud(c){
+  c.innerHTML=`<div class="stats-grid">
+    <div class="stat-card blue"><div class="label">Sub-Accounts</div><div class="value">89</div></div>
+    <div class="stat-card green"><div class="label">API Connected</div><div class="value">Yes</div></div>
+  </div>
+  <div class="section-title">Key Sub-Accounts</div>
+  <table class="data-table"><thead><tr><th>Name</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+    <tr><td>KRU Performance</td><td><span class="badge badge-green">Active</span></td><td>Snapshot deployment in progress</td></tr>
+    <tr><td>Amor Medical</td><td><span class="badge badge-blue">Setup</span></td><td>No domain connected</td></tr>
+    <tr><td>Amore Telehealth</td><td><span class="badge badge-blue">Setup</span></td><td>amormedical.co (not connected)</td></tr>
+    <tr><td>1st Pitch Baseball</td><td><span class="badge badge-green">Active</span></td><td>Client — Anthony Castillo</td></tr>
+  </tbody></table>
+  <div class="section-title">API Access</div>
+  <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">
+    <div><strong>Agency Key:</strong> pit-ff2a...dceef7d</div>
+    <div><strong>KRU Key:</strong> pit-531f...660b7afc</div>
+    <div><strong>Admin:</strong> ai@rawreelmedia.com</div>
+  </div>`;
+}
+
+function renderKRU(c){
+  c.innerHTML=`<div class="stats-grid">
+    <div class="stat-card green"><div class="label">Custom Values</div><div class="value">139/181</div></div>
+    <div class="stat-card yellow"><div class="label">Workflows</div><div class="value">5/35</div></div>
+    <div class="stat-card red"><div class="label">Manual Tasks Left</div><div class="value">123</div></div>
+    <div class="stat-card blue"><div class="label">Tabs in Sheet</div><div class="value">10</div></div>
+  </div>
+  <div class="section-title">🔴 Critical: A2P Compliance Required Before Go-Live</div>
+  <p style="font-size:13px;color:var(--text-muted);">Opt-in page + privacy policy + terms of service must be done BEFORE any workflow can legally send SMS.</p>
+  <div class="section-title">Resources</div>
+  <a class="link-card" href="https://docs.google.com/spreadsheets/d/1KO35f08pDJwd-70YwqdeXdxgSi1b5ki8cKzkPbeU0Z0/edit" target="_blank"><span class="lc-icon">📊</span><div><div class="lc-title">KRU Executive Sheet (10 tabs)</div><div class="lc-sub">Full deployment tracker</div></div></a>`;
+}
+
+function renderOWL(c){
+  c.innerHTML=`<div class="stats-grid">
+    <div class="stat-card blue"><div class="label">Agent</div><div class="value">Bobo</div></div>
+    <div class="stat-card green"><div class="label">Manuals Loaded</div><div class="value">5</div></div>
+    <div class="stat-card yellow"><div class="label">Status</div><div class="value">Demo</div></div>
+  </div>
+  <div class="section-title">About OWL Services</div>
+  <p style="font-size:13px;color:var(--text-muted);">Petroleum, EV charging, construction, compliance. Bobo = AI technician support agent that answers ONLY from loaded manuals with citations + screenshots.</p>
+  <div class="section-title">Sales Materials</div>
+  <a class="link-card" href="https://docs.google.com/presentation/d/17skJbo50mUBE4t3lhnqKQ_EnH4Tg3Mgt/edit" target="_blank"><span class="lc-icon">📊</span><div><div class="lc-title">Pitch Deck</div></div></a>
+  <a class="link-card" href="https://docs.google.com/document/d/11QEanCF9U_nvc5gOMqbT_75NsrAVlHubTQJ5m6GdrCE/edit" target="_blank"><span class="lc-icon">📝</span><div><div class="lc-title">Sales Script</div></div></a>
+  <div class="section-title">Pricing Vision</div>
+  <p style="font-size:13px;color:var(--text-muted);">$10K-$50K setup + ~$400/mo + hardware rental (~$200-300/mo). Presented by Rico Solutions.</p>`;
+}
+
+function renderSales(c){
+  const items=[
+    {name:'Sales Deck (Pitch Deck)',p:'P1 🔥',s:'Queued'},{name:'Pricing Cheat Sheet PDF',p:'P1 🔥',s:'Queued'},
+    {name:'Discovery Call Script',p:'P1 🔥',s:'Queued'},{name:'Objection Handling Guide',p:'P1 🔥',s:'Queued'},
+    {name:'Demo Walkthrough Script',p:'P2',s:'Queued'},{name:'One-Page Product Overview',p:'P2',s:'Queued'},
+    {name:'Proposal / Quote Template',p:'P2',s:'Queued'},{name:'ROI Calculator Tool',p:'P2',s:'Queued'},
+    {name:'Competitor Battle Cards',p:'P3',s:'Queued'},{name:'Email Outbound Templates',p:'P3',s:'Queued'},
+    {name:'FAQ Document — Sales',p:'P3',s:'Queued'}
+  ];
+  c.innerHTML=`<div class="section-title">11 Sales Resources — Blaze Camp / Rico Cloud</div>
+    <table class="data-table"><thead><tr><th>#</th><th>Resource</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+    ${items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.name}</td><td>${it.p}</td><td><span class="badge badge-yellow">${it.s}</span></td></tr>`).join('')}</tbody></table>`;
+}
+
+function renderAgents(c){
+  c.innerHTML=`
+    <div class="section-title">🤖 Active AI Team</div>
+    <div class="contact-card"><div class="cc-name">🌿 Emily — Agent 1</div><div class="cc-role">Dr. Roger's Personal Assistant</div><div class="cc-details">Platform: OpenClaw (Telegram)<br>Model: Claude Opus 4<br>Role: Project management, builds, coordination, research, comms<br>Status: ✅ Active 24/7</div></div>
+    <div class="contact-card"><div class="cc-name">💜 Ashley / Rico AI — Agent 2</div><div class="cc-role">Development & Technical</div><div class="cc-details">Platform: Telegram<br>Role: Coding, app development, technical builds<br>Status: ✅ Active</div></div>
+    <div class="contact-card"><div class="cc-name">🪓 Axe — Agent 3</div><div class="cc-role">Raw Reel Media</div><div class="cc-details">Platform: Telegram<br>Role: Marketing, creative, RRM operations<br>Status: 🟡 Partially configured</div></div>
+    <div class="contact-card"><div class="cc-name">🌸 Lily — Agent 4</div><div class="cc-role">TBD</div><div class="cc-details">Platform: Telegram (bot created March 21)<br>Status: ⏳ Not yet configured</div></div>
+
+    <div class="section-title">👥 Key People</div>
+    <div class="contact-card"><div class="cc-name">Dr. Roger Gonzalez, MD</div><div class="cc-role">CEO — All Companies</div><div class="cc-details">📞 (786) 977-3299<br>🌐 marketingdoctor.co<br>Telegram: Primary comms</div></div>
+    <div class="contact-card"><div class="cc-name">Dr. Michelle Lopez-Baez, MD</div><div class="cc-role">Medical Advisor — Endocrinology</div><div class="cc-details">📧 mlopezbaezmd@gmail.com<br>📸 @mlopezbaez.md<br>Currently: PGY-3 HCA JFK / UM Miller<br>Next: Baylor Endo Fellowship (July 2026)<br>🎂 June 7</div></div>
+    <div class="contact-card"><div class="cc-name">Jose</div><div class="cc-role">Sales Lead — OWL Services</div><div class="cc-details">Target: OWL South Regional Manager<br>Status: Demo testing phase</div></div>`;
+}
+function renderAgentsRight(rc){
+  rc.innerHTML=`<h4>Team Workflow</h4>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">
+      <p><strong>Emily</strong> manages projects, builds EMR/calculators, coordinates team, handles Dr. Roger's personal tasks.</p>
+      <p style="margin-top:8px;"><strong>Ashley</strong> handles development tasks, technical builds, coding.</p>
+      <p style="margin-top:8px;"><strong>Axe</strong> handles Raw Reel Media marketing and creative.</p>
+      <p style="margin-top:8px;"><strong>Protocol:</strong> On completion, agents share work in Dr. Rog Team AI group for cross-review.</p>
+    </div>
+    <h4 style="margin-top:16px;">Communication Channels</h4>
+    <div style="font-size:12px;color:var(--text-dim);line-height:1.8;">
+      <div>📱 Telegram: Dr. Rog Team AI (group)</div>
+      <div>📱 Telegram: Dr. Roger ↔ Emily (direct)</div>
+      <div>📱 Telegram: Dr. Lopez + Roger + Emily</div>
+    </div>`;
+}
+
+// ═══════ RESEARCH / YOUTUBE ═══════
+function renderResearch(c){
+  c.innerHTML=`
+    <div class="section-title">📚 YouTube Learning Resources — EMR, Coding, Servers & IT Security</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Curated research videos for Dr. Roger to understand the technology stack as we scale.</p>
+
+    <div class="section-title">🏥 EMR Development & Architecture</div>
+    <a class="link-card" href="https://www.youtube.com/watch?v=bDnB0vGkOFY" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">How to Build an EHR from Scratch</div><div class="lc-sub">Overview of EMR/EHR system architecture, FHIR standards, database design</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=Oe421EPjeBE" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">FHIR for Developers — HL7 Introduction</div><div class="lc-sub">Healthcare data interoperability standard — how EMRs talk to each other</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=WnBqBnQ0bTk" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">What is HIPAA? Compliance Explained</div><div class="lc-sub">Essential — every healthcare app must be HIPAA compliant</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=nu_pCVPKzTk" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">OpenEMR — Open Source EMR Demo</div><div class="lc-sub">See how a full open-source EMR works — reference architecture</div></div></a>
+
+    <div class="section-title">💻 Web Development & Coding Foundations</div>
+    <a class="link-card" href="https://www.youtube.com/watch?v=PkZNo7MFNFg" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">JavaScript Full Course — freeCodeCamp</div><div class="lc-sub">3.5hrs — foundation of everything we're building</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=Oe421EPjeBE" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">HTML & CSS Full Course for Beginners</div><div class="lc-sub">How web pages are built — the visual layer of our apps</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=SqcY0GlETPk" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">React Tutorial for Beginners</div><div class="lc-sub">Where our EMR is headed for production — component-based UI</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=W6NZfCO5SIk" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">JavaScript & APIs — Fetch Data</div><div class="lc-sub">How our app talks to Rico Cloud, labs, e-prescribing</div></div></a>
+
+    <div class="section-title">🖥️ Servers, Hosting & Deployment</div>
+    <a class="link-card" href="https://www.youtube.com/watch?v=9a9WcVSS2EI" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">What is a Server? — Explained Simply</div><div class="lc-sub">How web hosting works — where our apps live</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=ENrzD9HAZK4" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">GitHub Pages Deployment</div><div class="lc-sub">Free hosting — how we can deploy the EMR today</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=RqTEHSBrYFw" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">Vercel & Next.js Deployment</div><div class="lc-sub">Production deployment for React apps — our scaling path</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=goToXTC96Co" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">DNS & Domains Explained</div><div class="lc-sub">How amormedical.co connects to our server</div></div></a>
+
+    <div class="section-title">🔒 IT Security & Protection</div>
+    <a class="link-card" href="https://www.youtube.com/watch?v=inWWhr5tnEA" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">Cybersecurity for Small Business</div><div class="lc-sub">Essential security practices as we scale the team</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=r1nJT63BFQ0" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">SSL/TLS & HTTPS Explained</div><div class="lc-sub">How we protect patient data in transit</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=T4Df5_cojAs" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">API Security Best Practices</div><div class="lc-sub">Protecting our Rico Cloud API connections</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=pGcHREkAS4Q" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">Database Security & Encryption</div><div class="lc-sub">When we move from localStorage to real databases</div></div></a>
+
+    <div class="section-title">🤖 AI / LLM Integration</div>
+    <a class="link-card" href="https://www.youtube.com/watch?v=jkrNMKz9pWU" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">Build AI Apps with Claude API</div><div class="lc-sub">How to connect our EMR to AI for auto-SOAP generation</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=Q52VIiZBwBk" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">Voice AI — Speech-to-Text in Healthcare</div><div class="lc-sub">Medical transcription technology — our mic button's future</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=aircAruvnKk" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">Neural Networks — 3Blue1Brown</div><div class="lc-sub">Best visual explanation of how AI works — foundational understanding</div></div></a>
+
+    <div class="section-title">📱 Command Centers & Dashboards</div>
+    <a class="link-card" href="https://www.youtube.com/watch?v=K74l26pE4YA" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">Build a Dashboard with Chart.js</div><div class="lc-sub">How we build executive dashboards with real charts</div></div></a>
+    <a class="link-card" href="https://www.youtube.com/watch?v=SqcY0GlETPk" target="_blank"><span class="lc-icon">▶️</span><div><div class="lc-title">Real-Time Dashboards with WebSockets</div><div class="lc-sub">Live updating dashboards — future command center</div></div></a>
+  `;
+}
+
+// INIT
+render();
+</script>
+</body>
+</html>
