@@ -1432,8 +1432,79 @@ function renderAllergies(p){
 }
 function renderPatientMeds(p){
   const rxs=db.prescriptions.filter(rx=>rx.patientId===p.id);
-  if(!rxs.length) return '<div class="empty-state"><div class="empty-icon">💊</div><p>No prescriptions</p><button class="btn btn-primary" onclick="showNewPrescriptionModal(\''+p.id+'\')">+ New Prescription</button></div>';
-  return rxs.map(rx=>`<div class="rx-card"><div style="display:flex;justify-content:space-between;align-items:start;"><div><div class="rx-name">${rx.medication} ${rx.dose}${rx.unit}</div><div class="rx-sig">${rx.sig}</div></div><span class="badge ${rx.status==='active'?'badge-green':'badge-yellow'}">${rx.status}</span></div><div class="rx-details"><span>Freq: ${rx.frequency}</span><span>Route: ${rx.route}</span><span>Qty: ${rx.quantity}</span><span>Refills: ${rx.refills}</span><span>DAW: ${rx.daw?'Yes':'No'}</span></div><div style="margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="editPrescription('${rx.id}')">✏️ Edit</button></div></div>`).join('');
+  const active=rxs.filter(rx=>rx.status==='active');
+  const inactive=rxs.filter(rx=>rx.status!=='active');
+  
+  // Allergies banner
+  const allergiesBanner=`<div style="background:rgba(239,68,68,.1);border:1px solid var(--danger);padding:12px;border-radius:8px;margin-bottom:16px;">
+    <strong style="color:var(--danger);">⚠️ Allergies:</strong> ${(p.allergies||[]).length?(p.allergies.join(', ')):'<span style="color:var(--accent)">NKDA (No Known Drug Allergies)</span>'}
+  </div>`;
+  
+  if(!rxs.length) return `${allergiesBanner}<div class="empty-state"><div class="empty-icon">💊</div><p>No prescriptions</p><button class="btn btn-primary" onclick="showEPrescribeModal('${p.id}')">+ New E-Prescribe</button></div>`;
+  
+  const activeHtml=active.length?active.map(rx=>{
+    const med=rxMedications?.find(m=>m.generic===rx.medication);
+    const schedBadge=rx.schedule?`<span class="badge badge-red" style="margin-left:4px;">${rx.schedule}</span>`:'';
+    const dawBadge=rx.daw?`<span class="badge badge-purple" style="margin-left:4px;">DAW</span>`:'';
+    const statusColors={'taking':'badge-green','not-taking':'badge-yellow','unknown':'badge-blue'};
+    return `<div class="rx-card">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <div>
+          <div class="rx-name">${rx.medication} ${rx.dose}${rx.unit} ${schedBadge}${dawBadge}</div>
+          ${med?`<div style="font-size:11px;color:var(--text-dim);">Brand: ${med.brand}</div>`:''}
+          <div class="rx-sig">${rx.sig}</div>
+        </div>
+        <div style="text-align:right;">
+          <span class="badge badge-green">Active</span>
+          <div style="margin-top:4px;">
+            <select onchange="updateMedStatus('${rx.id}',this.value)" style="width:auto;font-size:10px;padding:2px 6px;">
+              <option value="taking" ${rx.patientStatus==='taking'?'selected':''}>✅ Taking</option>
+              <option value="not-taking" ${rx.patientStatus==='not-taking'?'selected':''}>❌ Not Taking</option>
+              <option value="unknown" ${!rx.patientStatus||rx.patientStatus==='unknown'?'selected':''}>❓ Unknown</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="rx-details">
+        <span>📅 ${rx.writtenDate}</span>
+        <span>Freq: ${rx.frequency}</span>
+        <span>Route: ${rx.route}</span>
+        <span>Qty: ${rx.quantity}</span>
+        <span>Refills: ${rx.refills}${rx.refillsRemaining!==undefined?' ('+rx.refillsRemaining+' left)':''}</span>
+        ${rx.pharmacy?`<span>📍 ${rx.pharmacy}</span>`:''}
+      </div>
+      ${med&&med.warnings.length?`<div style="margin-top:6px;font-size:11px;color:var(--warning);">⚠️ ${med.warnings[0]}</div>`:''}
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="viewRxDetail('${rx.id}')">👁️ View</button>
+        <button class="btn btn-ghost btn-sm" onclick="editPrescription('${rx.id}')">✏️ Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="refillRx('${rx.id}')">🔄 Refill</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="discontinueRx('${rx.id}')">⛔ D/C</button>
+        <button class="btn btn-ghost btn-sm" onclick="printRx('${rx.id}')">🖨️</button>
+      </div>
+    </div>`;
+  }).join(''):'<p style="color:var(--text-dim);">No active medications</p>';
+  
+  const inactiveHtml=inactive.length?`<div class="section-title">Inactive / Past Medications (${inactive.length})</div>`+
+    inactive.map(rx=>`<div style="padding:10px;background:var(--bg-input);border-radius:6px;margin-bottom:6px;opacity:0.7;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <span style="text-decoration:line-through;">${rx.medication} ${rx.dose}${rx.unit}</span>
+          <div style="font-size:11px;color:var(--text-dim);">${rx.sig}</div>
+        </div>
+        <span class="badge ${rx.status==='discontinued'?'badge-red':'badge-yellow'}">${rx.status}</span>
+      </div>
+      <div style="margin-top:4px;font-size:11px;color:var(--text-dim);">
+        Written: ${rx.writtenDate} ${rx.discontinuedDate?'| D/C: '+rx.discontinuedDate:''}
+      </div>
+    </div>`).join(''):'';
+  
+  return `${allergiesBanner}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h4>Active Medications (${active.length})</h4>
+      <button class="btn btn-primary btn-sm" onclick="showEPrescribeModal('${p.id}')">+ New E-Prescribe</button>
+    </div>
+    ${activeHtml}
+    ${inactiveHtml}`;
 }
 function renderPatientEncounters(p){
   const encs=db.encounters.filter(e=>e.patientId===p.id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -1462,9 +1533,29 @@ function renderPatientVitals(p){
 function renderPatientRightPanel(rp){
   if(!selectedPatient){rp.classList.add('hidden');return;}
   rp.classList.remove('hidden');
-  const p=selectedPatient;const rxCnt=db.prescriptions.filter(rx=>rx.patientId===p.id).length;const encCnt=db.encounters.filter(e=>e.patientId===p.id).length;
-  rp.innerHTML=`<h4>Quick Access</h4>
+  const p=selectedPatient;
+  const rxCnt=db.prescriptions.filter(rx=>rx.patientId===p.id && rx.status==='active').length;
+  const encCnt=db.encounters.filter(e=>e.patientId===p.id).length;
+  const labCnt=db.labOrders.filter(l=>l.patientId===p.id && l.status==='pending').length;
+  const lastVisit = getPatientLastVisit(p.id);
+  const status = p.status || 'active';
+  
+  rp.innerHTML=`
+    <!-- Patient Summary Card -->
+    <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;text-align:center;">
+      ${p.profilePhoto 
+        ? `<img src="${p.profilePhoto}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-bottom:8px;">`
+        : `<div style="width:60px;height:60px;border-radius:50%;background:var(--bg);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>`
+      }
+      <div style="font-weight:600;">${p.firstName} ${p.lastName}</div>
+      <div style="font-size:11px;color:var(--text-dim);">${p.mrn || 'No MRN'}</div>
+      <span class="badge ${status==='active'?'badge-green':'badge-red'}" style="margin-top:8px;">${status.toUpperCase()}</span>
+    </div>
+    
+    <h4>Quick Access</h4>
     <div class="quick-link ${selectedPatientTab==='demographics'?'active':''}" onclick="selectedPatientTab='demographics';render()">👤 Demographics</div>
+    <div class="quick-link ${selectedPatientTab==='insurance'?'active':''}" onclick="selectedPatientTab='insurance';render()">🏥 Insurance</div>
+    <div class="quick-link ${selectedPatientTab==='photos'?'active':''}" onclick="selectedPatientTab='photos';render()">📷 Photos & Docs</div>
     <div class="quick-link ${selectedPatientTab==='history'?'active':''}" onclick="selectedPatientTab='history';render()">📜 Medical History</div>
     <div class="quick-link ${selectedPatientTab==='medications'?'active':''}" onclick="selectedPatientTab='medications';render()">💊 Medications (${rxCnt})</div>
     <div class="quick-link ${selectedPatientTab==='allergies'?'active':''}" onclick="selectedPatientTab='allergies';render()">⚠️ Allergies</div>
@@ -1699,103 +1790,386 @@ function showModal(html,large){
 }
 function closeModal(){const m=modalStack.pop();if(m)m.remove();}
 
-// ═══════ NEW PATIENT ═══════
+// ═══════ NEW PATIENT (Enhanced) ═══════
 function showNewPatientModal(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Patient</h3>
-    <div class="form-grid">
-      <div class="form-group"><label>First Name *</label><input id="npF"></div>
-      <div class="form-group"><label>Last Name *</label><input id="npL"></div>
-      <div class="form-group"><label>Date of Birth *</label><input type="date" id="npD"></div>
-      <div class="form-group"><label>Gender *</label><select id="npG"><option>Male</option><option>Female</option><option>Other</option></select></div>
-      <div class="form-group"><label>Phone</label><input id="npPh"></div>
-      <div class="form-group"><label>Email</label><input id="npEm"></div>
+  const newMRN = generateMRN();
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>👤 New Patient Registration</h3>
+    
+    <div style="background:rgba(14,165,233,.1);border:1px solid var(--primary);border-radius:8px;padding:12px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:var(--text-muted);">Auto-Generated MRN</span>
+        <span style="font-family:monospace;font-weight:700;color:var(--primary);font-size:16px;" id="newMRN">${newMRN}</span>
+      </div>
     </div>
+    
+    <div class="section-title" style="margin-top:0;">Personal Information</div>
+    <div class="form-grid">
+      <div class="form-group"><label>First Name *</label><input id="npF" placeholder="John"></div>
+      <div class="form-group"><label>Last Name *</label><input id="npL" placeholder="Smith"></div>
+      <div class="form-group"><label>Date of Birth *</label><input type="date" id="npD"></div>
+      <div class="form-group"><label>Gender *</label><select id="npG"><option>Male</option><option>Female</option><option>Non-Binary</option><option>Other</option><option>Prefer not to say</option></select></div>
+      <div class="form-group"><label>SSN (optional)</label><input id="npSSN" placeholder="123-45-6789" maxlength="11"></div>
+      <div class="form-group"><label>Preferred Language</label><select id="npLang"><option>English</option><option>Spanish</option><option>Portuguese</option><option>Haitian Creole</option><option>French</option><option>Chinese</option><option>Other</option></select></div>
+    </div>
+    
+    <div class="section-title">Contact Information</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Phone *</label><input id="npPh" placeholder="(305) 555-1234"></div>
+      <div class="form-group"><label>Mobile</label><input id="npMobile" placeholder="(305) 555-5678"></div>
+      <div class="form-group full"><label>Email</label><input id="npEm" type="email" placeholder="john.smith@email.com"></div>
+    </div>
+    
     <div class="section-title">Address</div>
     <div class="form-grid-4">
-      <div class="form-group" style="grid-column:span 2"><label>Street</label><input id="npSt"></div>
-      <div class="form-group"><label>City</label><input id="npCi"></div>
-      <div class="form-group"><label>State</label><input id="npSa" maxlength="2" placeholder="FL"></div>
-      <div class="form-group"><label>Zip</label><input id="npZi" maxlength="5"></div>
+      <div class="form-group" style="grid-column:span 2"><label>Street</label><input id="npSt" placeholder="123 Main St, Apt 4B"></div>
+      <div class="form-group"><label>City</label><input id="npCi" placeholder="Miami"></div>
+      <div class="form-group"><label>State</label><input id="npSa" maxlength="2" placeholder="FL" style="text-transform:uppercase;"></div>
+      <div class="form-group"><label>Zip</label><input id="npZi" maxlength="10" placeholder="33101"></div>
     </div>
-    <div class="section-title">Insurance</div>
+    
+    <div class="section-title">Primary Insurance</div>
     <div class="form-grid">
-      <div class="form-group"><label>Primary Insurance</label><input id="npI1"></div>
-      <div class="form-group"><label>Primary ID</label><input id="npI1d"></div>
-      <div class="form-group"><label>Secondary Insurance</label><input id="npI2"></div>
-      <div class="form-group"><label>Secondary ID</label><input id="npI2d"></div>
+      <div class="form-group"><label>Insurance Company</label><input id="npI1" placeholder="Blue Cross Blue Shield" list="insuranceList"></div>
+      <div class="form-group"><label>Policy Number</label><input id="npI1d" placeholder="XYZ123456789"></div>
+      <div class="form-group"><label>Group Number</label><input id="npI1g" placeholder="GRP001"></div>
+      <div class="form-group"><label>Copay ($)</label><input id="npI1c" type="number" placeholder="25"></div>
     </div>
-    <div class="section-title">Pharmacy</div>
+    <datalist id="insuranceList">
+      <option value="Blue Cross Blue Shield">
+      <option value="Aetna">
+      <option value="United Healthcare">
+      <option value="Cigna">
+      <option value="Humana">
+      <option value="Medicare">
+      <option value="Medicaid">
+      <option value="AvMed">
+      <option value="Florida Blue">
+      <option value="Molina Healthcare">
+      <option value="Self-Pay">
+    </datalist>
+    
+    <details style="margin-bottom:16px;">
+      <summary style="cursor:pointer;color:var(--primary);font-size:13px;font-weight:500;">+ Add Secondary Insurance</summary>
+      <div class="form-grid" style="margin-top:12px;">
+        <div class="form-group"><label>Insurance Company</label><input id="npI2" placeholder="Secondary Insurance" list="insuranceList"></div>
+        <div class="form-group"><label>Policy Number</label><input id="npI2d" placeholder="Policy #"></div>
+        <div class="form-group"><label>Group Number</label><input id="npI2g" placeholder="Group #"></div>
+        <div class="form-group"><label>Copay ($)</label><input id="npI2c" type="number" placeholder="30"></div>
+      </div>
+    </details>
+    
+    <div class="section-title">Preferred Pharmacy</div>
     <div class="form-grid">
-      <div class="form-group"><label>Pharmacy Name & Address</label><input id="npRx"></div>
-      <div class="form-group"><label>Pharmacy Phone</label><input id="npRxP"></div>
+      <div class="form-group"><label>Pharmacy Name & Address</label><input id="npRx" placeholder="CVS Pharmacy — 1200 Brickell Ave, Miami FL 33131"></div>
+      <div class="form-group"><label>Pharmacy Phone</label><input id="npRxP" placeholder="(305) 555-7700"></div>
     </div>
+    
     <div class="section-title">Emergency Contact</div>
     <div class="form-grid-3">
-      <div class="form-group"><label>Name</label><input id="npEn"></div>
-      <div class="form-group"><label>Phone</label><input id="npEp"></div>
-      <div class="form-group"><label>Relationship</label><input id="npEr"></div>
+      <div class="form-group"><label>Name *</label><input id="npEn" placeholder="Jane Smith"></div>
+      <div class="form-group"><label>Phone *</label><input id="npEp" placeholder="(305) 555-9999"></div>
+      <div class="form-group"><label>Relationship</label><select id="npEr"><option>Spouse</option><option>Parent</option><option>Child</option><option>Sibling</option><option>Other Family</option><option>Friend</option><option>Caregiver</option><option>Other</option></select></div>
     </div>
+    
     <div class="section-title">Care Assignment</div>
     <div class="form-grid">
-      <div class="form-group"><label>Practice *</label><select id="npPr">${db.practices.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Provider *</label><select id="npPv">${db.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Practice *</label><select id="npPr" onchange="filterProvidersByPractice()">${db.practices.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Primary Provider *</label><select id="npPv">${db.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
     </div>
-    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createPatient()">Create Patient</button></div>`, true);
-}
-function createPatient(){
-  const p={id:genId(),firstName:document.getElementById('npF').value,lastName:document.getElementById('npL').value,dob:document.getElementById('npD').value,gender:document.getElementById('npG').value,phone:document.getElementById('npPh').value,email:document.getElementById('npEm').value,street:document.getElementById('npSt').value,city:document.getElementById('npCi').value,state:document.getElementById('npSa').value,zip:document.getElementById('npZi').value,insurancePrimary:document.getElementById('npI1').value,insuranceId:document.getElementById('npI1d').value,insuranceSecondary:document.getElementById('npI2').value,insuranceSecondaryId:document.getElementById('npI2d').value,pharmacy:document.getElementById('npRx').value,pharmacyPhone:document.getElementById('npRxP').value,emergencyName:document.getElementById('npEn').value,emergencyPhone:document.getElementById('npEp').value,emergencyRelation:document.getElementById('npEr').value,practiceId:document.getElementById('npPr').value,providerId:document.getElementById('npPv').value,allergies:[],pmh:[],createdAt:new Date().toISOString()};
-  if(!p.firstName||!p.lastName){alert('Name required');return;}
-  db.patients.push(p);saveDB();closeModal();render();
+    
+    <div class="section-title">Initial Clinical Info (Optional)</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Known Allergies</label><input id="npAllergies" placeholder="Penicillin, Sulfa (comma-separated)"></div>
+      <div class="form-group"><label>Referring Provider</label><input id="npReferring" placeholder="Dr. John Doe"></div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createPatient()">✅ Create Patient</button>
+    </div>`, true);
 }
 
-// ═══════ EDIT PATIENT ═══════
+function filterProvidersByPractice() {
+  const practiceId = document.getElementById('npPr')?.value;
+  const pvSelect = document.getElementById('npPv');
+  if (!pvSelect) return;
+  
+  // Filter providers by selected practice, but keep all if no practice selected
+  const providers = practiceId 
+    ? db.providers.filter(p => p.practiceId === practiceId)
+    : db.providers;
+  
+  // If no providers for this practice, show all
+  const opts = providers.length > 0 ? providers : db.providers;
+  pvSelect.innerHTML = opts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+function createPatient(){
+  const allergiesInput = document.getElementById('npAllergies').value;
+  const allergies = allergiesInput ? allergiesInput.split(',').map(a => a.trim()).filter(Boolean) : [];
+  
+  const p = {
+    id: genId(),
+    mrn: document.getElementById('newMRN')?.textContent || generateMRN(),
+    firstName: document.getElementById('npF').value.trim(),
+    lastName: document.getElementById('npL').value.trim(),
+    dob: document.getElementById('npD').value,
+    gender: document.getElementById('npG').value,
+    ssn: document.getElementById('npSSN').value.replace(/[^\d-]/g, ''),
+    preferredLanguage: document.getElementById('npLang').value,
+    phone: document.getElementById('npPh').value,
+    mobile: document.getElementById('npMobile').value,
+    email: document.getElementById('npEm').value,
+    street: document.getElementById('npSt').value,
+    city: document.getElementById('npCi').value,
+    state: document.getElementById('npSa').value.toUpperCase(),
+    zip: document.getElementById('npZi').value,
+    // Primary Insurance
+    insurancePrimary: document.getElementById('npI1').value,
+    insurancePrimaryPolicyNo: document.getElementById('npI1d').value,
+    insuranceId: document.getElementById('npI1d').value, // backwards compat
+    insurancePrimaryGroupNo: document.getElementById('npI1g').value,
+    insurancePrimaryCopay: document.getElementById('npI1c').value,
+    // Secondary Insurance
+    insuranceSecondary: document.getElementById('npI2').value,
+    insuranceSecondaryPolicyNo: document.getElementById('npI2d').value,
+    insuranceSecondaryId: document.getElementById('npI2d').value, // backwards compat
+    insuranceSecondaryGroupNo: document.getElementById('npI2g').value,
+    insuranceSecondaryCopay: document.getElementById('npI2c').value,
+    // Pharmacy
+    pharmacy: document.getElementById('npRx').value,
+    pharmacyPhone: document.getElementById('npRxP').value,
+    // Emergency Contact
+    emergencyName: document.getElementById('npEn').value,
+    emergencyPhone: document.getElementById('npEp').value,
+    emergencyRelation: document.getElementById('npEr').value,
+    // Care Assignment
+    practiceId: document.getElementById('npPr').value,
+    providerId: document.getElementById('npPv').value,
+    referringProvider: document.getElementById('npReferring').value,
+    // Clinical
+    allergies: allergies.length > 0 ? allergies : ['None known'],
+    pmh: [],
+    // Status & Timestamps
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  
+  if (!p.firstName || !p.lastName) {
+    alert('First and Last name are required');
+    return;
+  }
+  if (!p.dob) {
+    alert('Date of Birth is required');
+    return;
+  }
+  
+  db.patients.push(p);
+  saveDB();
+  closeModal();
+  
+  // Open the new patient's detail view
+  openPatientDetail(p.id);
+}
+
+// ═══════ EDIT PATIENT (Enhanced) ═══════
 function editPatientModal(id){
   const p=db.patients.find(x=>x.id===id);if(!p)return;
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Edit — ${p.firstName} ${p.lastName}</h3>
-    <div class="form-grid">
-      <div class="form-group"><label>First Name</label><input id="epF" value="${p.firstName}"></div>
-      <div class="form-group"><label>Last Name</label><input id="epL" value="${p.lastName}"></div>
-      <div class="form-group"><label>DOB</label><input type="date" id="epD" value="${p.dob}"></div>
-      <div class="form-group"><label>Gender</label><select id="epG"><option ${p.gender==='Male'?'selected':''}>Male</option><option ${p.gender==='Female'?'selected':''}>Female</option><option ${p.gender==='Other'?'selected':''}>Other</option></select></div>
-      <div class="form-group"><label>Phone</label><input id="epPh" value="${p.phone||''}"></div>
-      <div class="form-group"><label>Email</label><input id="epEm" value="${p.email||''}"></div>
+  const languages = ['English','Spanish','Portuguese','Haitian Creole','French','Chinese','Other'];
+  const genders = ['Male','Female','Non-Binary','Other','Prefer not to say'];
+  const relationships = ['Spouse','Parent','Child','Sibling','Other Family','Friend','Caregiver','Other'];
+  
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✏️ Edit Patient — ${p.firstName} ${p.lastName}</h3>
+    
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;padding:12px;background:var(--bg-input);border-radius:8px;">
+      <div>
+        <span style="font-size:11px;color:var(--text-dim);">MRN</span>
+        <div style="font-family:monospace;font-weight:700;color:var(--primary);">${p.mrn || 'N/A'}</div>
+      </div>
+      <div style="flex:1;"></div>
+      <div>
+        <span style="font-size:11px;color:var(--text-dim);">Status</span>
+        <select id="epStatus" style="width:auto;padding:4px 8px;">
+          <option value="active" ${(p.status||'active')==='active'?'selected':''}>🟢 Active</option>
+          <option value="inactive" ${p.status==='inactive'?'selected':''}>🔴 Inactive</option>
+        </select>
+      </div>
     </div>
+    
+    <div class="section-title" style="margin-top:0;">Personal Information</div>
+    <div class="form-grid">
+      <div class="form-group"><label>First Name *</label><input id="epF" value="${p.firstName}"></div>
+      <div class="form-group"><label>Last Name *</label><input id="epL" value="${p.lastName}"></div>
+      <div class="form-group"><label>DOB *</label><input type="date" id="epD" value="${p.dob}"></div>
+      <div class="form-group"><label>Gender</label><select id="epG">${genders.map(g=>`<option ${p.gender===g?'selected':''}>${g}</option>`).join('')}</select></div>
+      <div class="form-group"><label>SSN</label><input id="epSSN" value="${p.ssn||''}" placeholder="123-45-6789" maxlength="11"></div>
+      <div class="form-group"><label>Preferred Language</label><select id="epLang">${languages.map(l=>`<option ${(p.preferredLanguage||'English')===l?'selected':''}>${l}</option>`).join('')}</select></div>
+    </div>
+    
+    <div class="section-title">Contact Information</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Phone</label><input id="epPh" value="${p.phone||''}"></div>
+      <div class="form-group"><label>Mobile</label><input id="epMobile" value="${p.mobile||''}"></div>
+      <div class="form-group full"><label>Email</label><input id="epEm" value="${p.email||''}" type="email"></div>
+    </div>
+    
     <div class="section-title">Address</div>
     <div class="form-grid-4">
       <div class="form-group" style="grid-column:span 2"><label>Street</label><input id="epSt" value="${p.street||''}"></div>
       <div class="form-group"><label>City</label><input id="epCi" value="${p.city||''}"></div>
-      <div class="form-group"><label>State</label><input id="epSa" value="${p.state||''}"></div>
-      <div class="form-group"><label>Zip</label><input id="epZi" value="${p.zip||''}"></div>
+      <div class="form-group"><label>State</label><input id="epSa" value="${p.state||''}" maxlength="2" style="text-transform:uppercase;"></div>
+      <div class="form-group"><label>Zip</label><input id="epZi" value="${p.zip||''}" maxlength="10"></div>
     </div>
-    <div class="section-title">Insurance</div>
+    
+    <div class="section-title">Primary Insurance</div>
     <div class="form-grid">
-      <div class="form-group"><label>Primary</label><input id="epI1" value="${p.insurancePrimary||''}"></div>
-      <div class="form-group"><label>Primary ID</label><input id="epI1d" value="${p.insuranceId||''}"></div>
-      <div class="form-group"><label>Secondary</label><input id="epI2" value="${p.insuranceSecondary||''}"></div>
-      <div class="form-group"><label>Secondary ID</label><input id="epI2d" value="${p.insuranceSecondaryId||''}"></div>
+      <div class="form-group"><label>Insurance Company</label><input id="epI1" value="${p.insurancePrimary||''}" list="insuranceList"></div>
+      <div class="form-group"><label>Policy Number</label><input id="epI1d" value="${p.insurancePrimaryPolicyNo||p.insuranceId||''}"></div>
+      <div class="form-group"><label>Group Number</label><input id="epI1g" value="${p.insurancePrimaryGroupNo||''}"></div>
+      <div class="form-group"><label>Copay ($)</label><input id="epI1c" type="number" value="${p.insurancePrimaryCopay||''}"></div>
     </div>
+    
+    <details style="margin-bottom:16px;" ${p.insuranceSecondary ? 'open' : ''}>
+      <summary style="cursor:pointer;color:var(--primary);font-size:13px;font-weight:500;">Secondary Insurance</summary>
+      <div class="form-grid" style="margin-top:12px;">
+        <div class="form-group"><label>Insurance Company</label><input id="epI2" value="${p.insuranceSecondary||''}" list="insuranceList"></div>
+        <div class="form-group"><label>Policy Number</label><input id="epI2d" value="${p.insuranceSecondaryPolicyNo||p.insuranceSecondaryId||''}"></div>
+        <div class="form-group"><label>Group Number</label><input id="epI2g" value="${p.insuranceSecondaryGroupNo||''}"></div>
+        <div class="form-group"><label>Copay ($)</label><input id="epI2c" type="number" value="${p.insuranceSecondaryCopay||''}"></div>
+      </div>
+    </details>
+    
     <div class="section-title">Pharmacy</div>
     <div class="form-grid">
-      <div class="form-group"><label>Pharmacy</label><input id="epRx" value="${p.pharmacy||''}"></div>
+      <div class="form-group"><label>Pharmacy Name & Address</label><input id="epRx" value="${p.pharmacy||''}"></div>
       <div class="form-group"><label>Pharmacy Phone</label><input id="epRxP" value="${p.pharmacyPhone||''}"></div>
     </div>
+    
     <div class="section-title">Emergency Contact</div>
     <div class="form-grid-3">
       <div class="form-group"><label>Name</label><input id="epEn" value="${p.emergencyName||''}"></div>
       <div class="form-group"><label>Phone</label><input id="epEp" value="${p.emergencyPhone||''}"></div>
-      <div class="form-group"><label>Relationship</label><input id="epEr" value="${p.emergencyRelation||''}"></div>
+      <div class="form-group"><label>Relationship</label><select id="epEr">${relationships.map(r=>`<option ${(p.emergencyRelation||'Spouse')===r?'selected':''}>${r}</option>`).join('')}</select></div>
     </div>
-    <div class="section-title">Care</div>
+    
+    <div class="section-title">Care Assignment</div>
     <div class="form-grid">
       <div class="form-group"><label>Practice</label><select id="epPr">${db.practices.map(pr=>`<option value="${pr.id}" ${pr.id===p.practiceId?'selected':''}>${pr.name}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Provider</label><select id="epPv">${db.providers.map(pv=>`<option value="${pv.id}" ${pv.id===p.providerId?'selected':''}>${pv.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Primary Provider</label><select id="epPv">${db.providers.map(pv=>`<option value="${pv.id}" ${pv.id===p.providerId?'selected':''}>${pv.name}</option>`).join('')}</select></div>
     </div>
-    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="savePatientEdit('${id}')">Save</button></div>`, true);
+    <div class="form-group" style="margin-top:12px;">
+      <label>Referring Provider</label>
+      <input id="epReferring" value="${p.referringProvider||''}" placeholder="External referring physician">
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-danger" onclick="deletePatientConfirm('${id}')">🗑️ Delete</button>
+      <div style="flex:1;"></div>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePatientEdit('${id}')">💾 Save Changes</button>
+    </div>
+    
+    <datalist id="insuranceList">
+      <option value="Blue Cross Blue Shield">
+      <option value="Aetna">
+      <option value="United Healthcare">
+      <option value="Cigna">
+      <option value="Humana">
+      <option value="Medicare">
+      <option value="Medicaid">
+      <option value="AvMed">
+      <option value="Florida Blue">
+      <option value="Molina Healthcare">
+      <option value="Self-Pay">
+    </datalist>
+  `, true);
 }
+
 function savePatientEdit(id){
   const p=db.patients.find(x=>x.id===id);if(!p)return;
-  p.firstName=document.getElementById('epF').value;p.lastName=document.getElementById('epL').value;p.dob=document.getElementById('epD').value;p.gender=document.getElementById('epG').value;p.phone=document.getElementById('epPh').value;p.email=document.getElementById('epEm').value;p.street=document.getElementById('epSt').value;p.city=document.getElementById('epCi').value;p.state=document.getElementById('epSa').value;p.zip=document.getElementById('epZi').value;p.insurancePrimary=document.getElementById('epI1').value;p.insuranceId=document.getElementById('epI1d').value;p.insuranceSecondary=document.getElementById('epI2').value;p.insuranceSecondaryId=document.getElementById('epI2d').value;p.pharmacy=document.getElementById('epRx').value;p.pharmacyPhone=document.getElementById('epRxP').value;p.emergencyName=document.getElementById('epEn').value;p.emergencyPhone=document.getElementById('epEp').value;p.emergencyRelation=document.getElementById('epEr').value;p.practiceId=document.getElementById('epPr').value;p.providerId=document.getElementById('epPv').value;
-  saveDB();closeModal();if(selectedPatient&&selectedPatient.id===id)selectedPatient=p;render();
+  
+  // Personal Info
+  p.firstName = document.getElementById('epF').value.trim();
+  p.lastName = document.getElementById('epL').value.trim();
+  p.dob = document.getElementById('epD').value;
+  p.gender = document.getElementById('epG').value;
+  p.ssn = document.getElementById('epSSN').value;
+  p.preferredLanguage = document.getElementById('epLang').value;
+  p.status = document.getElementById('epStatus').value;
+  
+  // Contact
+  p.phone = document.getElementById('epPh').value;
+  p.mobile = document.getElementById('epMobile').value;
+  p.email = document.getElementById('epEm').value;
+  
+  // Address
+  p.street = document.getElementById('epSt').value;
+  p.city = document.getElementById('epCi').value;
+  p.state = document.getElementById('epSa').value.toUpperCase();
+  p.zip = document.getElementById('epZi').value;
+  
+  // Primary Insurance
+  p.insurancePrimary = document.getElementById('epI1').value;
+  p.insurancePrimaryPolicyNo = document.getElementById('epI1d').value;
+  p.insuranceId = document.getElementById('epI1d').value; // backwards compat
+  p.insurancePrimaryGroupNo = document.getElementById('epI1g').value;
+  p.insurancePrimaryCopay = document.getElementById('epI1c').value;
+  
+  // Secondary Insurance
+  p.insuranceSecondary = document.getElementById('epI2').value;
+  p.insuranceSecondaryPolicyNo = document.getElementById('epI2d').value;
+  p.insuranceSecondaryId = document.getElementById('epI2d').value; // backwards compat
+  p.insuranceSecondaryGroupNo = document.getElementById('epI2g').value;
+  p.insuranceSecondaryCopay = document.getElementById('epI2c').value;
+  
+  // Pharmacy
+  p.pharmacy = document.getElementById('epRx').value;
+  p.pharmacyPhone = document.getElementById('epRxP').value;
+  
+  // Emergency Contact
+  p.emergencyName = document.getElementById('epEn').value;
+  p.emergencyPhone = document.getElementById('epEp').value;
+  p.emergencyRelation = document.getElementById('epEr').value;
+  
+  // Care Assignment
+  p.practiceId = document.getElementById('epPr').value;
+  p.providerId = document.getElementById('epPv').value;
+  p.referringProvider = document.getElementById('epReferring').value;
+  
+  // Timestamps
+  p.updatedAt = new Date().toISOString();
+  
+  saveDB();
+  closeModal();
+  if(selectedPatient && selectedPatient.id === id) selectedPatient = p;
+  render();
+}
+
+function deletePatientConfirm(id) {
+  const p = db.patients.find(x => x.id === id);
+  if (!p) return;
+  
+  const encCount = db.encounters.filter(e => e.patientId === id).length;
+  const rxCount = db.prescriptions.filter(rx => rx.patientId === id).length;
+  
+  if (encCount > 0 || rxCount > 0) {
+    alert(`Cannot delete patient with existing records.\n\nThis patient has:\n- ${encCount} encounter(s)\n- ${rxCount} prescription(s)\n\nConsider marking as Inactive instead.`);
+    return;
+  }
+  
+  if (confirm(`⚠️ DELETE PATIENT: ${p.firstName} ${p.lastName}?\n\nThis action cannot be undone.`)) {
+    const idx = db.patients.findIndex(x => x.id === id);
+    if (idx > -1) {
+      db.patients.splice(idx, 1);
+      saveDB();
+      closeModal();
+      selectedPatient = null;
+      navigate('patients');
+    }
+  }
 }
 
 // ═══════ NEW PROVIDER ═══════
@@ -1972,51 +2346,995 @@ function saveEncounterEdit(id){
   saveDB();closeModal();render();
 }
 
-// ═══════ NEW PRESCRIPTION ═══════
-function showNewPrescriptionModal(patientId){
+// ═══════════════════════════════════════════
+// E-PRESCRIBE / PRESCRIPTION MODULE
+// ═══════════════════════════════════════════
+
+// Enhanced Medication Database with Brand/Generic, Interactions, DEA Schedule
+const rxMedications = [
+  // Diabetes Medications
+  {generic:'Metformin',brand:'Glucophage',class:'Biguanide',doses:['500mg','850mg','1000mg'],routes:['Oral'],schedule:null,interactions:['Contrast dye','Alcohol'],warnings:['Hold before contrast imaging','Risk of lactic acidosis']},
+  {generic:'Glipizide',brand:'Glucotrol',class:'Sulfonylurea',doses:['5mg','10mg'],routes:['Oral'],schedule:null,interactions:['NSAIDs','Fluconazole','Warfarin'],warnings:['Hypoglycemia risk']},
+  {generic:'Sitagliptin',brand:'Januvia',class:'DPP-4 Inhibitor',doses:['25mg','50mg','100mg'],routes:['Oral'],schedule:null,interactions:[],warnings:['Adjust for renal function']},
+  {generic:'Empagliflozin',brand:'Jardiance',class:'SGLT2 Inhibitor',doses:['10mg','25mg'],routes:['Oral'],schedule:null,interactions:['Loop diuretics'],warnings:['Risk of DKA','Genital infections']},
+  {generic:'Semaglutide',brand:'Ozempic/Wegovy',class:'GLP-1 Agonist',doses:['0.25mg','0.5mg','1mg','2mg','2.4mg'],routes:['Subcutaneous'],schedule:null,interactions:['Insulin','Sulfonylureas'],warnings:['Thyroid C-cell tumors (boxed)','Pancreatitis']},
+  {generic:'Insulin Glargine',brand:'Lantus/Basaglar',class:'Long-acting Insulin',doses:['100units/mL'],routes:['Subcutaneous'],schedule:null,interactions:['TZDs','ACE inhibitors'],warnings:['Hypoglycemia','Never give IV']},
+  {generic:'Insulin Lispro',brand:'Humalog',class:'Rapid-acting Insulin',doses:['100units/mL'],routes:['Subcutaneous'],schedule:null,interactions:['TZDs','Beta blockers'],warnings:['Hypoglycemia']},
+  // Cardiovascular
+  {generic:'Lisinopril',brand:'Zestril/Prinivil',class:'ACE Inhibitor',doses:['5mg','10mg','20mg','40mg'],routes:['Oral'],schedule:null,interactions:['Potassium supplements','NSAIDs','ARBs','Lithium'],warnings:['Angioedema risk','Avoid in pregnancy']},
+  {generic:'Amlodipine',brand:'Norvasc',class:'CCB',doses:['2.5mg','5mg','10mg'],routes:['Oral'],schedule:null,interactions:['Simvastatin (limit dose)','CYP3A4 inhibitors'],warnings:['Peripheral edema']},
+  {generic:'Losartan',brand:'Cozaar',class:'ARB',doses:['25mg','50mg','100mg'],routes:['Oral'],schedule:null,interactions:['Potassium','NSAIDs','Lithium'],warnings:['Avoid in pregnancy']},
+  {generic:'Metoprolol Succinate',brand:'Toprol XL',class:'Beta Blocker',doses:['25mg','50mg','100mg','200mg'],routes:['Oral'],schedule:null,interactions:['Verapamil','Clonidine'],warnings:['Do not stop abruptly','Mask hypoglycemia']},
+  {generic:'Atorvastatin',brand:'Lipitor',class:'Statin',doses:['10mg','20mg','40mg','80mg'],routes:['Oral'],schedule:null,interactions:['Gemfibrozil','Niacin','Grapefruit juice','CYP3A4 inhibitors'],warnings:['Myopathy','LFT monitoring']},
+  {generic:'Rosuvastatin',brand:'Crestor',class:'Statin',doses:['5mg','10mg','20mg','40mg'],routes:['Oral'],schedule:null,interactions:['Cyclosporine','Gemfibrozil'],warnings:['Myopathy']},
+  {generic:'Apixaban',brand:'Eliquis',class:'DOAC',doses:['2.5mg','5mg'],routes:['Oral'],schedule:null,interactions:['Strong CYP3A4 inhibitors','P-gp inhibitors','Aspirin'],warnings:['Bleeding risk','Spinal/epidural hematoma']},
+  {generic:'Warfarin',brand:'Coumadin',class:'Anticoagulant',doses:['1mg','2mg','2.5mg','5mg','7.5mg','10mg'],routes:['Oral'],schedule:null,interactions:['Many drugs','Vitamin K foods','NSAIDs','Antibiotics'],warnings:['INR monitoring required','Bleeding risk']},
+  {generic:'Clopidogrel',brand:'Plavix',class:'Antiplatelet',doses:['75mg'],routes:['Oral'],schedule:null,interactions:['Omeprazole','PPIs'],warnings:['Bleeding risk']},
+  // Thyroid
+  {generic:'Levothyroxine',brand:'Synthroid/Levoxyl',class:'Thyroid Hormone',doses:['25mcg','50mcg','75mcg','88mcg','100mcg','112mcg','125mcg','137mcg','150mcg','175mcg','200mcg'],routes:['Oral'],schedule:null,interactions:['Calcium','Iron','PPIs','Cholestyramine'],warnings:['Take on empty stomach','Separate from other meds by 4hr']},
+  // GI
+  {generic:'Omeprazole',brand:'Prilosec',class:'PPI',doses:['20mg','40mg'],routes:['Oral'],schedule:null,interactions:['Clopidogrel','Methotrexate'],warnings:['C. diff risk','B12 deficiency','Bone fractures']},
+  {generic:'Pantoprazole',brand:'Protonix',class:'PPI',doses:['20mg','40mg'],routes:['Oral'],schedule:null,interactions:['Methotrexate'],warnings:['C. diff risk']},
+  // Pain/Inflammation
+  {generic:'Ibuprofen',brand:'Motrin/Advil',class:'NSAID',doses:['200mg','400mg','600mg','800mg'],routes:['Oral'],schedule:null,interactions:['Warfarin','SSRIs','ACE inhibitors','Lithium','Methotrexate'],warnings:['GI bleeding','Renal impairment','CV risk']},
+  {generic:'Naproxen',brand:'Naprosyn/Aleve',class:'NSAID',doses:['250mg','500mg'],routes:['Oral'],schedule:null,interactions:['Warfarin','SSRIs','ACE inhibitors'],warnings:['GI bleeding','CV risk']},
+  {generic:'Meloxicam',brand:'Mobic',class:'NSAID',doses:['7.5mg','15mg'],routes:['Oral'],schedule:null,interactions:['Warfarin','Lithium'],warnings:['CV risk','GI bleeding']},
+  {generic:'Gabapentin',brand:'Neurontin',class:'Anticonvulsant/Pain',doses:['100mg','300mg','400mg','600mg','800mg'],routes:['Oral'],schedule:null,interactions:['Opioids','CNS depressants'],warnings:['CNS depression','Suicidal ideation']},
+  {generic:'Pregabalin',brand:'Lyrica',class:'Anticonvulsant/Pain',doses:['25mg','50mg','75mg','100mg','150mg','200mg','300mg'],routes:['Oral'],schedule:'CV',interactions:['Opioids','CNS depressants'],warnings:['CNS depression','Abuse potential']},
+  // Controlled Substances
+  {generic:'Tramadol',brand:'Ultram',class:'Opioid Analgesic',doses:['50mg','100mg'],routes:['Oral'],schedule:'CIV',interactions:['MAOIs','SSRIs','SNRIs','TCAs','Carbamazepine'],warnings:['Seizure risk','Serotonin syndrome','Respiratory depression']},
+  {generic:'Hydrocodone/APAP',brand:'Vicodin/Norco',class:'Opioid Analgesic',doses:['5/325mg','7.5/325mg','10/325mg'],routes:['Oral'],schedule:'CII',interactions:['CNS depressants','Benzodiazepines','MAOIs'],warnings:['Respiratory depression','Addiction risk','Max 4g APAP/day']},
+  {generic:'Oxycodone',brand:'OxyContin',class:'Opioid Analgesic',doses:['5mg','10mg','15mg','20mg','30mg'],routes:['Oral'],schedule:'CII',interactions:['CNS depressants','Benzodiazepines'],warnings:['Respiratory depression','Addiction risk']},
+  {generic:'Alprazolam',brand:'Xanax',class:'Benzodiazepine',doses:['0.25mg','0.5mg','1mg','2mg'],routes:['Oral'],schedule:'CIV',interactions:['Opioids','CNS depressants','CYP3A4 inhibitors'],warnings:['Respiratory depression with opioids','Dependence']},
+  {generic:'Lorazepam',brand:'Ativan',class:'Benzodiazepine',doses:['0.5mg','1mg','2mg'],routes:['Oral','IV','IM'],schedule:'CIV',interactions:['Opioids','CNS depressants'],warnings:['Respiratory depression','Dependence']},
+  {generic:'Diazepam',brand:'Valium',class:'Benzodiazepine',doses:['2mg','5mg','10mg'],routes:['Oral','IV','IM','Rectal'],schedule:'CIV',interactions:['Opioids','CNS depressants'],warnings:['Long half-life','Accumulation']},
+  {generic:'Zolpidem',brand:'Ambien',class:'Sedative-Hypnotic',doses:['5mg','10mg'],routes:['Oral'],schedule:'CIV',interactions:['CNS depressants','Alcohol'],warnings:['Complex sleep behaviors','Short-term use only']},
+  {generic:'Amphetamine/Dextroamphetamine',brand:'Adderall',class:'Stimulant',doses:['5mg','10mg','15mg','20mg','25mg','30mg'],routes:['Oral'],schedule:'CII',interactions:['MAOIs','SSRIs','Acidifying agents'],warnings:['CV effects','Abuse potential','Sudden death risk']},
+  {generic:'Methylphenidate',brand:'Ritalin/Concerta',class:'Stimulant',doses:['5mg','10mg','20mg','18mg ER','27mg ER','36mg ER','54mg ER'],routes:['Oral'],schedule:'CII',interactions:['MAOIs','Antihypertensives'],warnings:['CV effects','Abuse potential']},
+  // Psych
+  {generic:'Sertraline',brand:'Zoloft',class:'SSRI',doses:['25mg','50mg','100mg','150mg','200mg'],routes:['Oral'],schedule:null,interactions:['MAOIs','Tramadol','Linezolid','Warfarin'],warnings:['Suicidal ideation (boxed)','Serotonin syndrome']},
+  {generic:'Escitalopram',brand:'Lexapro',class:'SSRI',doses:['5mg','10mg','20mg'],routes:['Oral'],schedule:null,interactions:['MAOIs','Pimozide'],warnings:['QT prolongation','Suicidal ideation']},
+  {generic:'Fluoxetine',brand:'Prozac',class:'SSRI',doses:['10mg','20mg','40mg','60mg'],routes:['Oral'],schedule:null,interactions:['MAOIs','Thioridazine','Pimozide'],warnings:['Long half-life','Suicidal ideation']},
+  {generic:'Bupropion',brand:'Wellbutrin',class:'NDRI',doses:['75mg','100mg','150mg SR','150mg XL','300mg XL'],routes:['Oral'],schedule:null,interactions:['MAOIs','Alcohol'],warnings:['Seizure risk','Do not use in eating disorders']},
+  {generic:'Duloxetine',brand:'Cymbalta',class:'SNRI',doses:['20mg','30mg','60mg'],routes:['Oral'],schedule:null,interactions:['MAOIs','Thioridazine'],warnings:['Hepatotoxicity','Suicidal ideation']},
+  {generic:'Trazodone',brand:'Desyrel',class:'SARI',doses:['50mg','100mg','150mg','300mg'],routes:['Oral'],schedule:null,interactions:['MAOIs','CNS depressants'],warnings:['Priapism','Orthostatic hypotension']},
+  {generic:'Quetiapine',brand:'Seroquel',class:'Atypical Antipsychotic',doses:['25mg','50mg','100mg','200mg','300mg','400mg'],routes:['Oral'],schedule:null,interactions:['CYP3A4 inhibitors','CNS depressants'],warnings:['Metabolic effects','Tardive dyskinesia','Mortality in elderly with dementia']},
+  // Antibiotics
+  {generic:'Amoxicillin',brand:'Amoxil',class:'Penicillin',doses:['250mg','500mg','875mg'],routes:['Oral'],schedule:null,interactions:['Warfarin','Methotrexate'],warnings:['Penicillin allergy','C. diff']},
+  {generic:'Amoxicillin/Clavulanate',brand:'Augmentin',class:'Penicillin',doses:['500/125mg','875/125mg'],routes:['Oral'],schedule:null,interactions:['Warfarin'],warnings:['Penicillin allergy','Diarrhea']},
+  {generic:'Azithromycin',brand:'Zithromax',class:'Macrolide',doses:['250mg','500mg'],routes:['Oral'],schedule:null,interactions:['QT-prolonging drugs','Warfarin'],warnings:['QT prolongation','Hepatotoxicity']},
+  {generic:'Ciprofloxacin',brand:'Cipro',class:'Fluoroquinolone',doses:['250mg','500mg','750mg'],routes:['Oral'],schedule:null,interactions:['Tizanidine','Theophylline','Warfarin','NSAIDs'],warnings:['Tendon rupture (boxed)','QT prolongation','CNS effects']},
+  {generic:'Doxycycline',brand:'Vibramycin',class:'Tetracycline',doses:['50mg','100mg'],routes:['Oral'],schedule:null,interactions:['Antacids','Iron','Warfarin'],warnings:['Photosensitivity','Avoid in pregnancy/children']},
+  {generic:'Cephalexin',brand:'Keflex',class:'Cephalosporin',doses:['250mg','500mg'],routes:['Oral'],schedule:null,interactions:['Warfarin'],warnings:['Cross-reactivity with penicillin allergy']},
+  {generic:'Sulfamethoxazole/Trimethoprim',brand:'Bactrim',class:'Sulfonamide',doses:['400/80mg','800/160mg'],routes:['Oral'],schedule:null,interactions:['Warfarin','ACE inhibitors','Methotrexate'],warnings:['Sulfa allergy','Hyperkalemia','Bone marrow suppression']},
+  // Respiratory
+  {generic:'Albuterol',brand:'Ventolin/ProAir',class:'SABA',doses:['90mcg/inh','2.5mg/3mL neb'],routes:['Inhalation'],schedule:null,interactions:['Beta blockers','MAOIs'],warnings:['Tachycardia','Hypokalemia']},
+  {generic:'Fluticasone',brand:'Flovent',class:'ICS',doses:['44mcg','110mcg','220mcg'],routes:['Inhalation'],schedule:null,interactions:['CYP3A4 inhibitors'],warnings:['Thrush','Adrenal suppression']},
+  {generic:'Fluticasone/Salmeterol',brand:'Advair',class:'ICS/LABA',doses:['100/50mcg','250/50mcg','500/50mcg'],routes:['Inhalation'],schedule:null,interactions:['CYP3A4 inhibitors','Beta blockers'],warnings:['Not for acute attack','Asthma-related death (boxed)']},
+  {generic:'Montelukast',brand:'Singulair',class:'Leukotriene Modifier',doses:['4mg','5mg','10mg'],routes:['Oral'],schedule:null,interactions:[],warnings:['Neuropsychiatric events (boxed)']},
+  {generic:'Prednisone',brand:'Deltasone',class:'Corticosteroid',doses:['5mg','10mg','20mg','50mg'],routes:['Oral'],schedule:null,interactions:['NSAIDs','Warfarin','Live vaccines'],warnings:['Adrenal suppression','Hyperglycemia','Osteoporosis','Infections']},
+  // Migraine
+  {generic:'Sumatriptan',brand:'Imitrex',class:'Triptan',doses:['25mg','50mg','100mg','6mg inj'],routes:['Oral','Subcutaneous','Nasal'],schedule:null,interactions:['MAOIs','Ergots','SSRIs/SNRIs'],warnings:['CV events','Serotonin syndrome']},
+  // Muscle Relaxants
+  {generic:'Cyclobenzaprine',brand:'Flexeril',class:'Muscle Relaxant',doses:['5mg','10mg'],routes:['Oral'],schedule:null,interactions:['MAOIs','CNS depressants'],warnings:['CNS depression','Do not use with MAOIs']},
+  {generic:'Methocarbamol',brand:'Robaxin',class:'Muscle Relaxant',doses:['500mg','750mg'],routes:['Oral'],schedule:null,interactions:['CNS depressants'],warnings:['Drowsiness']},
+  // Allergy
+  {generic:'Cetirizine',brand:'Zyrtec',class:'Antihistamine',doses:['5mg','10mg'],routes:['Oral'],schedule:null,interactions:['CNS depressants'],warnings:['Drowsiness']},
+  {generic:'Loratadine',brand:'Claritin',class:'Antihistamine',doses:['10mg'],routes:['Oral'],schedule:null,interactions:[],warnings:['Non-sedating']},
+  {generic:'Diphenhydramine',brand:'Benadryl',class:'Antihistamine',doses:['25mg','50mg'],routes:['Oral'],schedule:null,interactions:['MAOIs','CNS depressants'],warnings:['Sedation','Anticholinergic effects in elderly']},
+  // Nausea
+  {generic:'Ondansetron',brand:'Zofran',class:'5-HT3 Antagonist',doses:['4mg','8mg'],routes:['Oral','IV','IM'],schedule:null,interactions:['Apomorphine','QT drugs'],warnings:['QT prolongation','Serotonin syndrome with other serotonergic drugs']},
+  {generic:'Promethazine',brand:'Phenergan',class:'Phenothiazine',doses:['12.5mg','25mg','50mg'],routes:['Oral','IM','Rectal'],schedule:null,interactions:['CNS depressants','MAOIs'],warnings:['Respiratory depression in <2yr (boxed)','Tissue necrosis if IV']},
+];
+
+// Common Pharmacies Database
+const rxPharmacies = [
+  {name:'CVS Pharmacy',address:'1200 Brickell Ave',city:'Miami',state:'FL',zip:'33131',phone:'(305) 555-7700',fax:'(305) 555-7701',type:'retail'},
+  {name:'Walgreens',address:'300 Collins Ave',city:'Miami Beach',state:'FL',zip:'33139',phone:'(305) 555-3300',fax:'(305) 555-3301',type:'retail'},
+  {name:'Publix Pharmacy',address:'450 Coral Way',city:'Miami',state:'FL',zip:'33145',phone:'(305) 555-4400',fax:'(305) 555-4401',type:'retail'},
+  {name:'Walgreens',address:'500 SW 8th St',city:'Miami',state:'FL',zip:'33130',phone:'(305) 555-5500',fax:'(305) 555-5501',type:'retail'},
+  {name:'CVS Pharmacy',address:'800 NW 27th Ave',city:'Miami',state:'FL',zip:'33125',phone:'(305) 555-8800',fax:'(305) 555-8801',type:'retail'},
+  {name:'Costco Pharmacy',address:'1500 NW 107th Ave',city:'Miami',state:'FL',zip:'33172',phone:'(305) 555-1500',fax:'(305) 555-1501',type:'retail'},
+  {name:'Walmart Pharmacy',address:'3200 NW 79th St',city:'Miami',state:'FL',zip:'33147',phone:'(305) 555-3200',fax:'(305) 555-3201',type:'retail'},
+  {name:'Alto Pharmacy',address:'Delivery Service',city:'Miami',state:'FL',zip:'33101',phone:'(800) 874-5881',fax:'(415) 941-1136',type:'mail-order'},
+  {name:'Express Scripts',address:'Mail Order',city:'St. Louis',state:'MO',zip:'63121',phone:'(800) 282-2881',fax:'(800) 837-0959',type:'mail-order'},
+  {name:'CVS Caremark',address:'Mail Order',city:'Phoenix',state:'AZ',zip:'85040',phone:'(866) 416-2880',fax:'(800) 378-0323',type:'mail-order'},
+];
+
+// Common ICD-10 Diagnosis Codes
+const commonICD10 = [
+  {code:'E11.9',desc:'Type 2 diabetes mellitus without complications'},
+  {code:'E11.65',desc:'Type 2 DM with hyperglycemia'},
+  {code:'E11.40',desc:'Type 2 DM with diabetic neuropathy'},
+  {code:'E11.21',desc:'Type 2 DM with diabetic nephropathy'},
+  {code:'E10.9',desc:'Type 1 diabetes mellitus without complications'},
+  {code:'E03.9',desc:'Hypothyroidism, unspecified'},
+  {code:'E05.90',desc:'Thyrotoxicosis, unspecified'},
+  {code:'I10',desc:'Essential (primary) hypertension'},
+  {code:'I25.10',desc:'Atherosclerotic heart disease'},
+  {code:'I48.91',desc:'Unspecified atrial fibrillation'},
+  {code:'I50.9',desc:'Heart failure, unspecified'},
+  {code:'J06.9',desc:'Acute upper respiratory infection'},
+  {code:'J20.9',desc:'Acute bronchitis, unspecified'},
+  {code:'J45.909',desc:'Unspecified asthma, uncomplicated'},
+  {code:'J44.9',desc:'COPD, unspecified'},
+  {code:'K21.0',desc:'GERD with esophagitis'},
+  {code:'K59.00',desc:'Constipation, unspecified'},
+  {code:'M54.5',desc:'Low back pain'},
+  {code:'M79.3',desc:'Panniculitis, unspecified'},
+  {code:'G43.909',desc:'Migraine, unspecified'},
+  {code:'G47.00',desc:'Insomnia, unspecified'},
+  {code:'F32.9',desc:'Major depressive disorder, single episode'},
+  {code:'F41.1',desc:'Generalized anxiety disorder'},
+  {code:'F41.9',desc:'Anxiety disorder, unspecified'},
+  {code:'N39.0',desc:'Urinary tract infection, site not specified'},
+  {code:'R05.9',desc:'Cough, unspecified'},
+  {code:'R10.9',desc:'Unspecified abdominal pain'},
+  {code:'R50.9',desc:'Fever, unspecified'},
+  {code:'Z00.00',desc:'Encounter for general adult medical exam'},
+  {code:'Z23',desc:'Encounter for immunization'},
+];
+
+// ═══════ ENHANCED PRESCRIPTIONS PAGE ═══════
+function renderPrescriptions(c){
+  setPageTitle('E-Prescribe / Prescriptions');
+  const activeRx=db.prescriptions.filter(rx=>rx.status==='active');
+  const allRx=db.prescriptions;
+  
+  c.innerHTML=`
+    <div class="stats-grid" style="margin-bottom:20px;">
+      <div class="stat-card blue"><div class="label">Active Rx</div><div class="value">${activeRx.length}</div></div>
+      <div class="stat-card green"><div class="label">Total Written</div><div class="value">${allRx.length}</div></div>
+      <div class="stat-card yellow"><div class="label">Controlled</div><div class="value">${allRx.filter(rx=>rx.schedule).length}</div></div>
+      <div class="stat-card purple"><div class="label">Refills Pending</div><div class="value">${allRx.filter(rx=>rx.refillRequested).length}</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;gap:12px;align-items:center;flex:1;">
+        <input type="text" id="rxSearchInput" placeholder="🔍 Search medications, patients..." style="max-width:300px;" onkeyup="filterRxList()">
+        <select id="rxStatusFilter" onchange="filterRxList()" style="width:auto;">
+          <option value="all">All Status</option>
+          <option value="active" selected>Active Only</option>
+          <option value="discontinued">Discontinued</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="showEPrescribeModal()">📝 New E-Prescribe</button>
+        <button class="btn btn-ghost" onclick="showMedicationListModal()">📋 Medication Lists</button>
+      </div>
+    </div>
+    <div id="rxListContainer">${renderRxList(allRx)}</div>
+    <div class="section-title">E-Prescribe Integration Status</div>
+    <div class="integration-card" style="margin-bottom:16px;">
+      <div class="int-icon">📝</div>
+      <div class="int-info">
+        <div class="int-name">Surescripts EPCS</div>
+        <div class="int-desc">NCPDP SCRIPT e-prescribing network for electronic transmission including controlled substances</div>
+      </div>
+      <span class="badge badge-yellow">Pending Setup</span>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">
+      <p><strong>E-Prescribe Workflow:</strong></p>
+      <p>1. Select patient → Review allergies & current meds → Check drug interactions</p>
+      <p>2. Build Sig using structured fields → Auto-calculate quantity</p>
+      <p>3. Select pharmacy (patient preferred or search) → Link ICD-10 diagnosis</p>
+      <p>4. Provider signs electronically → Transmitted to pharmacy via Surescripts</p>
+      <p>5. Controlled substances require EPCS two-factor authentication</p>
+    </div>
+  `;
+}
+
+function renderRxList(rxList){
+  if(!rxList.length) return '<div class="empty-state"><div class="empty-icon">💊</div><p>No prescriptions found</p></div>';
+  return rxList.sort((a,b)=>b.writtenDate.localeCompare(a.writtenDate)).map(rx=>{
+    const p=db.patients.find(x=>x.id===rx.patientId);
+    const pv=db.providers.find(x=>x.id===rx.providerId);
+    const medInfo=rxMedications.find(m=>m.generic===rx.medication||m.brand.includes(rx.medication));
+    const schedBadge=rx.schedule?`<span class="badge badge-red" style="margin-left:4px;">${rx.schedule}</span>`:'';
+    const dawBadge=rx.daw?`<span class="badge badge-purple" style="margin-left:4px;">DAW</span>`:'';
+    return `<div class="rx-card">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <div>
+          <div class="rx-name">${rx.medication} ${rx.dose}${rx.unit} ${schedBadge}${dawBadge}</div>
+          <div class="rx-sig">${rx.sig}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">
+            Patient: <strong>${p?p.firstName+' '+p.lastName:''}</strong> | 
+            Prescriber: ${pv?pv.name:''} | 
+            ${rx.pharmacy?`Pharmacy: ${rx.pharmacy}`:''} |
+            ${rx.icd10?`Dx: ${rx.icd10}`:''}
+          </div>
+        </div>
+        <span class="badge ${rx.status==='active'?'badge-green':rx.status==='discontinued'?'badge-red':'badge-yellow'}">${rx.status}</span>
+      </div>
+      <div class="rx-details">
+        <span>📅 ${rx.writtenDate}</span>
+        <span>Freq: ${rx.frequency}</span>
+        <span>Route: ${rx.route}</span>
+        <span>Qty: ${rx.quantity}</span>
+        <span>Refills: ${rx.refills}${rx.refillsRemaining!==undefined?' ('+rx.refillsRemaining+' left)':''}</span>
+        ${rx.duration?`<span>Duration: ${rx.duration} days</span>`:''}
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="viewRxDetail('${rx.id}')">👁️ View</button>
+        <button class="btn btn-ghost btn-sm" onclick="editPrescription('${rx.id}')">✏️ Edit</button>
+        ${rx.status==='active'?`<button class="btn btn-ghost btn-sm" onclick="refillRx('${rx.id}')">🔄 Refill</button>`:''}
+        ${rx.status==='active'?`<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="discontinueRx('${rx.id}')">⛔ D/C</button>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="printRx('${rx.id}')">🖨️ Print</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterRxList(){
+  const q=(document.getElementById('rxSearchInput').value||'').toLowerCase();
+  const status=document.getElementById('rxStatusFilter').value;
+  let filtered=db.prescriptions;
+  if(status!=='all') filtered=filtered.filter(rx=>rx.status===status);
+  if(q){
+    filtered=filtered.filter(rx=>{
+      const p=db.patients.find(x=>x.id===rx.patientId);
+      const pName=p?(p.firstName+' '+p.lastName).toLowerCase():'';
+      return rx.medication.toLowerCase().includes(q)||pName.includes(q)||
+             (rx.sig||'').toLowerCase().includes(q);
+    });
+  }
+  document.getElementById('rxListContainer').innerHTML=renderRxList(filtered);
+}
+
+// ═══════ E-PRESCRIBE MODAL (FULL FEATURED) ═══════
+function showEPrescribeModal(patientId){
   const patOpts=db.patients.map(p=>`<option value="${p.id}" ${p.id===patientId?'selected':''}>${p.firstName} ${p.lastName}</option>`).join('');
   const pvOpts=db.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  const medOpts=db.medications.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Prescription</h3>
+  
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📝 E-Prescribe — New Prescription</h3>
+    
+    <!-- Step 1: Patient & Prescriber -->
+    <div class="section-title" style="margin-top:0;">1️⃣ Patient & Prescriber</div>
     <div class="form-grid">
-      <div class="form-group"><label>Patient *</label><select id="nxP">${patOpts}</select></div>
-      <div class="form-group"><label>Prescriber *</label><select id="nxPv">${pvOpts}</select></div>
-      <div class="form-group"><label>Medication *</label><select id="nxM" onchange="updateDose()"><option value="">Select...</option>${medOpts}</select></div>
-      <div class="form-group"><label>Dose *</label><select id="nxD"><option>Select med first</option></select></div>
-      <div class="form-group"><label>Frequency *</label><select id="nxF"><option>QD</option><option>BID</option><option>TID</option><option>QID</option><option>QHS</option><option>PRN</option><option>BID PRN</option><option>Q4H</option><option>Q6H</option><option>Q8H</option><option>Q12H</option><option>QWeek</option><option>QMonth</option></select></div>
-      <div class="form-group"><label>Route *</label><select id="nxR"><option>Oral</option><option>Subcutaneous</option><option>Intramuscular</option><option>IV</option><option>Inhalation</option><option>Topical</option><option>Transdermal</option><option>Rectal</option><option>Ophthalmic</option><option>Otic</option></select></div>
-      <div class="form-group"><label>Quantity *</label><input type="number" id="nxQ" value="30"></div>
-      <div class="form-group"><label>Refills</label><input type="number" id="nxRf" value="0" min="0" max="11"></div>
-      <div class="form-group"><label>DAW</label><select id="nxDaw"><option value="false">No</option><option value="true">Yes — brand only</option></select></div>
-      <div class="form-group full"><label>Sig (Directions) *</label><input id="nxSig" placeholder="Take 1 tablet by mouth twice daily with meals"></div>
+      <div class="form-group"><label>Patient *</label>
+        <select id="rxPatient" onchange="loadPatientRxContext()">${patOpts}</select>
+      </div>
+      <div class="form-group"><label>Prescriber *</label>
+        <select id="rxPrescriber">${pvOpts}</select>
+      </div>
     </div>
-    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createPrescription()">Write Rx</button></div>`);
+    
+    <!-- Patient Context: Allergies & Current Meds -->
+    <div id="patientRxContext" style="background:var(--bg);padding:12px;border-radius:8px;margin:12px 0;display:none;">
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+        <div><strong style="color:var(--danger);">⚠️ Allergies:</strong> <span id="rxAllergies">None</span></div>
+        <div><strong style="color:var(--primary);">💊 Current Meds:</strong> <span id="rxCurrentMeds">None</span></div>
+      </div>
+    </div>
+    
+    <!-- Step 2: Medication Search -->
+    <div class="section-title">2️⃣ Medication</div>
+    <div class="form-group">
+      <label>Search Medication *</label>
+      <input type="text" id="rxMedSearch" placeholder="Type drug name..." autocomplete="off" oninput="searchMedications(this.value)">
+      <div id="medSearchResults" style="max-height:200px;overflow-y:auto;display:none;"></div>
+    </div>
+    <div id="selectedMedInfo" style="display:none;background:var(--bg);padding:12px;border-radius:8px;margin:8px 0;"></div>
+    <input type="hidden" id="rxMedSelected">
+    
+    <!-- Drug Interaction Warning -->
+    <div id="drugInteractionWarning" style="display:none;background:rgba(239,68,68,.15);border:1px solid var(--danger);padding:12px;border-radius:8px;margin:8px 0;color:var(--danger);">
+      <strong>⚠️ Potential Drug Interactions:</strong>
+      <div id="interactionList"></div>
+    </div>
+    
+    <!-- Step 3: Sig Builder -->
+    <div class="section-title">3️⃣ Sig Builder</div>
+    <div class="form-grid-4">
+      <div class="form-group"><label>Dose *</label>
+        <select id="rxDose" onchange="buildSigPreview()"><option>Select med first</option></select>
+      </div>
+      <div class="form-group"><label>Route *</label>
+        <select id="rxRoute" onchange="buildSigPreview()">
+          <option>Oral</option><option>Sublingual</option><option>Buccal</option>
+          <option>Subcutaneous</option><option>Intramuscular</option><option>IV</option>
+          <option>Inhalation</option><option>Topical</option><option>Transdermal</option>
+          <option>Rectal</option><option>Vaginal</option><option>Ophthalmic</option><option>Otic</option><option>Nasal</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Frequency *</label>
+        <select id="rxFreq" onchange="buildSigPreview();autoCalcQuantity();">
+          <option value="QD">QD (once daily)</option>
+          <option value="BID">BID (twice daily)</option>
+          <option value="TID">TID (three times daily)</option>
+          <option value="QID">QID (four times daily)</option>
+          <option value="Q4H">Q4H (every 4 hours)</option>
+          <option value="Q6H">Q6H (every 6 hours)</option>
+          <option value="Q8H">Q8H (every 8 hours)</option>
+          <option value="Q12H">Q12H (every 12 hours)</option>
+          <option value="QHS">QHS (at bedtime)</option>
+          <option value="QAM">QAM (every morning)</option>
+          <option value="QPM">QPM (every evening)</option>
+          <option value="PRN">PRN (as needed)</option>
+          <option value="BID PRN">BID PRN</option>
+          <option value="TID PRN">TID PRN</option>
+          <option value="QWeek">Weekly</option>
+          <option value="Q2Weeks">Every 2 weeks</option>
+          <option value="QMonth">Monthly</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Duration (days)</label>
+        <input type="number" id="rxDuration" value="30" min="1" oninput="autoCalcQuantity()">
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Quantity * <small style="color:var(--text-dim);">(auto-calculated)</small></label>
+        <input type="number" id="rxQuantity" value="30" min="1">
+      </div>
+      <div class="form-group"><label>Refills (0-11)</label>
+        <select id="rxRefills">
+          ${[...Array(12)].map((_,i)=>`<option value="${i}">${i}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>DAW (Dispense as Written)</label>
+        <select id="rxDAW">
+          <option value="0">0 - Substitution allowed</option>
+          <option value="1">1 - Dispense as written (brand only)</option>
+          <option value="2">2 - Patient requested brand</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- Sig Preview -->
+    <div class="form-group">
+      <label>Sig Preview (Patient Directions) *</label>
+      <input type="text" id="rxSigPreview" placeholder="Auto-generated or type custom sig..." style="font-weight:600;">
+    </div>
+    
+    <!-- Step 4: Additional Directions -->
+    <div class="section-title">4️⃣ Additional Directions</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Directions to Pharmacist</label>
+        <input type="text" id="rxPharmacistNotes" placeholder="e.g., Generic OK, Patient needs child-proof cap...">
+      </div>
+      <div class="form-group"><label>Directions to Patient</label>
+        <input type="text" id="rxPatientNotes" placeholder="e.g., Take with food, Avoid grapefruit...">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Office Notes (Internal - not transmitted)</label>
+      <textarea id="rxOfficeNotes" rows="2" placeholder="Internal notes about this prescription..."></textarea>
+    </div>
+    
+    <!-- Step 5: Diagnosis & Pharmacy -->
+    <div class="section-title">5️⃣ Diagnosis & Pharmacy</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Link to Diagnosis (ICD-10) *</label>
+        <input type="text" id="rxICD10Search" placeholder="Search ICD-10..." autocomplete="off" oninput="searchICD10(this.value)">
+        <div id="icd10Results" style="max-height:150px;overflow-y:auto;display:none;"></div>
+        <input type="hidden" id="rxICD10Selected">
+        <div id="selectedICD10" style="margin-top:4px;font-size:12px;color:var(--accent);"></div>
+      </div>
+      <div class="form-group"><label>Pharmacy *</label>
+        <select id="rxPharmacy" onchange="loadPharmacyDetails()">
+          <option value="">Select pharmacy...</option>
+          <option value="patient_preferred">📍 Patient's Preferred Pharmacy</option>
+          ${rxPharmacies.map(ph=>`<option value="${ph.name}|${ph.address}|${ph.phone}|${ph.fax}">${ph.name} — ${ph.address}, ${ph.city}</option>`).join('')}
+        </select>
+        <div id="pharmacyDetails" style="margin-top:4px;font-size:11px;color:var(--text-dim);"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Search Other Pharmacies</label>
+      <input type="text" id="pharmacySearch" placeholder="Search by name, city, or zip..." oninput="searchPharmacies(this.value)">
+      <div id="pharmacySearchResults" style="max-height:150px;overflow-y:auto;display:none;"></div>
+    </div>
+    
+    <!-- Actions -->
+    <div class="form-actions" style="flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-ghost" onclick="saveRxDraft()">💾 Save Draft</button>
+      <button class="btn btn-accent" onclick="submitEPrescribe()">📤 E-Prescribe</button>
+    </div>
+  `, true);
+  
+  // Initialize context if patient selected
+  if(patientId) setTimeout(()=>loadPatientRxContext(),100);
 }
-function updateDose(){const n=document.getElementById('nxM').value;const m=db.medications.find(x=>x.name===n);const s=document.getElementById('nxD');s.innerHTML=m?m.doses.map(d=>`<option>${d}</option>`).join(''):'<option>Select med</option>';if(m)document.getElementById('nxR').value=m.routes[0]||'Oral';}
-function createPrescription(){
-  const d=document.getElementById('nxD').value;const dm=d.match(/^([\d.]+)\s*(\w+)$/);
-  const rx={id:genId(),patientId:document.getElementById('nxP').value,providerId:document.getElementById('nxPv').value,medication:document.getElementById('nxM').value,dose:dm?dm[1]:d,unit:dm?dm[2]:'',frequency:document.getElementById('nxF').value,route:document.getElementById('nxR').value,quantity:+document.getElementById('nxQ').value||30,refills:+document.getElementById('nxRf').value||0,daw:document.getElementById('nxDaw').value==='true',sig:document.getElementById('nxSig').value,status:'active',writtenDate:new Date().toISOString().split('T')[0]};
-  if(!rx.medication||!rx.sig){alert('Medication and Sig required');return;}
-  db.prescriptions.push(rx);saveDB();closeModal();render();
+
+// Alias old function to new one
+function showNewPrescriptionModal(patientId){
+  showEPrescribeModal(patientId);
 }
+
+// Load patient context (allergies, current meds)
+function loadPatientRxContext(){
+  const patId=document.getElementById('rxPatient').value;
+  const p=db.patients.find(x=>x.id===patId);
+  if(!p) return;
+  
+  const ctx=document.getElementById('patientRxContext');
+  ctx.style.display='block';
+  
+  // Allergies
+  const allergies=p.allergies&&p.allergies.length?p.allergies.join(', '):'<span style="color:var(--accent)">NKDA</span>';
+  document.getElementById('rxAllergies').innerHTML=allergies;
+  
+  // Current meds
+  const meds=db.prescriptions.filter(rx=>rx.patientId===patId&&rx.status==='active');
+  const medList=meds.length?meds.map(rx=>`${rx.medication} ${rx.dose}${rx.unit}`).join(', '):'None';
+  document.getElementById('rxCurrentMeds').innerHTML=medList;
+  
+  // Load preferred pharmacy
+  if(p.pharmacy){
+    const sel=document.getElementById('rxPharmacy');
+    sel.value='patient_preferred';
+    document.getElementById('pharmacyDetails').innerHTML=`📍 ${p.pharmacy}<br>📞 ${p.pharmacyPhone||'—'}`;
+  }
+}
+
+// Medication search with brand/generic display
+function searchMedications(q){
+  const results=document.getElementById('medSearchResults');
+  if(q.length<2){results.style.display='none';return;}
+  
+  const matches=rxMedications.filter(m=>
+    m.generic.toLowerCase().includes(q.toLowerCase())||
+    m.brand.toLowerCase().includes(q.toLowerCase())||
+    m.class.toLowerCase().includes(q.toLowerCase())
+  ).slice(0,15);
+  
+  if(!matches.length){
+    results.innerHTML='<div style="padding:8px;color:var(--text-dim);">No medications found</div>';
+  } else {
+    results.innerHTML=matches.map(m=>{
+      const schedBadge=m.schedule?`<span class="badge badge-red">${m.schedule}</span>`:'';
+      return `<div onclick="selectMedication('${m.generic}')" style="padding:10px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+        <div>
+          <div style="font-weight:600;">${m.generic} ${schedBadge}</div>
+          <div style="font-size:11px;color:var(--text-dim);">Brand: ${m.brand} | Class: ${m.class}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  results.style.display='block';
+}
+
+function selectMedication(name){
+  const med=rxMedications.find(m=>m.generic===name);
+  if(!med) return;
+  
+  document.getElementById('rxMedSearch').value=`${med.generic} (${med.brand})`;
+  document.getElementById('rxMedSelected').value=med.generic;
+  document.getElementById('medSearchResults').style.display='none';
+  
+  // Show selected med info
+  const info=document.getElementById('selectedMedInfo');
+  info.style.display='block';
+  info.innerHTML=`
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div><strong>${med.generic}</strong> <span style="color:var(--text-dim);">(${med.brand})</span></div>
+      <div><span class="badge badge-blue">${med.class}</span> ${med.schedule?`<span class="badge badge-red">${med.schedule}</span>`:''}</div>
+    </div>
+    ${med.warnings.length?`<div style="margin-top:8px;font-size:12px;color:var(--warning);">⚠️ ${med.warnings.join(' | ')}</div>`:''}
+  `;
+  
+  // Populate doses
+  const doseSelect=document.getElementById('rxDose');
+  doseSelect.innerHTML=med.doses.map(d=>`<option>${d}</option>`).join('');
+  
+  // Set route
+  document.getElementById('rxRoute').value=med.routes[0]||'Oral';
+  
+  // Check drug interactions
+  checkDrugInteractions(med);
+  
+  // Build sig preview
+  buildSigPreview();
+}
+
+function checkDrugInteractions(newMed){
+  const patId=document.getElementById('rxPatient').value;
+  const currentMeds=db.prescriptions.filter(rx=>rx.patientId===patId&&rx.status==='active');
+  const patientAllergies=db.patients.find(p=>p.id===patId)?.allergies||[];
+  
+  const warnings=[];
+  
+  // Check against current medications
+  currentMeds.forEach(rx=>{
+    const existingMed=rxMedications.find(m=>m.generic===rx.medication);
+    if(existingMed&&newMed.interactions){
+      newMed.interactions.forEach(int=>{
+        if(existingMed.generic.toLowerCase().includes(int.toLowerCase())||
+           existingMed.class.toLowerCase().includes(int.toLowerCase())){
+          warnings.push(`<strong>${newMed.generic}</strong> may interact with <strong>${existingMed.generic}</strong> (current med)`);
+        }
+      });
+    }
+    // Check reverse
+    if(existingMed&&existingMed.interactions){
+      existingMed.interactions.forEach(int=>{
+        if(newMed.generic.toLowerCase().includes(int.toLowerCase())||
+           newMed.class.toLowerCase().includes(int.toLowerCase())){
+          warnings.push(`<strong>${existingMed.generic}</strong> (current) may interact with <strong>${newMed.generic}</strong>`);
+        }
+      });
+    }
+  });
+  
+  // Check against allergies
+  patientAllergies.forEach(allergy=>{
+    const allergyLower=allergy.toLowerCase();
+    if(newMed.generic.toLowerCase().includes(allergyLower)||
+       newMed.brand.toLowerCase().includes(allergyLower)||
+       newMed.class.toLowerCase().includes(allergyLower)||
+       (allergyLower.includes('penicillin')&&newMed.class.includes('Penicillin'))||
+       (allergyLower.includes('sulfa')&&newMed.class.includes('Sulfonamide'))){
+      warnings.push(`<strong>⚠️ ALLERGY ALERT:</strong> Patient allergic to <strong>${allergy}</strong>`);
+    }
+  });
+  
+  const warningDiv=document.getElementById('drugInteractionWarning');
+  if(warnings.length){
+    document.getElementById('interactionList').innerHTML=warnings.map(w=>`<div style="margin-top:4px;">• ${w}</div>`).join('');
+    warningDiv.style.display='block';
+  } else {
+    warningDiv.style.display='none';
+  }
+}
+
+function buildSigPreview(){
+  const dose=document.getElementById('rxDose').value;
+  const route=document.getElementById('rxRoute').value;
+  const freq=document.getElementById('rxFreq').value;
+  
+  if(!dose||dose==='Select med first') return;
+  
+  const freqText={
+    'QD':'once daily','BID':'twice daily','TID':'three times daily','QID':'four times daily',
+    'Q4H':'every 4 hours','Q6H':'every 6 hours','Q8H':'every 8 hours','Q12H':'every 12 hours',
+    'QHS':'at bedtime','QAM':'every morning','QPM':'every evening','PRN':'as needed',
+    'BID PRN':'twice daily as needed','TID PRN':'three times daily as needed',
+    'QWeek':'once weekly','Q2Weeks':'every 2 weeks','QMonth':'once monthly'
+  };
+  
+  const routeText={
+    'Oral':'by mouth','Sublingual':'under the tongue','Subcutaneous':'subcutaneously',
+    'Intramuscular':'intramuscularly','IV':'intravenously','Inhalation':'by inhalation',
+    'Topical':'topically','Transdermal':'via patch','Ophthalmic':'in affected eye(s)',
+    'Otic':'in affected ear(s)','Nasal':'intranasally','Rectal':'rectally','Vaginal':'vaginally'
+  };
+  
+  const sig=`Take ${dose} ${routeText[route]||route.toLowerCase()} ${freqText[freq]||freq}`;
+  document.getElementById('rxSigPreview').value=sig;
+}
+
+function autoCalcQuantity(){
+  const freq=document.getElementById('rxFreq').value;
+  const duration=parseInt(document.getElementById('rxDuration').value)||30;
+  
+  const dosesPerDay={
+    'QD':1,'BID':2,'TID':3,'QID':4,'Q4H':6,'Q6H':4,'Q8H':3,'Q12H':2,
+    'QHS':1,'QAM':1,'QPM':1,'PRN':2,'BID PRN':2,'TID PRN':3,
+    'QWeek':1/7,'Q2Weeks':1/14,'QMonth':1/30
+  };
+  
+  const perDay=dosesPerDay[freq]||1;
+  let qty=Math.ceil(perDay*duration);
+  
+  // Round to common quantities
+  if(qty<=7) qty=7;
+  else if(qty<=14) qty=14;
+  else if(qty<=21) qty=21;
+  else if(qty<=30) qty=30;
+  else if(qty<=60) qty=60;
+  else if(qty<=90) qty=90;
+  else qty=Math.ceil(qty/30)*30;
+  
+  document.getElementById('rxQuantity').value=qty;
+}
+
+// ICD-10 Search
+function searchICD10(q){
+  const results=document.getElementById('icd10Results');
+  if(q.length<2){results.style.display='none';return;}
+  
+  const matches=commonICD10.filter(d=>
+    d.code.toLowerCase().includes(q.toLowerCase())||
+    d.desc.toLowerCase().includes(q.toLowerCase())
+  ).slice(0,10);
+  
+  if(!matches.length){
+    results.innerHTML='<div style="padding:8px;color:var(--text-dim);">No codes found</div>';
+  } else {
+    results.innerHTML=matches.map(d=>`
+      <div onclick="selectICD10('${d.code}','${d.desc.replace(/'/g,"\\'")}')" style="padding:8px;border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+        <span style="font-weight:600;color:var(--primary);">${d.code}</span> — ${d.desc}
+      </div>
+    `).join('');
+  }
+  results.style.display='block';
+}
+
+function selectICD10(code,desc){
+  document.getElementById('rxICD10Search').value=`${code} — ${desc}`;
+  document.getElementById('rxICD10Selected').value=code;
+  document.getElementById('selectedICD10').innerHTML=`<span class="badge badge-blue">${code}</span> ${desc}`;
+  document.getElementById('icd10Results').style.display='none';
+}
+
+// Pharmacy functions
+function loadPharmacyDetails(){
+  const sel=document.getElementById('rxPharmacy');
+  const val=sel.value;
+  const det=document.getElementById('pharmacyDetails');
+  
+  if(val==='patient_preferred'){
+    const patId=document.getElementById('rxPatient').value;
+    const p=db.patients.find(x=>x.id===patId);
+    det.innerHTML=p?`📍 ${p.pharmacy||'No pharmacy on file'}<br>📞 ${p.pharmacyPhone||'—'}`:'';
+  } else if(val){
+    const parts=val.split('|');
+    det.innerHTML=`📍 ${parts[1]||''}<br>📞 ${parts[2]||''} | 📠 ${parts[3]||''}`;
+  } else {
+    det.innerHTML='';
+  }
+}
+
+function searchPharmacies(q){
+  const results=document.getElementById('pharmacySearchResults');
+  if(q.length<2){results.style.display='none';return;}
+  
+  const matches=rxPharmacies.filter(ph=>
+    ph.name.toLowerCase().includes(q.toLowerCase())||
+    ph.city.toLowerCase().includes(q.toLowerCase())||
+    ph.zip.includes(q)
+  );
+  
+  if(!matches.length){
+    results.innerHTML='<div style="padding:8px;color:var(--text-dim);">No pharmacies found</div>';
+  } else {
+    results.innerHTML=matches.map(ph=>`
+      <div onclick="selectPharmacy('${ph.name}','${ph.address}','${ph.phone}','${ph.fax}')" style="padding:8px;border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+        <div style="font-weight:600;">${ph.name}</div>
+        <div style="font-size:11px;color:var(--text-dim);">${ph.address}, ${ph.city} ${ph.state} ${ph.zip} | 📞 ${ph.phone}</div>
+      </div>
+    `).join('');
+  }
+  results.style.display='block';
+}
+
+function selectPharmacy(name,addr,phone,fax){
+  const sel=document.getElementById('rxPharmacy');
+  // Add custom option if needed
+  const optVal=`${name}|${addr}|${phone}|${fax}`;
+  sel.value=optVal;
+  if(!sel.value){
+    const opt=document.createElement('option');
+    opt.value=optVal;
+    opt.text=`${name} — ${addr}`;
+    sel.add(opt);
+    sel.value=optVal;
+  }
+  document.getElementById('pharmacyDetails').innerHTML=`📍 ${addr}<br>📞 ${phone} | 📠 ${fax}`;
+  document.getElementById('pharmacySearchResults').style.display='none';
+  document.getElementById('pharmacySearch').value='';
+}
+
+// Submit E-Prescribe
+function submitEPrescribe(){
+  const medName=document.getElementById('rxMedSelected').value;
+  if(!medName){alert('Please select a medication');return;}
+  
+  const sig=document.getElementById('rxSigPreview').value;
+  if(!sig){alert('Sig is required');return;}
+  
+  const pharmacy=document.getElementById('rxPharmacy').value;
+  if(!pharmacy){alert('Please select a pharmacy');return;}
+  
+  const dose=document.getElementById('rxDose').value;
+  const dm=dose.match(/^([\d.]+)\s*(\w+)$/);
+  
+  const med=rxMedications.find(m=>m.generic===medName);
+  
+  const rx={
+    id:genId(),
+    patientId:document.getElementById('rxPatient').value,
+    providerId:document.getElementById('rxPrescriber').value,
+    medication:medName,
+    dose:dm?dm[1]:dose,
+    unit:dm?dm[2]:'',
+    route:document.getElementById('rxRoute').value,
+    frequency:document.getElementById('rxFreq').value,
+    duration:parseInt(document.getElementById('rxDuration').value)||30,
+    quantity:parseInt(document.getElementById('rxQuantity').value)||30,
+    refills:parseInt(document.getElementById('rxRefills').value)||0,
+    refillsRemaining:parseInt(document.getElementById('rxRefills').value)||0,
+    daw:document.getElementById('rxDAW').value!=='0',
+    dawCode:document.getElementById('rxDAW').value,
+    sig:sig,
+    pharmacistNotes:document.getElementById('rxPharmacistNotes').value,
+    patientNotes:document.getElementById('rxPatientNotes').value,
+    officeNotes:document.getElementById('rxOfficeNotes').value,
+    icd10:document.getElementById('rxICD10Selected').value,
+    pharmacy:pharmacy.includes('|')?pharmacy.split('|')[0]:pharmacy,
+    pharmacyFull:pharmacy,
+    schedule:med?.schedule||null,
+    status:'active',
+    transmitStatus:'pending', // pending, sent, error
+    writtenDate:new Date().toISOString().split('T')[0],
+    createdAt:new Date().toISOString()
+  };
+  
+  // Check if controlled substance
+  if(rx.schedule){
+    if(!confirm(`⚠️ This is a ${rx.schedule} controlled substance.\n\nEPCS (Electronic Prescribing of Controlled Substances) requires two-factor authentication.\n\nFor demo purposes, click OK to simulate EPCS authentication.`)){
+      return;
+    }
+  }
+  
+  db.prescriptions.push(rx);
+  saveDB();
+  closeModal();
+  render();
+  
+  // Show success message
+  setTimeout(()=>{
+    alert(`✅ E-Prescription submitted!\n\n${rx.medication} ${rx.dose}${rx.unit}\nSent to: ${rx.pharmacy}\n\n📤 In production, this would transmit via Surescripts.`);
+  },200);
+}
+
+function saveRxDraft(){
+  // Similar to submit but with draft status
+  alert('Draft saved (feature pending full implementation)');
+}
+
+// View Rx Detail
+function viewRxDetail(id){
+  const rx=db.prescriptions.find(x=>x.id===id);if(!rx)return;
+  const p=db.patients.find(x=>x.id===rx.patientId);
+  const pv=db.providers.find(x=>x.id===rx.providerId);
+  const med=rxMedications.find(m=>m.generic===rx.medication);
+  
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📋 Prescription Detail</h3>
+    <div style="background:var(--bg);padding:16px;border-radius:8px;margin-bottom:16px;">
+      <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${rx.medication} ${rx.dose}${rx.unit}</div>
+      ${med?`<div style="font-size:12px;color:var(--text-dim);">Brand: ${med.brand} | Class: ${med.class}</div>`:''}
+      ${rx.schedule?`<span class="badge badge-red">${rx.schedule} Controlled</span>`:''}
+      ${rx.daw?`<span class="badge badge-purple">DAW</span>`:''}
+    </div>
+    <div class="form-grid">
+      <div><strong>Patient:</strong> ${p?p.firstName+' '+p.lastName:''}</div>
+      <div><strong>Prescriber:</strong> ${pv?pv.name:''}</div>
+      <div><strong>Written:</strong> ${rx.writtenDate}</div>
+      <div><strong>Status:</strong> <span class="badge ${rx.status==='active'?'badge-green':'badge-yellow'}">${rx.status}</span></div>
+    </div>
+    <hr style="border-color:var(--border);margin:16px 0;">
+    <div class="form-grid">
+      <div><strong>Route:</strong> ${rx.route}</div>
+      <div><strong>Frequency:</strong> ${rx.frequency}</div>
+      <div><strong>Duration:</strong> ${rx.duration||'—'} days</div>
+      <div><strong>Quantity:</strong> ${rx.quantity}</div>
+      <div><strong>Refills:</strong> ${rx.refills} ${rx.refillsRemaining!==undefined?`(${rx.refillsRemaining} remaining)`:''}</div>
+    </div>
+    <hr style="border-color:var(--border);margin:16px 0;">
+    <div><strong>Sig:</strong></div>
+    <div style="background:var(--bg-input);padding:12px;border-radius:6px;margin:8px 0;font-size:14px;">${rx.sig}</div>
+    ${rx.pharmacistNotes?`<div style="margin-top:8px;"><strong>Pharmacist Notes:</strong> ${rx.pharmacistNotes}</div>`:''}
+    ${rx.patientNotes?`<div style="margin-top:8px;"><strong>Patient Notes:</strong> ${rx.patientNotes}</div>`:''}
+    ${rx.officeNotes?`<div style="margin-top:8px;color:var(--text-dim);"><strong>Office Notes:</strong> ${rx.officeNotes}</div>`:''}
+    <hr style="border-color:var(--border);margin:16px 0;">
+    <div class="form-grid">
+      <div><strong>Pharmacy:</strong> ${rx.pharmacy||'—'}</div>
+      <div><strong>ICD-10:</strong> ${rx.icd10||'—'}</div>
+    </div>
+    ${med&&med.warnings.length?`<div style="margin-top:12px;padding:8px;background:rgba(245,158,11,.1);border-radius:6px;color:var(--warning);font-size:12px;">⚠️ ${med.warnings.join(' | ')}</div>`:''}
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      <button class="btn btn-ghost" onclick="closeModal();editPrescription('${id}')">✏️ Edit</button>
+      <button class="btn btn-primary" onclick="printRx('${id}')">🖨️ Print</button>
+    </div>
+  `, true);
+}
+
+// Edit prescription (enhanced)
 function editPrescription(id){
   const rx=db.prescriptions.find(x=>x.id===id);if(!rx)return;
-  const medOpts=db.medications.map(m=>`<option value="${m.name}" ${m.name===rx.medication?'selected':''}>${m.name}</option>`).join('');
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Edit Rx</h3>
+  const medOpts=rxMedications.map(m=>`<option value="${m.generic}" ${m.generic===rx.medication?'selected':''}>${m.generic} (${m.brand})</option>`).join('');
+  const med=rxMedications.find(m=>m.generic===rx.medication);
+  const doseOpts=med?med.doses.map(d=>`<option ${d===(rx.dose+rx.unit)?'selected':''}>${d}</option>`).join(''):'<option>'+rx.dose+rx.unit+'</option>';
+  
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✏️ Edit Prescription</h3>
     <div class="form-grid">
       <div class="form-group"><label>Medication</label><select id="exM">${medOpts}</select></div>
-      <div class="form-group"><label>Dose</label><input id="exD" value="${rx.dose}${rx.unit}"></div>
-      <div class="form-group"><label>Frequency</label><select id="exF">${['QD','BID','TID','QID','QHS','PRN','BID PRN','Q4H','Q6H','Q8H','Q12H','QWeek','QMonth'].map(f=>`<option ${f===rx.frequency?'selected':''}>${f}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Route</label><select id="exR">${['Oral','Subcutaneous','Intramuscular','IV','Inhalation','Topical','Transdermal'].map(r=>`<option ${r===rx.route?'selected':''}>${r}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Dose</label><select id="exD">${doseOpts}</select></div>
+      <div class="form-group"><label>Frequency</label>
+        <select id="exF">${['QD','BID','TID','QID','Q4H','Q6H','Q8H','Q12H','QHS','QAM','QPM','PRN','BID PRN','TID PRN','QWeek','Q2Weeks','QMonth'].map(f=>`<option ${f===rx.frequency?'selected':''}>${f}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>Route</label>
+        <select id="exR">${['Oral','Sublingual','Subcutaneous','Intramuscular','IV','Inhalation','Topical','Transdermal','Rectal','Ophthalmic','Otic','Nasal'].map(r=>`<option ${r===rx.route?'selected':''}>${r}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>Duration (days)</label><input type="number" id="exDur" value="${rx.duration||30}"></div>
       <div class="form-group"><label>Quantity</label><input type="number" id="exQ" value="${rx.quantity}"></div>
-      <div class="form-group"><label>Refills</label><input type="number" id="exRf" value="${rx.refills}"></div>
-      <div class="form-group"><label>DAW</label><select id="exDaw"><option value="false" ${!rx.daw?'selected':''}>No</option><option value="true" ${rx.daw?'selected':''}>Yes</option></select></div>
-      <div class="form-group"><label>Status</label><select id="exSt"><option ${rx.status==='active'?'selected':''}>active</option><option ${rx.status==='discontinued'?'selected':''}>discontinued</option><option ${rx.status==='completed'?'selected':''}>completed</option></select></div>
+      <div class="form-group"><label>Refills</label>
+        <select id="exRf">${[...Array(12)].map((_,i)=>`<option value="${i}" ${i===rx.refills?'selected':''}>${i}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>DAW</label>
+        <select id="exDaw">
+          <option value="0" ${!rx.daw?'selected':''}>0 - Substitution OK</option>
+          <option value="1" ${rx.daw?'selected':''}>1 - DAW (brand only)</option>
+        </select>
+      </div>
       <div class="form-group full"><label>Sig</label><input id="exSig" value="${rx.sig}"></div>
+      <div class="form-group"><label>Status</label>
+        <select id="exSt">
+          <option ${rx.status==='active'?'selected':''}>active</option>
+          <option ${rx.status==='discontinued'?'selected':''}>discontinued</option>
+          <option ${rx.status==='completed'?'selected':''}>completed</option>
+        </select>
+      </div>
+      <div class="form-group"><label>ICD-10</label><input id="exICD" value="${rx.icd10||''}"></div>
+      <div class="form-group full"><label>Pharmacist Notes</label><input id="exPharmNotes" value="${rx.pharmacistNotes||''}"></div>
+      <div class="form-group full"><label>Office Notes</label><textarea id="exOfficeNotes" rows="2">${rx.officeNotes||''}</textarea></div>
     </div>
-    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveRxEdit('${id}')">Save</button></div>`);
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRxEdit('${id}')">Save Changes</button>
+    </div>
+  `, true);
 }
-function saveRxEdit(id){const rx=db.prescriptions.find(x=>x.id===id);if(!rx)return;rx.medication=document.getElementById('exM').value;const d=document.getElementById('exD').value;const dm=d.match(/^([\d.]+)\s*(\w*)$/);rx.dose=dm?dm[1]:d;rx.unit=dm?dm[2]:'';rx.frequency=document.getElementById('exF').value;rx.route=document.getElementById('exR').value;rx.quantity=+document.getElementById('exQ').value;rx.refills=+document.getElementById('exRf').value;rx.daw=document.getElementById('exDaw').value==='true';rx.status=document.getElementById('exSt').value;rx.sig=document.getElementById('exSig').value;saveDB();closeModal();render();}
+
+function saveRxEdit(id){
+  const rx=db.prescriptions.find(x=>x.id===id);if(!rx)return;
+  rx.medication=document.getElementById('exM').value;
+  const d=document.getElementById('exD').value;
+  const dm=d.match(/^([\d.]+)\s*(\w*)$/);
+  rx.dose=dm?dm[1]:d;
+  rx.unit=dm?dm[2]:'';
+  rx.frequency=document.getElementById('exF').value;
+  rx.route=document.getElementById('exR').value;
+  rx.duration=parseInt(document.getElementById('exDur').value)||30;
+  rx.quantity=parseInt(document.getElementById('exQ').value)||30;
+  rx.refills=parseInt(document.getElementById('exRf').value)||0;
+  rx.daw=document.getElementById('exDaw').value!=='0';
+  rx.sig=document.getElementById('exSig').value;
+  rx.status=document.getElementById('exSt').value;
+  rx.icd10=document.getElementById('exICD').value;
+  rx.pharmacistNotes=document.getElementById('exPharmNotes').value;
+  rx.officeNotes=document.getElementById('exOfficeNotes').value;
+  rx.modifiedAt=new Date().toISOString();
+  saveDB();closeModal();render();
+}
+
+function discontinueRx(id){
+  if(!confirm('Discontinue this medication?'))return;
+  const rx=db.prescriptions.find(x=>x.id===id);
+  if(rx){
+    rx.status='discontinued';
+    rx.discontinuedDate=new Date().toISOString().split('T')[0];
+    saveDB();render();
+  }
+}
+
+function refillRx(id){
+  const rx=db.prescriptions.find(x=>x.id===id);
+  if(!rx)return;
+  if(rx.refillsRemaining<=0){
+    alert('No refills remaining. Create a new prescription.');
+    return;
+  }
+  if(confirm(`Refill ${rx.medication} ${rx.dose}${rx.unit}?\n\nRefills remaining: ${rx.refillsRemaining}`)){
+    rx.refillsRemaining--;
+    rx.lastRefillDate=new Date().toISOString().split('T')[0];
+    saveDB();render();
+    alert('✅ Refill processed');
+  }
+}
+
+function printRx(id){
+  const rx=db.prescriptions.find(x=>x.id===id);if(!rx)return;
+  const p=db.patients.find(x=>x.id===rx.patientId);
+  const pv=db.providers.find(x=>x.id===rx.providerId);
+  const pr=db.practices.find(x=>x.id===(p?.practiceId||db.practices[0].id));
+  
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rx — ${rx.medication}</title>
+  <style>body{font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:40px;font-size:12px;}
+  .header{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:16px;}
+  .header h1{margin:0;font-size:18px;}
+  .header p{margin:4px 0;font-size:11px;}
+  .rx-symbol{font-size:36px;font-weight:bold;color:#0EA5E9;margin:16px 0;}
+  .field{margin:8px 0;display:flex;}
+  .field label{width:100px;font-weight:bold;}
+  .sig-box{border:2px solid #000;padding:16px;margin:16px 0;font-size:14px;font-weight:bold;}
+  .footer{margin-top:32px;border-top:2px solid #000;padding-top:16px;}
+  .sig-line{border-bottom:1px solid #000;width:250px;height:40px;margin-top:8px;}
+  @media print{body{padding:20px;}}</style></head>
+  <body>
+  <div class="header">
+    <h1>${pr?pr.name:'Practice'}</h1>
+    <p>${pr?fmtAddr(pr):''} | ${pr?pr.phone:''}</p>
+    <p>NPI: ${pr?pr.npi:''}</p>
+  </div>
+  <div class="field"><label>Date:</label><span>${rx.writtenDate}</span></div>
+  <div class="field"><label>Patient:</label><span>${p?p.firstName+' '+p.lastName:''}</span></div>
+  <div class="field"><label>DOB:</label><span>${p?p.dob:''}</span></div>
+  <div class="field"><label>Address:</label><span>${p?fmtAddr(p):''}</span></div>
+  <div class="rx-symbol">℞</div>
+  <div style="font-size:16px;font-weight:bold;margin:8px 0;">${rx.medication} ${rx.dose}${rx.unit}</div>
+  <div class="sig-box">${rx.sig}</div>
+  <div class="field"><label>Qty:</label><span>${rx.quantity}</span></div>
+  <div class="field"><label>Refills:</label><span>${rx.refills}</span></div>
+  <div class="field"><label>DAW:</label><span>${rx.daw?'Yes — brand only':'No — generic OK'}</span></div>
+  ${rx.schedule?`<div style="color:red;font-weight:bold;margin-top:8px;">⚠️ DEA Schedule ${rx.schedule}</div>`:''}
+  <div class="footer">
+    <div><strong>Prescriber:</strong> ${pv?pv.name:''}</div>
+    <div>NPI: ${pv?pv.npi:''} | DEA: ${pv?pv.dea:''}</div>
+    <div>License: ${pv?pv.license:''}</div>
+    <div style="margin-top:16px;">Signature:</div>
+    <div class="sig-line"></div>
+  </div>
+  <div style="margin-top:24px;font-size:10px;color:#888;">Amor Medical EMR — Generated ${new Date().toLocaleString()}</div>
+  </body></html>`;
+  
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+// Medication List Modal (per patient)
+function showMedicationListModal(){
+  const patOpts=db.patients.map(p=>`<option value="${p.id}">${p.firstName} ${p.lastName}</option>`).join('');
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📋 Patient Medication Lists</h3>
+    <div class="form-group">
+      <label>Select Patient</label>
+      <select id="medListPatient" onchange="loadMedicationList()">${patOpts}</select>
+    </div>
+    <div id="medicationListContent"></div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Close</button></div>
+  `, true);
+  setTimeout(()=>loadMedicationList(),100);
+}
+
+function loadMedicationList(){
+  const patId=document.getElementById('medListPatient').value;
+  const p=db.patients.find(x=>x.id===patId);
+  if(!p) return;
+  
+  const rxs=db.prescriptions.filter(rx=>rx.patientId===patId);
+  const active=rxs.filter(rx=>rx.status==='active');
+  const inactive=rxs.filter(rx=>rx.status!=='active');
+  
+  const content=document.getElementById('medicationListContent');
+  content.innerHTML=`
+    <div style="background:var(--bg);padding:12px;border-radius:8px;margin:12px 0;">
+      <strong style="color:var(--danger);">⚠️ Allergies:</strong> ${(p.allergies||[]).join(', ')||'NKDA'}
+    </div>
+    
+    <div class="section-title">Active Medications (${active.length})</div>
+    ${active.length?active.map(rx=>{
+      const statusClass={'taking':'badge-green','not-taking':'badge-yellow','unknown':'badge-blue'};
+      return `<div class="rx-card" style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div><strong>${rx.medication} ${rx.dose}${rx.unit}</strong><div style="font-size:11px;color:var(--text-dim);">${rx.sig}</div></div>
+          <select onchange="updateMedStatus('${rx.id}',this.value)" style="width:auto;font-size:11px;">
+            <option value="taking" ${rx.patientStatus==='taking'?'selected':''}>✅ Taking</option>
+            <option value="not-taking" ${rx.patientStatus==='not-taking'?'selected':''}>❌ Not Taking</option>
+            <option value="unknown" ${rx.patientStatus==='unknown'||!rx.patientStatus?'selected':''}>❓ Unknown</option>
+          </select>
+        </div>
+      </div>`;
+    }).join(''):'<p style="color:var(--text-dim);">No active medications</p>'}
+    
+    <div class="section-title">Inactive/Past Medications (${inactive.length})</div>
+    ${inactive.length?inactive.map(rx=>`<div style="padding:8px;background:var(--bg-input);border-radius:6px;margin-bottom:4px;opacity:0.7;">
+      <span style="text-decoration:line-through;">${rx.medication} ${rx.dose}${rx.unit}</span>
+      <span class="badge ${rx.status==='discontinued'?'badge-red':'badge-yellow'}" style="margin-left:8px;">${rx.status}</span>
+    </div>`).join(''):'<p style="color:var(--text-dim);">None</p>'}
+  `;
+}
+
+function updateMedStatus(rxId,status){
+  const rx=db.prescriptions.find(x=>x.id===rxId);
+  if(rx){rx.patientStatus=status;saveDB();}
+}
 
 // ═══════ NEW LAB ORDER ═══════
 function showNewLabModal(){
