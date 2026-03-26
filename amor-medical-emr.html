@@ -344,10 +344,891 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .doc-view-toggle button{background:transparent;border:none;color:var(--text-muted);padding:6px 12px;border-radius:4px;font-size:14px;}
 .doc-view-toggle button.active{background:var(--primary);color:#fff;}
 
-@media(max-width:900px){
-  .sidebar{width:var(--sidebar-mini);}
-  .sidebar .nav-label,.sidebar .logo-text,.sidebar-footer span{display:none;}
-  .right-panel{width:0;padding:0;opacity:0;overflow:hidden;}
+/* ═══════════════════════════════════════════
+   MOBILE RESPONSIVE DESIGN - COMPREHENSIVE FIX
+   ═══════════════════════════════════════════ */
+
+/* === MOBILE FIRST (< 768px) === */
+@media(max-width:767px){
+  :root {
+    --sidebar-w:100%;
+    --sidebar-mini:0px;
+    --touch-target:48px;
+  }
+  
+  /* Body scroll lock when modal is open */
+  body.modal-open {
+    overflow:hidden !important;
+    position:fixed !important;
+    width:100% !important;
+    height:100% !important;
+  }
+  
+  /* Prevent horizontal scroll */
+  html, body, .app {
+    overflow-x:hidden !important;
+    max-width:100vw;
+  }
+  
+  /* App layout - stack vertically */
+  .app {
+    flex-direction:column;
+    height:100%;
+    min-height:100vh;
+    min-height:-webkit-fill-available;
+  }
+  
+  /* === SIDEBAR - Hidden by default, slide-in === */
+  .sidebar {
+    position:fixed;
+    top:0;
+    left:0;
+    width:280px;
+    max-width:85vw;
+    height:100vh;
+    height:100dvh;
+    transform:translateX(-100%);
+    transition:transform 0.3s ease;
+    z-index:1000;
+    box-shadow:4px 0 20px rgba(0,0,0,0.3);
+  }
+  .sidebar.mini {
+    width:280px;
+    max-width:85vw;
+    transform:translateX(-100%);
+  }
+  .sidebar.mobile-open {
+    transform:translateX(0) !important;
+  }
+  .sidebar .nav-label, .sidebar .logo-text, .sidebar-footer span {
+    display:inline !important;
+  }
+  .sidebar-toggle {
+    display:none;
+  }
+  
+  /* Mobile overlay when sidebar is open */
+  .mobile-sidebar-overlay {
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.5);
+    z-index:999;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.3s ease;
+  }
+  .mobile-sidebar-overlay.active {
+    opacity:1;
+    pointer-events:auto;
+  }
+  
+  /* === MAIN CONTENT === */
+  .main {
+    width:100%;
+    min-height:100vh;
+    min-height:100dvh;
+    padding-bottom:60px; /* Space for bottom nav */
+  }
+  
+  /* === TOPBAR - Mobile optimized === */
+  .topbar {
+    height:56px;
+    padding:0 12px;
+    gap:8px;
+    position:sticky;
+    top:0;
+    z-index:100;
+  }
+  .topbar h2 {
+    font-size:16px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:40%;
+  }
+  .topbar-search {
+    display:none; /* Hide search on mobile, use hamburger menu */
+  }
+  .role-badge {
+    display:none;
+  }
+  
+  /* Hamburger menu button */
+  .mobile-menu-btn {
+    display:flex !important;
+    width:var(--touch-target);
+    height:var(--touch-target);
+    align-items:center;
+    justify-content:center;
+    background:none;
+    border:none;
+    color:var(--text);
+    font-size:24px;
+    cursor:pointer;
+    padding:0;
+    margin-left:-8px;
+    border-radius:8px;
+    transition:background 0.15s;
+  }
+  .mobile-menu-btn:hover, .mobile-menu-btn:active {
+    background:var(--bg-hover);
+  }
+  
+  /* === CONTENT AREA === */
+  .content-area {
+    flex-direction:column;
+  }
+  .content {
+    padding:12px;
+    padding-bottom:80px; /* Extra space for bottom nav */
+  }
+  
+  /* Right panel - hidden on mobile */
+  .right-panel {
+    width:100% !important;
+    height:auto;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    max-height:60vh;
+    border-radius:16px 16px 0 0;
+    transform:translateY(100%);
+    transition:transform 0.3s ease;
+    z-index:500;
+    padding:16px;
+    opacity:1 !important;
+    overflow-y:auto;
+  }
+  .right-panel.mobile-visible {
+    transform:translateY(0);
+  }
+  .right-panel.hidden {
+    transform:translateY(100%);
+  }
+  
+  /* === MODALS - Full screen on mobile === */
+  .modal-overlay {
+    padding:0;
+    align-items:flex-end;
+  }
+  .modal {
+    width:100% !important;
+    max-width:100% !important;
+    max-height:95vh !important;
+    max-height:95dvh !important;
+    border-radius:16px 16px 0 0;
+    padding:16px;
+    padding-bottom:max(16px, env(safe-area-inset-bottom));
+    margin:0;
+  }
+  .modal.large {
+    max-width:100% !important;
+  }
+  .modal h3 {
+    font-size:16px;
+    padding-right:40px;
+  }
+  .modal-close {
+    position:absolute;
+    top:12px;
+    right:12px;
+    width:var(--touch-target);
+    height:var(--touch-target);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    z-index:10;
+    background:var(--bg-input);
+    border-radius:50%;
+  }
+  
+  /* === CAMERA MODAL - Critical mobile fixes === */
+  .camera-modal-overlay {
+    padding:0;
+  }
+  .camera-modal {
+    width:100% !important;
+    max-width:100% !important;
+    height:100vh !important;
+    height:100dvh !important;
+    max-height:100vh !important;
+    max-height:100dvh !important;
+    border-radius:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .camera-header {
+    padding:12px 16px;
+    flex-shrink:0;
+  }
+  .camera-header h3 {
+    font-size:14px;
+  }
+  .camera-close {
+    width:var(--touch-target);
+    height:var(--touch-target);
+    font-size:28px;
+  }
+  .camera-body {
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  .camera-preview-container {
+    flex:1;
+    min-height:200px;
+    max-height:none;
+  }
+  #cameraVideo, #capturedPreview {
+    width:100%;
+    height:100%;
+    object-fit:cover;
+  }
+  
+  /* Camera controls - Fixed at bottom, always visible */
+  .camera-controls {
+    flex-shrink:0;
+    padding:12px 16px;
+    padding-bottom:max(16px, env(safe-area-inset-bottom));
+    background:var(--bg-card);
+    border-top:1px solid var(--border);
+  }
+  .camera-controls-row {
+    gap:12px;
+    justify-content:center;
+    margin-bottom:8px;
+    flex-wrap:wrap;
+  }
+  .camera-controls-row:last-child {
+    margin-bottom:0;
+  }
+  .camera-settings {
+    gap:6px;
+    margin-bottom:12px;
+  }
+  .camera-select {
+    min-width:120px;
+    max-width:none;
+    flex:1;
+    padding:10px 12px;
+    font-size:14px;
+  }
+  .camera-toggle {
+    padding:10px 14px;
+    font-size:14px;
+  }
+  
+  /* Camera buttons - Touch friendly */
+  .camera-btn {
+    min-height:var(--touch-target);
+    padding:12px 20px;
+    font-size:14px;
+  }
+  .camera-btn-capture {
+    width:70px;
+    height:70px;
+    font-size:28px;
+  }
+  .camera-btn-accept, .camera-btn-retake {
+    flex:1;
+    min-width:100px;
+    max-width:200px;
+  }
+  
+  /* Review controls - Stack on mobile */
+  #reviewControls {
+    flex-direction:row;
+    gap:12px;
+  }
+  #reviewControls .camera-btn {
+    flex:1;
+  }
+  
+  /* Image edit controls */
+  .image-edit-controls {
+    padding:10px 16px;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .edit-btn {
+    flex:1;
+    min-width:80px;
+    padding:10px 12px;
+    justify-content:center;
+  }
+  
+  /* Capture options modal */
+  .capture-option-modal {
+    width:100% !important;
+    max-width:100% !important;
+    border-radius:16px 16px 0 0;
+    padding:20px 16px;
+    padding-bottom:max(20px, env(safe-area-inset-bottom));
+  }
+  .capture-options {
+    gap:10px;
+  }
+  .capture-option-btn {
+    padding:16px;
+    min-height:var(--touch-target);
+  }
+  .capture-option-btn .option-icon {
+    font-size:32px;
+  }
+  
+  /* === FORM ELEMENTS - Mobile optimized === */
+  input, select, textarea {
+    font-size:16px !important; /* Prevent iOS zoom */
+    min-height:var(--touch-target);
+    padding:12px;
+  }
+  textarea {
+    min-height:100px;
+  }
+  
+  /* Form grid - Single column on mobile */
+  .form-grid, .form-grid-3, .form-grid-4 {
+    grid-template-columns:1fr !important;
+    gap:12px;
+  }
+  .form-group.full {
+    grid-column:1;
+  }
+  .form-actions {
+    flex-direction:column;
+    gap:8px;
+  }
+  .form-actions .btn {
+    width:100%;
+    justify-content:center;
+    min-height:var(--touch-target);
+  }
+  
+  /* === BUTTONS - Touch friendly === */
+  .btn {
+    min-height:var(--touch-target);
+    padding:12px 16px;
+    font-size:14px;
+  }
+  .btn-sm {
+    min-height:40px;
+    padding:10px 14px;
+  }
+  .btn-group {
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .btn-group .btn {
+    flex:1;
+    min-width:calc(50% - 4px);
+  }
+  
+  /* === TABLES - Responsive === */
+  .data-table {
+    display:block;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .data-table th, .data-table td {
+    padding:10px 8px;
+    font-size:12px;
+    white-space:nowrap;
+  }
+  
+  /* === STATS GRID === */
+  .stats-grid {
+    grid-template-columns:repeat(2, 1fr);
+    gap:10px;
+  }
+  .stat-card {
+    padding:14px;
+  }
+  .stat-card .value {
+    font-size:24px;
+  }
+  .stat-card .label {
+    font-size:10px;
+  }
+  
+  /* === TABS - Scrollable === */
+  .tabs {
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    flex-wrap:nowrap;
+    padding-bottom:4px;
+    margin-bottom:12px;
+  }
+  .tab {
+    padding:10px 14px;
+    white-space:nowrap;
+    flex-shrink:0;
+    min-height:var(--touch-target);
+  }
+  
+  /* === VITALS GRID === */
+  .vitals-grid {
+    grid-template-columns:repeat(3, 1fr);
+    gap:8px;
+  }
+  .vital-box {
+    padding:8px;
+  }
+  .vital-box .vital-value {
+    font-size:18px;
+  }
+  .vital-box input {
+    font-size:16px;
+  }
+  
+  /* === SOAP NOTES === */
+  .soap-section textarea {
+    min-height:120px;
+  }
+  
+  /* === DOCUMENTS GRID === */
+  .doc-grid {
+    grid-template-columns:repeat(2, 1fr);
+    gap:10px;
+  }
+  .doc-card .doc-preview {
+    height:100px;
+  }
+  
+  /* === CLINICAL PHOTOS === */
+  .clinical-photos-grid {
+    grid-template-columns:repeat(3, 1fr);
+    gap:8px;
+  }
+  
+  /* === CALENDAR - Mobile view === */
+  .calendar-header {
+    flex-direction:column;
+    align-items:stretch;
+    gap:8px;
+  }
+  .calendar-title {
+    text-align:center;
+  }
+  .calendar-nav {
+    justify-content:center;
+  }
+  .view-toggle {
+    justify-content:center;
+  }
+  .calendar-day-col {
+    min-width:100px;
+  }
+  
+  /* Flow board */
+  .flow-board {
+    grid-template-columns:1fr;
+  }
+  
+  /* === SIGNATURE PAD === */
+  .signature-canvas {
+    height:120px;
+  }
+  .signature-controls {
+    flex-direction:column;
+  }
+  .signature-type-toggle {
+    width:100%;
+    justify-content:center;
+  }
+  
+  /* PIN Input */
+  .pin-input-group {
+    gap:6px;
+  }
+  .pin-digit {
+    width:48px;
+    height:56px;
+    font-size:24px;
+  }
+  
+  /* === BOTTOM NAVIGATION === */
+  .mobile-bottom-nav {
+    display:flex !important;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:60px;
+    background:var(--bg-card);
+    border-top:1px solid var(--border);
+    z-index:900;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .mobile-bottom-nav .nav-btn {
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2px;
+    background:none;
+    border:none;
+    color:var(--text-muted);
+    font-size:10px;
+    padding:8px 4px;
+    transition:color 0.15s;
+  }
+  .mobile-bottom-nav .nav-btn .icon {
+    font-size:20px;
+  }
+  .mobile-bottom-nav .nav-btn.active {
+    color:var(--primary);
+  }
+  .mobile-bottom-nav .nav-btn:active {
+    background:var(--bg-hover);
+  }
+  
+  /* === REFRESH HEADER === */
+  .refresh-header {
+    flex-direction:column;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .refresh-header-right {
+    width:100%;
+    justify-content:space-between;
+  }
+  
+  /* === PULL TO REFRESH === */
+  .ptr-indicator {
+    top:-50px;
+    height:50px;
+  }
+  
+  /* === ENCOUNTER CARDS === */
+  .encounter-card {
+    padding:12px;
+  }
+  .encounter-card .enc-header {
+    flex-direction:column;
+    align-items:flex-start;
+    gap:4px;
+  }
+  
+  /* === PRESCRIPTION CARDS === */
+  .rx-card {
+    padding:12px;
+  }
+  .rx-card .rx-details {
+    flex-direction:column;
+    gap:4px;
+  }
+  
+  /* === INTEGRATION CARDS === */
+  .integration-card {
+    flex-direction:column;
+    text-align:center;
+  }
+  
+  /* Section titles */
+  .section-title {
+    font-size:14px;
+    margin:16px 0 10px;
+  }
+  
+  /* Activity feed */
+  .activity-item {
+    padding:10px 0;
+  }
+  .activity-text {
+    font-size:12px;
+  }
+  
+  /* Alert banners */
+  div[style*="background:rgba(239,68,68"] {
+    padding:10px 12px;
+    font-size:13px;
+  }
+  
+  /* Patient header on detail page */
+  div[style*="display:flex;align-items:flex-start;gap:16px"] {
+    flex-direction:column;
+  }
+  div[style*="display:flex;align-items:center;gap:16px;flex:1"] {
+    width:100%;
+  }
+  
+  /* Quick links */
+  .quick-link {
+    padding:12px 10px;
+    min-height:var(--touch-target);
+  }
+}
+
+/* === TABLET (768px - 1024px) === */
+@media(min-width:768px) and (max-width:1024px){
+  /* Sidebar - collapsible */
+  .sidebar {
+    width:var(--sidebar-mini);
+  }
+  .sidebar.expanded {
+    width:var(--sidebar-w);
+  }
+  .sidebar .nav-label, .sidebar .logo-text, .sidebar-footer span {
+    display:none;
+  }
+  .sidebar.expanded .nav-label, 
+  .sidebar.expanded .logo-text, 
+  .sidebar.expanded .sidebar-footer span {
+    display:inline;
+  }
+  
+  /* Right panel */
+  .right-panel {
+    width:0;
+    padding:0;
+    opacity:0;
+    overflow:hidden;
+  }
+  .right-panel.visible {
+    width:260px;
+    padding:16px;
+    opacity:1;
+  }
+  
+  /* Modals */
+  .modal {
+    width:90% !important;
+    max-width:640px !important;
+  }
+  .modal.large {
+    max-width:800px !important;
+  }
+  
+  /* Camera modal */
+  .camera-modal {
+    width:90% !important;
+    max-width:700px !important;
+    height:auto !important;
+    max-height:90vh !important;
+    border-radius:16px;
+  }
+  .camera-preview-container {
+    max-height:50vh;
+  }
+  
+  /* Form grids - 2 columns */
+  .form-grid {
+    grid-template-columns:1fr 1fr;
+  }
+  .form-grid-3 {
+    grid-template-columns:1fr 1fr 1fr;
+  }
+  .form-grid-4 {
+    grid-template-columns:1fr 1fr;
+  }
+  
+  /* Stats grid */
+  .stats-grid {
+    grid-template-columns:repeat(3, 1fr);
+  }
+  
+  /* Document grid */
+  .doc-grid {
+    grid-template-columns:repeat(3, 1fr);
+  }
+  
+  /* Topbar */
+  .topbar-search {
+    width:200px;
+  }
+  
+  /* Hide mobile bottom nav */
+  .mobile-bottom-nav {
+    display:none !important;
+  }
+  .mobile-menu-btn {
+    display:none !important;
+  }
+}
+
+/* === DESKTOP (> 1024px) === */
+@media(min-width:1025px){
+  /* Full sidebar */
+  .sidebar {
+    width:var(--sidebar-w);
+  }
+  .sidebar.mini {
+    width:var(--sidebar-mini);
+  }
+  .sidebar.mini .nav-label, .sidebar.mini .logo-text, .sidebar.mini .sidebar-footer span {
+    display:none;
+  }
+  
+  /* Right panel */
+  .right-panel {
+    width:var(--right-w);
+  }
+  .right-panel.hidden {
+    width:0;
+    padding:0;
+    opacity:0;
+    overflow:hidden;
+  }
+  
+  /* Modals - standard sizes */
+  .modal {
+    width:90%;
+    max-width:640px;
+  }
+  .modal.large {
+    max-width:900px;
+  }
+  
+  /* Camera modal */
+  .camera-modal {
+    width:95%;
+    max-width:720px;
+    max-height:95vh;
+  }
+  
+  /* Form grids */
+  .form-grid {
+    grid-template-columns:1fr 1fr;
+  }
+  .form-grid-3 {
+    grid-template-columns:1fr 1fr 1fr;
+  }
+  .form-grid-4 {
+    grid-template-columns:1fr 1fr 1fr 1fr;
+  }
+  
+  /* Hide mobile elements */
+  .mobile-bottom-nav {
+    display:none !important;
+  }
+  .mobile-menu-btn {
+    display:none !important;
+  }
+  .mobile-sidebar-overlay {
+    display:none !important;
+  }
+}
+
+/* === TOUCH DEVICE OPTIMIZATIONS === */
+@media(hover:none) and (pointer:coarse){
+  /* Larger touch targets */
+  .nav-item {
+    padding:14px 12px;
+    min-height:var(--touch-target);
+  }
+  
+  /* Remove hover states that don't work on touch */
+  .nav-item:hover,
+  .btn:hover,
+  .quick-link:hover,
+  .doc-card:hover,
+  .encounter-card:hover,
+  .flow-card:hover {
+    transform:none;
+  }
+  
+  /* Active states for touch */
+  .nav-item:active,
+  .btn:active,
+  .quick-link:active {
+    opacity:0.8;
+    transform:scale(0.98);
+  }
+}
+
+/* === SAFE AREA INSETS (iPhone notch, etc) === */
+@supports(padding:max(0px)){
+  .camera-controls,
+  .mobile-bottom-nav,
+  .modal {
+    padding-bottom:max(16px, env(safe-area-inset-bottom));
+  }
+  .topbar {
+    padding-top:env(safe-area-inset-top);
+  }
+}
+
+/* === LANDSCAPE ORIENTATION === */
+@media(max-height:500px) and (orientation:landscape){
+  .camera-modal {
+    flex-direction:row;
+  }
+  .camera-preview-container {
+    flex:2;
+    max-height:100vh;
+    max-height:100dvh;
+  }
+  .camera-controls {
+    flex:1;
+    min-width:200px;
+    max-width:300px;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .camera-controls-row {
+    flex-direction:column;
+  }
+  .camera-btn-capture {
+    width:60px;
+    height:60px;
+  }
+}
+
+/* === KEYBOARD OPEN STATE === */
+body.keyboard-open .mobile-bottom-nav {
+  display:none !important;
+}
+body.keyboard-open .modal {
+  max-height:100vh !important;
+  max-height:100dvh !important;
+}
+body.keyboard-open .camera-controls {
+  padding-bottom:8px;
+}
+
+/* === MOBILE MENU BUTTON DEFAULT HIDDEN === */
+.mobile-menu-btn {
+  display:none;
+}
+
+/* === ACCESSIBILITY === */
+@media(prefers-reduced-motion:reduce){
+  *, *::before, *::after {
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+  }
+}
+
+/* === DARK MODE IMPROVEMENTS FOR MOBILE === */
+@media(max-width:767px){
+  /* Better contrast for touch targets */
+  .nav-item.active {
+    background:rgba(14,165,233,.25);
+  }
+  
+  /* Clearer active states */
+  .btn:active {
+    opacity:0.9;
+    transform:scale(0.98);
+  }
+  
+  /* Toast positioning for mobile */
+  .toast-notification,
+  div[style*="position: fixed"][style*="bottom: 24px"] {
+    bottom:80px !important;
+    left:16px !important;
+    right:16px !important;
+    transform:none !important;
+    width:auto !important;
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -498,6 +1379,83 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .signature-status .status-indicator.not-configured{background:var(--warning);}
 .signature-status .status-text{font-size:13px;color:var(--text-muted);}
 @media print{.signed-note-footer{background:#f0fff4 !important;border:1px solid #10B981 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.signature-print-section{display:block !important;}}
+
+/* ═══════ USER ROLES & PERMISSIONS SYSTEM ═══════ */
+.user-indicator{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:all .15s;position:relative;}
+.user-indicator:hover{background:var(--bg-hover);}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;}
+.user-info{display:flex;flex-direction:column;gap:1px;}
+.user-name{font-size:13px;font-weight:600;color:var(--text);}
+.user-role-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px;}
+.user-role-badge.frontdesk{background:rgba(148,163,184,.2);color:#94A3B8;}
+.user-role-badge.ma{background:rgba(14,165,233,.15);color:var(--primary);}
+.user-role-badge.nurse{background:rgba(16,185,129,.15);color:var(--accent);}
+.user-role-badge.np{background:rgba(139,92,246,.15);color:var(--purple);}
+.user-role-badge.md{background:rgba(245,158,11,.15);color:var(--warning);}
+.user-role-badge.officemgr{background:rgba(239,68,68,.15);color:var(--danger);}
+.user-role-badge.practiceadmin{background:rgba(14,165,233,.25);color:var(--primary);}
+.user-role-badge.agencyadmin{background:linear-gradient(135deg,var(--primary),var(--purple));color:#fff;}
+
+.user-dropdown{position:absolute;top:100%;right:0;margin-top:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;min-width:280px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:500;display:none;overflow:hidden;}
+.user-dropdown.show{display:block;animation:dropIn .2s ease;}
+@keyframes dropIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+.user-dropdown-header{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg);}
+.user-dropdown-header .current-user{font-weight:600;font-size:14px;}
+.user-dropdown-header .current-email{font-size:11px;color:var(--text-dim);margin-top:2px;}
+.user-dropdown-section{padding:8px;}
+.user-dropdown-section-title{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text-dim);padding:8px 8px 4px;letter-spacing:.5px;}
+.user-switch-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;cursor:pointer;transition:all .15s;font-size:13px;}
+.user-switch-item:hover{background:var(--bg-hover);}
+.user-switch-item.active{background:rgba(14,165,233,.1);border:1px solid var(--primary);}
+.user-switch-avatar{width:28px;height:28px;border-radius:50%;background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-size:12px;}
+.user-switch-info{flex:1;}
+.user-switch-name{font-weight:500;}
+.user-switch-role{font-size:10px;color:var(--text-muted);}
+
+.users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.user-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:all .15s;position:relative;}
+.user-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.2);}
+.user-card.inactive{opacity:.6;background:var(--bg-input);}
+.user-card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.user-card-avatar{width:48px;height:48px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;}
+.user-card-info{flex:1;min-width:0;}
+.user-card-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-card-email{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.user-card-practice{font-size:11px;color:var(--text-dim);margin-top:2px;}
+.user-card-status{position:absolute;top:12px;right:12px;}
+.user-card-body{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;padding-top:12px;border-top:1px solid var(--border);}
+.user-card-field{display:flex;flex-direction:column;gap:2px;}
+.user-card-field-label{color:var(--text-dim);font-size:10px;text-transform:uppercase;}
+.user-card-field-value{color:var(--text);font-weight:500;}
+.user-card-actions{display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+
+.permissions-matrix{width:100%;overflow-x:auto;font-size:12px;}
+.permissions-matrix table{width:100%;border-collapse:collapse;min-width:900px;}
+.permissions-matrix th,.permissions-matrix td{padding:8px 10px;text-align:center;border:1px solid var(--border);}
+.permissions-matrix th{background:var(--bg);font-weight:600;font-size:11px;text-transform:uppercase;position:sticky;top:0;}
+.permissions-matrix th:first-child{text-align:left;min-width:150px;}
+.permissions-matrix td:first-child{text-align:left;font-weight:500;background:var(--bg);position:sticky;left:0;}
+.permissions-matrix .perm-yes{color:var(--accent);font-size:16px;}
+.permissions-matrix .perm-no{color:var(--danger);font-size:14px;opacity:.5;}
+.permissions-matrix .perm-limited{color:var(--warning);font-size:11px;font-weight:600;}
+.permissions-matrix tr:hover td{background:var(--bg-hover);}
+.permissions-matrix tr:hover td:first-child{background:var(--bg);}
+
+.access-denied{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center;}
+.access-denied-icon{font-size:64px;margin-bottom:16px;opacity:.5;}
+.access-denied-title{font-size:24px;font-weight:700;color:var(--danger);margin-bottom:8px;}
+.access-denied-text{font-size:14px;color:var(--text-muted);max-width:400px;line-height:1.6;}
+.access-denied-btn{margin-top:24px;}
+
+.nav-item.disabled{opacity:.4;pointer-events:none;cursor:not-allowed;}
+.btn.disabled,.btn:disabled{opacity:.5;pointer-events:none;cursor:not-allowed;}
+
+.role-hierarchy{display:flex;flex-direction:column;gap:4px;padding:8px 0;}
+.role-hierarchy-item{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:6px;background:var(--bg-input);border:1px solid var(--border);}
+.role-hierarchy-item.current{background:rgba(14,165,233,.1);border-color:var(--primary);}
+.role-hierarchy-level{width:24px;height:24px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text-dim);}
+.role-hierarchy-name{flex:1;font-weight:500;font-size:13px;}
+.role-hierarchy-desc{font-size:11px;color:var(--text-muted);max-width:300px;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
 </head>
@@ -524,6 +1482,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
       <div class="nav-item" onclick="navigate('integrations')" data-nav="integrations"><span class="icon">🔌</span><span class="nav-label">Integrations</span></div>
       <div class="nav-item" onclick="navigate('calculators')" data-nav="calculators"><span class="icon">🧮</span><span class="nav-label">Calculators</span></div>
       <div class="nav-item" onclick="navigate('credentialing')" data-nav="credentialing"><span class="icon">📜</span><span class="nav-label">Credentialing</span></div>
+      <div class="nav-item" onclick="navigate('users')" data-nav="users"><span class="icon">👤</span><span class="nav-label">Users</span></div>
       <div class="nav-item" onclick="navigate('settings')" data-nav="settings"><span class="icon">⚙️</span><span class="nav-label">Settings</span></div>
       <div class="nav-item" onclick="window.open('user-guide.html','_blank')" data-nav="help"><span class="icon">📚</span><span class="nav-label">Help / Guide</span></div>
     </div>
@@ -534,7 +1493,34 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
       <h2 id="page-title">Dashboard</h2>
       <div class="spacer"></div>
       <input type="text" class="topbar-search" placeholder="Search patients, providers..." id="globalSearch" onkeyup="handleGlobalSearch(event)">
-      <div class="role-badge" id="roleBadge">Agency Admin</div>
+      <div class="user-indicator" id="userIndicator" onclick="toggleUserDropdown()">
+        <div class="user-avatar" id="userAvatar">AA</div>
+        <div class="user-info">
+          <span class="user-name" id="userName">Admin User</span>
+          <span class="user-role-badge agencyadmin" id="userRoleBadge">Agency Admin</span>
+        </div>
+        <span style="font-size:12px;color:var(--text-muted);">▼</span>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="user-dropdown-header">
+            <div class="current-user" id="dropdownUserName">Admin User</div>
+            <div class="current-email" id="dropdownUserEmail">admin@amormedical.com</div>
+          </div>
+          <div class="user-dropdown-section">
+            <div class="user-dropdown-section-title">Switch User (Demo)</div>
+            <div id="userSwitchList"></div>
+          </div>
+          <div class="user-dropdown-section" style="border-top:1px solid var(--border);padding-top:8px;">
+            <div class="user-switch-item" onclick="event.stopPropagation();navigate('users');">
+              <span style="font-size:16px;">👥</span>
+              <span>Manage Users</span>
+            </div>
+            <div class="user-switch-item" onclick="event.stopPropagation();showMyProfileModal();">
+              <span style="font-size:16px;">⚙️</span>
+              <span>My Profile</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="content-area">
       <div class="content" id="content"></div>
@@ -558,8 +1544,9 @@ function seedDB(){
   const pvIds=[genId(),genId(),genId(),genId()];
   const ptIds=[genId(),genId(),genId(),genId()];
   const locIds=[genId(),genId(),genId(),genId()];
+  const userIds=[genId(),genId(),genId(),genId(),genId(),genId(),genId(),genId()];
   db={
-    currentRole:'admin',
+    currentUserId:userIds[0], // Currently logged in user
     currentProviderId:null, // For "My Team" context
     practices:[
       {id:prIds[0],name:'IROSM',street:'123 Sports Medicine Blvd',city:'Miami',state:'FL',zip:'33101',phone:'(305) 555-0101',fax:'(305) 555-0102',npi:'1234567890',taxId:'12-3456789',specialty:'Orthopedics & Sports Medicine',logo:'🏥',website:'https://irosm.com',email:'info@irosm.com',hours:{mon:'8:00-17:00',tue:'8:00-17:00',wed:'8:00-17:00',thu:'8:00-17:00',fri:'8:00-15:00',sat:'closed',sun:'closed'},acceptingPatients:true,createdAt:new Date().toISOString()},
@@ -653,7 +1640,16 @@ function seedDB(){
     ],
     noteTypes:['SOAP Note','H&P (History & Physical)','Progress Note','Follow-Up','Annual Physical','New Problem','Procedure Note','Consultation','Discharge Summary','Telehealth Visit','Phone Encounter','Pre-Op Evaluation','Post-Op Follow-Up'],
     encounterTypes:['in-office','telehealth','phone'],
-    users:[{id:genId(),name:'Admin User',email:'admin@amormedical.com',role:'admin',createdAt:new Date().toISOString()}],
+    users:[
+      {id:userIds[0],name:'Ashley Martinez',email:'ashley@amormedical.com',role:'agencyadmin',practiceIds:[prIds[0],prIds[1],prIds[2]],status:'active',phone:'(786) 555-0001',title:'Agency Administrator',avatar:'AM',createdAt:new Date().toISOString()},
+      {id:userIds[1],name:'Dr. Michelle Lopez',email:'mlopez@amormedical.com',role:'md',practiceIds:[prIds[2]],providerId:pvIds[2],status:'active',phone:'(786) 977-3301',title:'Physician',avatar:'ML',createdAt:new Date().toISOString()},
+      {id:userIds[2],name:'Dr. Ania Mora',email:'amora@amormedical.com',role:'np',practiceIds:[prIds[2]],providerId:pvIds[3],status:'active',phone:'(786) 977-3302',title:'Nurse Practitioner',avatar:'AM',createdAt:new Date().toISOString()},
+      {id:userIds[3],name:'Sarah Johnson',email:'sjohnson@amormedical.com',role:'nurse',practiceIds:[prIds[2]],status:'active',phone:'(786) 555-0010',title:'Registered Nurse',avatar:'SJ',createdAt:new Date().toISOString()},
+      {id:userIds[4],name:'Miguel Torres',email:'mtorres@amormedical.com',role:'ma',practiceIds:[prIds[2]],status:'active',phone:'(786) 555-0011',title:'Medical Assistant',avatar:'MT',createdAt:new Date().toISOString()},
+      {id:userIds[5],name:'Lisa Chen',email:'lchen@amormedical.com',role:'frontdesk',practiceIds:[prIds[2]],status:'active',phone:'(786) 555-0012',title:'Front Desk Receptionist',avatar:'LC',createdAt:new Date().toISOString()},
+      {id:userIds[6],name:'Robert Kim',email:'rkim@amormedical.com',role:'officemgr',practiceIds:[prIds[2]],status:'active',phone:'(786) 555-0013',title:'Office Manager',avatar:'RK',createdAt:new Date().toISOString()},
+      {id:userIds[7],name:'Carmen Rivera',email:'crivera@amormedical.com',role:'practiceadmin',practiceIds:[prIds[2]],status:'active',phone:'(786) 555-0014',title:'Practice Administrator',avatar:'CR',createdAt:new Date().toISOString()}
+    ],
     medications:[
       {name:'Metformin',doses:['500mg','850mg','1000mg'],routes:['Oral']},{name:'Lisinopril',doses:['5mg','10mg','20mg','40mg'],routes:['Oral']},{name:'Amlodipine',doses:['2.5mg','5mg','10mg'],routes:['Oral']},{name:'Atorvastatin',doses:['10mg','20mg','40mg','80mg'],routes:['Oral']},{name:'Levothyroxine',doses:['25mcg','50mcg','75mcg','88mcg','100mcg','112mcg','125mcg','137mcg','150mcg'],routes:['Oral']},{name:'Omeprazole',doses:['20mg','40mg'],routes:['Oral']},{name:'Losartan',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Gabapentin',doses:['100mg','300mg','600mg','800mg'],routes:['Oral']},{name:'Hydrochlorothiazide',doses:['12.5mg','25mg','50mg'],routes:['Oral']},{name:'Sertraline',doses:['25mg','50mg','100mg','150mg','200mg'],routes:['Oral']},{name:'Fluoxetine',doses:['10mg','20mg','40mg','60mg'],routes:['Oral']},{name:'Escitalopram',doses:['5mg','10mg','20mg'],routes:['Oral']},{name:'Prednisone',doses:['5mg','10mg','20mg','50mg'],routes:['Oral']},{name:'Albuterol',doses:['90mcg/inh'],routes:['Inhalation']},{name:'Insulin Glargine',doses:['100units/mL'],routes:['Subcutaneous']},{name:'Insulin Lispro',doses:['100units/mL'],routes:['Subcutaneous']},{name:'Empagliflozin',doses:['10mg','25mg'],routes:['Oral']},{name:'Semaglutide',doses:['0.25mg','0.5mg','1mg','2mg'],routes:['Subcutaneous']},{name:'Dulaglutide',doses:['0.75mg','1.5mg','3mg','4.5mg'],routes:['Subcutaneous']},{name:'Sitagliptin',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Pioglitazone',doses:['15mg','30mg','45mg'],routes:['Oral']},{name:'Glipizide',doses:['5mg','10mg'],routes:['Oral']},{name:'Rosuvastatin',doses:['5mg','10mg','20mg','40mg'],routes:['Oral']},{name:'Simvastatin',doses:['10mg','20mg','40mg'],routes:['Oral']},{name:'Warfarin',doses:['1mg','2mg','2.5mg','5mg','7.5mg','10mg'],routes:['Oral']},{name:'Apixaban',doses:['2.5mg','5mg'],routes:['Oral']},{name:'Rivaroxaban',doses:['10mg','15mg','20mg'],routes:['Oral']},{name:'Clopidogrel',doses:['75mg'],routes:['Oral']},{name:'Aspirin',doses:['81mg','325mg'],routes:['Oral']},{name:'Naproxen',doses:['250mg','500mg'],routes:['Oral']},{name:'Ibuprofen',doses:['200mg','400mg','600mg','800mg'],routes:['Oral']},{name:'Acetaminophen',doses:['325mg','500mg','650mg'],routes:['Oral']},{name:'Tramadol',doses:['50mg','100mg'],routes:['Oral']},{name:'Cyclobenzaprine',doses:['5mg','10mg'],routes:['Oral']},{name:'Meloxicam',doses:['7.5mg','15mg'],routes:['Oral']},{name:'Sumatriptan',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Topiramate',doses:['25mg','50mg','100mg','200mg'],routes:['Oral']},{name:'Amoxicillin',doses:['250mg','500mg','875mg'],routes:['Oral']},{name:'Azithromycin',doses:['250mg','500mg'],routes:['Oral']},{name:'Ciprofloxacin',doses:['250mg','500mg','750mg'],routes:['Oral']},{name:'Doxycycline',doses:['50mg','100mg'],routes:['Oral']},{name:'Cephalexin',doses:['250mg','500mg'],routes:['Oral']},{name:'Metronidazole',doses:['250mg','500mg'],routes:['Oral']},{name:'Fluconazole',doses:['150mg','200mg'],routes:['Oral']},{name:'Montelukast',doses:['4mg','5mg','10mg'],routes:['Oral']},{name:'Cetirizine',doses:['5mg','10mg'],routes:['Oral']},{name:'Loratadine',doses:['10mg'],routes:['Oral']},{name:'Pantoprazole',doses:['20mg','40mg'],routes:['Oral']},{name:'Famotidine',doses:['20mg','40mg'],routes:['Oral']},{name:'Ondansetron',doses:['4mg','8mg'],routes:['Oral','IV']},{name:'Testosterone Cypionate',doses:['100mg/mL','200mg/mL'],routes:['Intramuscular']},{name:'Estradiol',doses:['0.5mg','1mg','2mg'],routes:['Oral','Transdermal']},{name:'Progesterone',doses:['100mg','200mg'],routes:['Oral']},{name:'Methylprednisolone',doses:['4mg'],routes:['Oral']},{name:'Ketorolac',doses:['10mg'],routes:['Oral','IM','IV']}
     ]
@@ -715,6 +1711,7 @@ function render(){
     case 'integrations': renderIntegrations(c); break;
     case 'calculators': renderCalculators(c); break;
     case 'credentialing': renderCredentialing(c); break;
+    case 'users': renderUsers(c); break;
     case 'settings': renderSettings(c); break;
   }
 }
@@ -10122,17 +11119,306 @@ function performBulkSign(ids, pv) {
   showToast(`✅ ${ids.length} note(s) signed successfully!`);
 }
 
+// ═══════════════════════════════════════════
+// MOBILE RESPONSIVE FUNCTIONALITY
+// ═══════════════════════════════════════════
+
+// Mobile detection
+const isMobile = () => window.innerWidth < 768;
+const isTablet = () => window.innerWidth >= 768 && window.innerWidth <= 1024;
+const isTouchDevice = () => 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+// Initialize mobile UI elements
+function initMobileUI() {
+  // Create mobile sidebar overlay if doesn't exist
+  if (!document.querySelector('.mobile-sidebar-overlay')) {
+    const overlay = document.createElement('div');
+    overlay.className = 'mobile-sidebar-overlay';
+    overlay.onclick = closeMobileSidebar;
+    document.body.appendChild(overlay);
+  }
+  
+  // Create hamburger menu button if doesn't exist
+  if (!document.querySelector('.mobile-menu-btn')) {
+    const topbar = document.querySelector('.topbar');
+    if (topbar) {
+      const menuBtn = document.createElement('button');
+      menuBtn.className = 'mobile-menu-btn';
+      menuBtn.innerHTML = '☰';
+      menuBtn.onclick = toggleMobileSidebar;
+      menuBtn.setAttribute('aria-label', 'Open menu');
+      topbar.insertBefore(menuBtn, topbar.firstChild);
+    }
+  }
+  
+  // Create bottom navigation if doesn't exist
+  if (!document.querySelector('.mobile-bottom-nav')) {
+    const bottomNav = document.createElement('nav');
+    bottomNav.className = 'mobile-bottom-nav';
+    bottomNav.innerHTML = `
+      <button class="nav-btn" onclick="navigate('dashboard')" data-nav="dashboard">
+        <span class="icon">📊</span>
+        <span>Home</span>
+      </button>
+      <button class="nav-btn" onclick="navigate('patients')" data-nav="patients">
+        <span class="icon">👥</span>
+        <span>Patients</span>
+      </button>
+      <button class="nav-btn" onclick="navigate('scheduling')" data-nav="scheduling">
+        <span class="icon">📅</span>
+        <span>Schedule</span>
+      </button>
+      <button class="nav-btn" onclick="navigate('notes')" data-nav="notes">
+        <span class="icon">📝</span>
+        <span>Notes</span>
+      </button>
+      <button class="nav-btn" onclick="toggleMobileSidebar()" data-nav="more">
+        <span class="icon">☰</span>
+        <span>More</span>
+      </button>
+    `;
+    document.body.appendChild(bottomNav);
+  }
+  
+  // Update bottom nav active state
+  updateMobileNavState();
+}
+
+// Toggle mobile sidebar
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.mobile-sidebar-overlay');
+  
+  if (sidebar.classList.contains('mobile-open')) {
+    closeMobileSidebar();
+  } else {
+    sidebar.classList.add('mobile-open');
+    sidebar.classList.remove('mini');
+    overlay?.classList.add('active');
+    document.body.classList.add('modal-open');
+  }
+}
+
+function closeMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.mobile-sidebar-overlay');
+  
+  sidebar.classList.remove('mobile-open');
+  overlay?.classList.remove('active');
+  
+  // Only remove modal-open if no other modals are open
+  if (modalStack.length === 0 && !document.querySelector('.camera-modal-overlay')) {
+    document.body.classList.remove('modal-open');
+  }
+}
+
+// Update mobile navigation state
+function updateMobileNavState() {
+  const bottomNav = document.querySelector('.mobile-bottom-nav');
+  if (!bottomNav) return;
+  
+  bottomNav.querySelectorAll('.nav-btn').forEach(btn => {
+    const nav = btn.getAttribute('data-nav');
+    btn.classList.toggle('active', nav === currentPage || 
+      (nav === 'dashboard' && currentPage === 'executive') ||
+      (nav === 'patients' && currentPage === 'patient-detail'));
+  });
+}
+
+// Enhanced showModal with body scroll lock
+const originalShowModal = showModal;
+showModal = function(html, large) {
+  document.body.classList.add('modal-open');
+  originalShowModal(html, large);
+};
+
+// Enhanced closeModal with body scroll unlock
+const originalCloseModal = closeModal;
+closeModal = function() {
+  originalCloseModal();
+  if (modalStack.length === 0 && !document.querySelector('.camera-modal-overlay')) {
+    document.body.classList.remove('modal-open');
+  }
+};
+
+// Enhanced camera capture with body scroll lock
+const originalOpenCameraCapture = openCameraCapture;
+openCameraCapture = async function() {
+  document.body.classList.add('modal-open');
+  await originalOpenCameraCapture();
+};
+
+const originalCloseCameraCapture = closeCameraCapture;
+closeCameraCapture = function() {
+  originalCloseCameraCapture();
+  if (modalStack.length === 0) {
+    document.body.classList.remove('modal-open');
+  }
+};
+
+// Enhanced capture options with body scroll lock
+const originalShowCaptureOptions = showCaptureOptions;
+showCaptureOptions = function(patientId, photoType, encounterId, callback) {
+  document.body.classList.add('modal-open');
+  originalShowCaptureOptions(patientId, photoType, encounterId, callback);
+};
+
+const originalCloseCaptureOptions = closeCaptureOptions;
+closeCaptureOptions = function() {
+  originalCloseCaptureOptions();
+  if (modalStack.length === 0 && !document.querySelector('.camera-modal-overlay')) {
+    document.body.classList.remove('modal-open');
+  }
+};
+
+// Close sidebar when navigating on mobile
+const originalNavigate = navigate;
+navigate = function(page) {
+  if (isMobile()) {
+    closeMobileSidebar();
+  }
+  originalNavigate(page);
+  updateMobileNavState();
+};
+
+// Handle window resize
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    if (!isMobile()) {
+      closeMobileSidebar();
+    }
+    initMobileUI();
+  }, 100);
+});
+
+// Handle orientation change
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    initMobileUI();
+    // Re-render to adjust layouts
+    render();
+  }, 200);
+});
+
+// Prevent overscroll/bounce on iOS
+document.body.addEventListener('touchmove', function(e) {
+  if (document.body.classList.contains('modal-open')) {
+    const target = e.target;
+    const isScrollable = target.closest('.modal, .camera-modal, .sidebar, .content');
+    if (!isScrollable) {
+      e.preventDefault();
+    }
+  }
+}, { passive: false });
+
+// Improve touch scrolling for modals
+document.addEventListener('touchstart', function(e) {
+  const modal = e.target.closest('.modal');
+  if (modal) {
+    modal.style.overflowY = 'auto';
+    modal.style.webkitOverflowScrolling = 'touch';
+  }
+}, { passive: true });
+
+// Fix for iOS input zoom - ensure font size is 16px
+document.querySelectorAll('input, select, textarea').forEach(el => {
+  el.style.fontSize = '16px';
+});
+
+// Keyboard handling for mobile
+let keyboardVisible = false;
+window.addEventListener('resize', () => {
+  const viewportHeight = window.innerHeight;
+  const documentHeight = document.documentElement.clientHeight;
+  
+  // Detect keyboard open (viewport shrinks significantly)
+  if (viewportHeight < documentHeight * 0.75) {
+    keyboardVisible = true;
+    document.body.classList.add('keyboard-open');
+  } else if (keyboardVisible) {
+    keyboardVisible = false;
+    document.body.classList.remove('keyboard-open');
+  }
+});
+
+// Handle back button on Android
+window.addEventListener('popstate', (e) => {
+  // Close any open modal first
+  if (modalStack.length > 0) {
+    closeModal();
+    e.preventDefault();
+    history.pushState(null, '', '');
+    return;
+  }
+  
+  // Close camera modal
+  const cameraOverlay = document.getElementById('cameraOverlay');
+  if (cameraOverlay) {
+    closeCameraCapture();
+    e.preventDefault();
+    history.pushState(null, '', '');
+    return;
+  }
+  
+  // Close sidebar on mobile
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar?.classList.contains('mobile-open')) {
+    closeMobileSidebar();
+    e.preventDefault();
+    history.pushState(null, '', '');
+    return;
+  }
+});
+
+// Push initial history state for back button handling
+history.pushState(null, '', '');
+
+// Touch-friendly table scrolling
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.data-table').forEach(table => {
+    const wrapper = document.createElement('div');
+    wrapper.style.overflowX = 'auto';
+    wrapper.style.webkitOverflowScrolling = 'touch';
+    table.parentNode.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
+});
+
+// Improved form submission handling for mobile
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+    const form = e.target.closest('.modal, .camera-modal');
+    if (form) {
+      const submitBtn = form.querySelector('.btn-primary, .btn-accent');
+      if (submitBtn && !submitBtn.disabled) {
+        e.preventDefault();
+        submitBtn.click();
+      }
+    }
+  }
+});
+
 // ═══════ INIT ═══════
 loadDB();
 render();
 initPullToRefresh();
 
-// Re-init PTR after each render
-const originalRender = render;
+// Re-init PTR and mobile UI after each render
+const originalRenderFn = render;
 render = function() {
-  originalRender();
-  setTimeout(initPullToRefresh, 50);
+  originalRenderFn();
+  setTimeout(() => {
+    initPullToRefresh();
+    initMobileUI();
+    updateMobileNavState();
+  }, 50);
 };
+
+// Initial mobile UI setup
+document.addEventListener('DOMContentLoaded', initMobileUI);
+setTimeout(initMobileUI, 100);
 </script>
 </body>
 </html>
