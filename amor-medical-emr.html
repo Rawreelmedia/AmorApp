@@ -550,6 +550,8 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
   /* === CAMERA MODAL - Critical mobile fixes === */
   .camera-modal-overlay {
     padding:0;
+    align-items:stretch !important;
+    justify-content:stretch !important;
   }
   .camera-modal {
     width:100% !important;
@@ -561,6 +563,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     border-radius:0;
     display:flex;
     flex-direction:column;
+    overflow:hidden;
   }
   .camera-header {
     padding:12px 16px;
@@ -573,33 +576,58 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     width:var(--touch-target);
     height:var(--touch-target);
     font-size:28px;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
   }
   .camera-body {
     flex:1;
     display:flex;
     flex-direction:column;
     min-height:0;
+    overflow:hidden;
   }
+  /* CRITICAL FIX: Preview container must not push controls off screen */
   .camera-preview-container {
-    flex:1;
-    min-height:200px;
-    max-height:none;
+    flex:1 1 auto;
+    min-height:150px;
+    max-height:calc(100dvh - 280px); /* Leave room for header + controls */
+    overflow:hidden;
   }
   #cameraVideo, #capturedPreview {
     width:100%;
     height:100%;
-    object-fit:cover;
+    object-fit:contain; /* contain preserves aspect ratio better */
   }
   
-  /* Camera controls - Fixed at bottom, always visible */
+  /* Image edit controls - MUST NOT SHRINK */
+  .image-edit-controls {
+    flex-shrink:0 !important;
+    padding:8px 16px;
+    gap:6px;
+    flex-wrap:wrap;
+    background:var(--bg);
+    border-top:1px solid var(--border);
+  }
+  .edit-btn {
+    flex:1;
+    min-width:80px;
+    padding:10px 12px;
+    justify-content:center;
+    min-height:40px;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+  }
+  
+  /* Camera controls - ALWAYS VISIBLE at bottom */
   .camera-controls {
-    flex-shrink:0;
+    flex-shrink:0 !important;
     padding:12px 16px;
     padding-bottom:max(16px, env(safe-area-inset-bottom));
     background:var(--bg-card);
     border-top:1px solid var(--border);
   }
   .camera-controls-row {
+    display:flex !important;
     gap:12px;
     justify-content:center;
     margin-bottom:8px;
@@ -611,9 +639,10 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
   .camera-settings {
     gap:6px;
     margin-bottom:12px;
+    flex-wrap:wrap;
   }
   .camera-select {
-    min-width:120px;
+    min-width:100px;
     max-width:none;
     flex:1;
     padding:10px 12px;
@@ -622,6 +651,8 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
   .camera-toggle {
     padding:10px 14px;
     font-size:14px;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
   }
   
   /* Camera buttons - Touch friendly */
@@ -629,38 +660,48 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     min-height:var(--touch-target);
     padding:12px 20px;
     font-size:14px;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+    user-select:none;
+    -webkit-user-select:none;
   }
   .camera-btn-capture {
     width:70px;
     height:70px;
     font-size:28px;
   }
-  .camera-btn-accept, .camera-btn-retake {
+  /* CRITICAL: Accept & Save button must be prominent */
+  .camera-btn-accept {
     flex:1;
+    min-width:140px;
+    max-width:none;
+    background:var(--accent) !important;
+    color:#fff !important;
+    font-size:16px !important;
+    font-weight:700 !important;
+    padding:14px 24px !important;
+  }
+  .camera-btn-retake {
+    flex:0 0 auto;
     min-width:100px;
-    max-width:200px;
   }
   
-  /* Review controls - Stack on mobile */
+  /* Review controls - MUST display correctly after capture */
   #reviewControls {
+    display:none; /* Hidden by default, JS sets to flex */
     flex-direction:row;
     gap:12px;
+    justify-content:center;
+    align-items:center;
+  }
+  #reviewControls[style*="flex"] {
+    display:flex !important;
   }
   #reviewControls .camera-btn {
-    flex:1;
+    flex:none;
   }
-  
-  /* Image edit controls */
-  .image-edit-controls {
-    padding:10px 16px;
-    gap:6px;
-    flex-wrap:wrap;
-  }
-  .edit-btn {
+  #reviewControls .camera-btn-accept {
     flex:1;
-    min-width:80px;
-    padding:10px 12px;
-    justify-content:center;
   }
   
   /* Capture options modal */
@@ -1141,6 +1182,30 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     opacity:0.8;
     transform:scale(0.98);
   }
+  
+  /* CAMERA BUTTON TOUCH FIXES */
+  .camera-btn,
+  .capture-option-btn,
+  .camera-toggle,
+  .camera-close,
+  .edit-btn {
+    cursor:pointer;
+    -webkit-tap-highlight-color:rgba(0,0,0,0.1);
+    touch-action:manipulation;
+  }
+  .camera-btn:active,
+  .capture-option-btn:active {
+    opacity:0.85;
+    transform:scale(0.97);
+  }
+  .camera-btn-capture:active {
+    transform:scale(0.9) !important;
+    box-shadow:0 2px 8px rgba(239,68,68,.5) !important;
+  }
+  .camera-btn-accept:active {
+    opacity:0.9 !important;
+    transform:scale(0.97) !important;
+  }
 }
 
 /* === SAFE AREA INSETS (iPhone notch, etc) === */
@@ -1160,24 +1225,43 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
   .camera-modal {
     flex-direction:row;
   }
+  .camera-body {
+    flex-direction:row;
+  }
   .camera-preview-container {
     flex:2;
     max-height:100vh;
     max-height:100dvh;
+    min-height:auto;
+  }
+  .image-edit-controls {
+    flex-direction:column;
+    width:auto;
+    padding:8px;
   }
   .camera-controls {
     flex:1;
-    min-width:200px;
-    max-width:300px;
+    min-width:180px;
+    max-width:280px;
     flex-direction:column;
     justify-content:center;
+    height:100%;
+    overflow-y:auto;
   }
   .camera-controls-row {
     flex-direction:column;
+    gap:8px;
   }
   .camera-btn-capture {
     width:60px;
     height:60px;
+  }
+  .camera-btn-accept {
+    min-width:auto !important;
+    padding:10px 16px !important;
+  }
+  #reviewControls {
+    flex-direction:column;
   }
 }
 
@@ -1474,6 +1558,8 @@ body.keyboard-open .camera-controls {
       <div class="nav-item" onclick="navigate('practices')" data-nav="practices"><span class="icon">🏥</span><span class="nav-label">Practices</span></div>
       <div class="nav-item" onclick="navigate('myteam')" data-nav="myteam"><span class="icon">👥</span><span class="nav-label">My Team</span></div>
       <div class="nav-item" onclick="navigate('referrals')" data-nav="referrals"><span class="icon">🔗</span><span class="nav-label">Referrals</span></div>
+      <div class="nav-item" onclick="navigate('affiliates')" data-nav="affiliates"><span class="icon">🤝</span><span class="nav-label">Affiliates</span></div>
+      <div class="nav-item" onclick="navigate('leads')" data-nav="leads"><span class="icon">📥</span><span class="nav-label">Leads</span></div>
       <div class="nav-item" onclick="navigate('scheduling')" data-nav="scheduling"><span class="icon">📅</span><span class="nav-label">Scheduling</span></div>
       <div class="nav-item" onclick="navigate('encounters')" data-nav="encounters"><span class="icon">📋</span><span class="nav-label">Encounters</span></div>
       <div class="nav-item" onclick="navigate('notes')" data-nav="notes"><span class="icon">📝</span><span class="nav-label">Clinical Notes</span></div>
@@ -1652,6 +1738,37 @@ function seedDB(){
     ],
     medications:[
       {name:'Metformin',doses:['500mg','850mg','1000mg'],routes:['Oral']},{name:'Lisinopril',doses:['5mg','10mg','20mg','40mg'],routes:['Oral']},{name:'Amlodipine',doses:['2.5mg','5mg','10mg'],routes:['Oral']},{name:'Atorvastatin',doses:['10mg','20mg','40mg','80mg'],routes:['Oral']},{name:'Levothyroxine',doses:['25mcg','50mcg','75mcg','88mcg','100mcg','112mcg','125mcg','137mcg','150mcg'],routes:['Oral']},{name:'Omeprazole',doses:['20mg','40mg'],routes:['Oral']},{name:'Losartan',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Gabapentin',doses:['100mg','300mg','600mg','800mg'],routes:['Oral']},{name:'Hydrochlorothiazide',doses:['12.5mg','25mg','50mg'],routes:['Oral']},{name:'Sertraline',doses:['25mg','50mg','100mg','150mg','200mg'],routes:['Oral']},{name:'Fluoxetine',doses:['10mg','20mg','40mg','60mg'],routes:['Oral']},{name:'Escitalopram',doses:['5mg','10mg','20mg'],routes:['Oral']},{name:'Prednisone',doses:['5mg','10mg','20mg','50mg'],routes:['Oral']},{name:'Albuterol',doses:['90mcg/inh'],routes:['Inhalation']},{name:'Insulin Glargine',doses:['100units/mL'],routes:['Subcutaneous']},{name:'Insulin Lispro',doses:['100units/mL'],routes:['Subcutaneous']},{name:'Empagliflozin',doses:['10mg','25mg'],routes:['Oral']},{name:'Semaglutide',doses:['0.25mg','0.5mg','1mg','2mg'],routes:['Subcutaneous']},{name:'Dulaglutide',doses:['0.75mg','1.5mg','3mg','4.5mg'],routes:['Subcutaneous']},{name:'Sitagliptin',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Pioglitazone',doses:['15mg','30mg','45mg'],routes:['Oral']},{name:'Glipizide',doses:['5mg','10mg'],routes:['Oral']},{name:'Rosuvastatin',doses:['5mg','10mg','20mg','40mg'],routes:['Oral']},{name:'Simvastatin',doses:['10mg','20mg','40mg'],routes:['Oral']},{name:'Warfarin',doses:['1mg','2mg','2.5mg','5mg','7.5mg','10mg'],routes:['Oral']},{name:'Apixaban',doses:['2.5mg','5mg'],routes:['Oral']},{name:'Rivaroxaban',doses:['10mg','15mg','20mg'],routes:['Oral']},{name:'Clopidogrel',doses:['75mg'],routes:['Oral']},{name:'Aspirin',doses:['81mg','325mg'],routes:['Oral']},{name:'Naproxen',doses:['250mg','500mg'],routes:['Oral']},{name:'Ibuprofen',doses:['200mg','400mg','600mg','800mg'],routes:['Oral']},{name:'Acetaminophen',doses:['325mg','500mg','650mg'],routes:['Oral']},{name:'Tramadol',doses:['50mg','100mg'],routes:['Oral']},{name:'Cyclobenzaprine',doses:['5mg','10mg'],routes:['Oral']},{name:'Meloxicam',doses:['7.5mg','15mg'],routes:['Oral']},{name:'Sumatriptan',doses:['25mg','50mg','100mg'],routes:['Oral']},{name:'Topiramate',doses:['25mg','50mg','100mg','200mg'],routes:['Oral']},{name:'Amoxicillin',doses:['250mg','500mg','875mg'],routes:['Oral']},{name:'Azithromycin',doses:['250mg','500mg'],routes:['Oral']},{name:'Ciprofloxacin',doses:['250mg','500mg','750mg'],routes:['Oral']},{name:'Doxycycline',doses:['50mg','100mg'],routes:['Oral']},{name:'Cephalexin',doses:['250mg','500mg'],routes:['Oral']},{name:'Metronidazole',doses:['250mg','500mg'],routes:['Oral']},{name:'Fluconazole',doses:['150mg','200mg'],routes:['Oral']},{name:'Montelukast',doses:['4mg','5mg','10mg'],routes:['Oral']},{name:'Cetirizine',doses:['5mg','10mg'],routes:['Oral']},{name:'Loratadine',doses:['10mg'],routes:['Oral']},{name:'Pantoprazole',doses:['20mg','40mg'],routes:['Oral']},{name:'Famotidine',doses:['20mg','40mg'],routes:['Oral']},{name:'Ondansetron',doses:['4mg','8mg'],routes:['Oral','IV']},{name:'Testosterone Cypionate',doses:['100mg/mL','200mg/mL'],routes:['Intramuscular']},{name:'Estradiol',doses:['0.5mg','1mg','2mg'],routes:['Oral','Transdermal']},{name:'Progesterone',doses:['100mg','200mg'],routes:['Oral']},{name:'Methylprednisolone',doses:['4mg'],routes:['Oral']},{name:'Ketorolac',doses:['10mg'],routes:['Oral','IM','IV']}
+    ],
+    // ═══════ AFFILIATE PRACTICES ═══════
+    affiliates:[
+      {id:genId(),name:'South Miami Cardiology',npi:'5555555555',specialty:'Cardiology',contactName:'Dr. Carlos Reyes',contactEmail:'creyes@southmiamicard.com',contactPhone:'(305) 555-5001',street:'500 SW 57th Ave',city:'Miami',state:'FL',zip:'33143',status:'active',contractStartDate:'2024-01-15',feeType:'per-conversion',feeAmount:150,insurancePanels:['Blue Cross','Aetna','United','Cigna','Medicare','Medicaid'],serviceZips:['33143','33144','33145','33146','33155','33156'],emrSystem:'eClinicalWorks',emrEndpoint:'https://api.ecw.southmiamicard.com',availability:'high',leadsReceived:45,leadsConverted:32,notes:'Primary cardiology partner. Fast turnaround.',createdAt:new Date().toISOString()},
+      {id:genId(),name:'Kendall Orthopedics',npi:'6666666666',specialty:'Orthopedics',contactName:'Dr. Ana Martinez',contactEmail:'amartinez@kendallortho.com',contactPhone:'(305) 555-6001',street:'8900 SW 107th Ave',city:'Miami',state:'FL',zip:'33176',status:'active',contractStartDate:'2024-03-01',feeType:'per-lead',feeAmount:25,insurancePanels:['Blue Cross','Aetna','United','Workers Comp'],serviceZips:['33176','33177','33183','33186','33189'],emrSystem:'Epic',emrEndpoint:'https://epic.kendallortho.com/api',availability:'medium',leadsReceived:28,leadsConverted:18,notes:'Excellent sports medicine team.',createdAt:new Date().toISOString()},
+      {id:genId(),name:'Brickell Dermatology',npi:'7777777777',specialty:'Dermatology',contactName:'Dr. Lisa Park',contactEmail:'lpark@brickellderm.com',contactPhone:'(305) 555-7001',street:'1450 Brickell Ave Suite 2200',city:'Miami',state:'FL',zip:'33131',status:'active',contractStartDate:'2024-06-01',feeType:'per-conversion',feeAmount:100,insurancePanels:['Blue Cross','Aetna','United','Cigna'],serviceZips:['33129','33130','33131','33132','33133'],emrSystem:'ModMed',emrEndpoint:'',availability:'high',leadsReceived:67,leadsConverted:52,notes:'Cosmetic and medical derm. Very responsive.',createdAt:new Date().toISOString()},
+      {id:genId(),name:'Coral Gables GI Associates',npi:'8888888888',specialty:'Gastroenterology',contactName:'Dr. Roberto Sanchez',contactEmail:'rsanchez@coralgablesgi.com',contactPhone:'(305) 555-8001',street:'2550 Douglas Rd',city:'Coral Gables',state:'FL',zip:'33134',status:'pending',contractStartDate:null,feeType:'per-conversion',feeAmount:175,insurancePanels:['Blue Cross','Medicare'],serviceZips:['33134','33135','33145','33146'],emrSystem:'Athena',emrEndpoint:'',availability:'low',leadsReceived:0,leadsConverted:0,notes:'Contract pending legal review.',createdAt:new Date().toISOString()},
+      {id:genId(),name:'Miami Lakes Neurology',npi:'9999999999',specialty:'Neurology',contactName:'Dr. James Chen',contactEmail:'jchen@mlneuro.com',contactPhone:'(305) 555-9001',street:'7800 NW 154th St',city:'Miami Lakes',state:'FL',zip:'33016',status:'suspended',contractStartDate:'2023-08-01',feeType:'per-lead',feeAmount:30,insurancePanels:['Blue Cross','United','Medicare'],serviceZips:['33014','33015','33016','33018'],emrSystem:'eClinicalWorks',emrEndpoint:'',availability:'low',leadsReceived:12,leadsConverted:3,notes:'Suspended due to poor conversion rate. Under review.',createdAt:new Date().toISOString()}
+    ],
+    // ═══════ PATIENT LEADS ═══════
+    leads:[
+      {id:genId(),firstName:'Maria',lastName:'Santos',dob:'1975-08-22',phone:'(305) 555-1234',email:'msantos@email.com',insurancePrimary:'Blue Cross Blue Shield',insuranceId:'BCBS-112233',reasonForVisit:'Chest pain, shortness of breath',specialtyNeeded:'Cardiology',preferredZip:'33143',source:'website',status:'new',createdAt:new Date(Date.now()-2*60*60*1000).toISOString(),notes:'Submitted via website contact form',assignedAffiliateId:null,matchScores:null},
+      {id:genId(),firstName:'Pedro',lastName:'Ramirez',dob:'1988-04-15',phone:'(786) 555-4567',email:'pramirez@email.com',insurancePrimary:'Aetna',insuranceId:'AET-445566',reasonForVisit:'Knee pain after sports injury',specialtyNeeded:'Orthopedics',preferredZip:'33176',source:'phone',status:'contacted',contactedAt:new Date(Date.now()-24*60*60*1000).toISOString(),createdAt:new Date(Date.now()-48*60*60*1000).toISOString(),notes:'Called back, interested in consultation',assignedAffiliateId:null,matchScores:null},
+      {id:genId(),firstName:'Sofia',lastName:'Gonzalez',dob:'1992-11-30',phone:'(305) 555-7890',email:'sgonzalez@email.com',insurancePrimary:'United Healthcare',insuranceId:'UHC-778899',reasonForVisit:'Skin rash, possible eczema',specialtyNeeded:'Dermatology',preferredZip:'33131',source:'referral',status:'scheduled',scheduledAt:'2026-03-25T10:00:00Z',createdAt:new Date(Date.now()-72*60*60*1000).toISOString(),notes:'Referred by Dr. Lopez',assignedAffiliateId:null,matchScores:null},
+      {id:genId(),firstName:'Carlos',lastName:'Mendez',dob:'1965-02-18',phone:'(305) 555-3456',email:'cmendez@email.com',insurancePrimary:'Medicare',insuranceId:'MCR-334455',reasonForVisit:'Acid reflux, difficulty swallowing',specialtyNeeded:'Gastroenterology',preferredZip:'33134',source:'website',status:'new',createdAt:new Date(Date.now()-1*60*60*1000).toISOString(),notes:'Needs urgent evaluation',assignedAffiliateId:null,matchScores:null},
+      {id:genId(),firstName:'Elena',lastName:'Torres',dob:'1980-07-05',phone:'(786) 555-6789',email:'etorres@email.com',insurancePrimary:'Cigna',insuranceId:'CIG-667788',reasonForVisit:'Follow-up for palpitations',specialtyNeeded:'Cardiology',preferredZip:'33155',source:'phone',status:'converted',convertedAt:new Date(Date.now()-7*24*60*60*1000).toISOString(),createdAt:new Date(Date.now()-10*24*60*60*1000).toISOString(),notes:'Successfully converted to patient at South Miami Cardiology',assignedAffiliateId:null,matchScores:null},
+      {id:genId(),firstName:'Roberto',lastName:'Diaz',dob:'1970-12-12',phone:'(305) 555-2345',email:'rdiaz@email.com',insurancePrimary:'Blue Cross Blue Shield',insuranceId:'BCBS-998877',reasonForVisit:'Back pain, possible herniated disc',specialtyNeeded:'Orthopedics',preferredZip:'33183',source:'website',status:'lost',lostReason:'Patient chose different provider',createdAt:new Date(Date.now()-14*24*60*60*1000).toISOString(),notes:'Lost to competitor',assignedAffiliateId:null,matchScores:null}
+    ],
+    // ═══════ LEAD ASSIGNMENTS / REFERRALS TO AFFILIATES ═══════
+    leadAssignments:[
+      {id:genId(),leadId:null,affiliateId:null,assignedAt:new Date(Date.now()-5*24*60*60*1000).toISOString(),status:'accepted',acceptedAt:new Date(Date.now()-4*24*60*60*1000).toISOString(),scheduledAt:'2026-03-22T14:00:00Z',convertedAt:new Date(Date.now()-1*24*60*60*1000).toISOString(),notes:'Patient seen and converted',emrPushStatus:null,emrPushAt:null}
+    ],
+    // ═══════ EMR PUSH LOGS ═══════
+    emrPushLogs:[
+      {id:genId(),leadId:null,affiliateId:null,pushedAt:new Date(Date.now()-24*60*60*1000).toISOString(),status:'success',format:'HL7v2',payload:'MSH|^~\\&|AMOR|AMORMED|ECW|SMCARD|...',response:'ACK^A01',responseCode:200,notes:'Successfully pushed to eCW'},
+      {id:genId(),leadId:null,affiliateId:null,pushedAt:new Date(Date.now()-48*60*60*1000).toISOString(),status:'failed',format:'FHIR',payload:'{"resourceType":"Patient",...}',response:'Connection timeout',responseCode:504,notes:'Will retry'}
+    ],
+    // ═══════ AFFILIATE BILLING ═══════
+    affiliateBilling:[
+      {id:genId(),affiliateId:null,period:'2026-03',leadsCount:15,conversionsCount:12,feeType:'per-conversion',feeAmount:150,totalDue:1800,status:'pending',invoiceNumber:'INV-2026-03-001',invoiceDate:'2026-03-01',dueDate:'2026-03-31',paidAt:null,notes:'March 2026 billing'},
+      {id:genId(),affiliateId:null,period:'2026-02',leadsCount:18,conversionsCount:14,feeType:'per-conversion',feeAmount:150,totalDue:2100,status:'paid',invoiceNumber:'INV-2026-02-001',invoiceDate:'2026-02-01',dueDate:'2026-02-28',paidAt:'2026-02-25T10:00:00Z',notes:'February 2026 billing - Paid'}
     ]
   };
   saveDB();
@@ -1719,6 +1836,8 @@ const PERMISSIONS = {
   accessPractices: ['practiceadmin', 'agencyadmin'],
   accessMyTeam: ['np', 'md', 'practiceadmin', 'agencyadmin'],
   accessReferrals: ['nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessAffiliates: ['officemgr', 'practiceadmin', 'agencyadmin'],
+  accessLeads: ['frontdesk', 'ma', 'nurse', 'np', 'md', 'officemgr', 'practiceadmin', 'agencyadmin'],
   accessScheduling: ['frontdesk', 'ma', 'nurse', 'np', 'md', 'officemgr', 'practiceadmin', 'agencyadmin'],
   accessEncounters: ['ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
   accessNotes: ['ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
@@ -1740,6 +1859,8 @@ const NAV_PERMISSIONS = {
   practices: 'accessPractices',
   myteam: 'accessMyTeam',
   referrals: 'accessReferrals',
+  affiliates: 'accessAffiliates',
+  leads: 'accessLeads',
   scheduling: 'accessScheduling',
   encounters: 'accessEncounters',
   notes: 'accessNotes',
@@ -2513,6 +2634,8 @@ function render(){
     case 'practice-detail': renderPracticeDetail(c); break;
     case 'myteam': renderMyTeam(c); break;
     case 'referrals': renderReferrals(c); break;
+    case 'affiliates': renderAffiliates(c); break;
+    case 'leads': renderLeads(c); break;
     case 'scheduling': renderScheduling(c); break;
     case 'encounters': renderEncounters(c); break;
     case 'notes': renderNotesModule(c); break;
@@ -10724,21 +10847,21 @@ function showCaptureOptions(patientId, photoType, encounterId = null, callback =
       <h3>📸 Capture ${label}</h3>
       <p>Choose how you'd like to add this image</p>
       <div class="capture-options">
-        <button class="capture-option-btn" onclick="closeCaptureOptions();openCameraCapture()">
+        <button type="button" class="capture-option-btn" ontouchend="event.preventDefault();closeCaptureOptions();openCameraCapture();" onclick="closeCaptureOptions();openCameraCapture()">
           <span class="option-icon">📷</span>
           <div>
             <div class="option-text">Take Photo</div>
             <div class="option-desc">Use camera to capture image</div>
           </div>
         </button>
-        <button class="capture-option-btn" onclick="closeCaptureOptions();triggerFileUpload()">
+        <button type="button" class="capture-option-btn" ontouchend="event.preventDefault();closeCaptureOptions();triggerFileUpload();" onclick="closeCaptureOptions();triggerFileUpload()">
           <span class="option-icon">📁</span>
           <div>
             <div class="option-text">Upload File</div>
             <div class="option-desc">Select image from device</div>
           </div>
         </button>
-        <button class="capture-option-btn" onclick="closeCaptureOptions()" style="background:transparent;border-color:transparent;justify-content:center;">
+        <button type="button" class="capture-option-btn" ontouchend="event.preventDefault();closeCaptureOptions();" onclick="closeCaptureOptions()" style="background:transparent;border-color:transparent;justify-content:center;">
           <span style="color:var(--text-muted);font-size:13px;">Cancel</span>
         </button>
       </div>
@@ -10823,13 +10946,13 @@ async function openCameraCapture() {
             </button>
           </div>
           <div class="camera-controls-row" id="captureControls">
-            <button class="camera-btn camera-btn-secondary" onclick="closeCameraCapture()">Cancel</button>
-            <button class="camera-btn camera-btn-capture" id="captureBtn" onclick="capturePhoto()">📸</button>
-            <button class="camera-btn camera-btn-secondary" onclick="switchCameraDirection()">🔄 Flip</button>
+            <button type="button" class="camera-btn camera-btn-secondary" onclick="closeCameraCapture()">Cancel</button>
+            <button type="button" class="camera-btn camera-btn-capture" id="captureBtn" ontouchend="event.preventDefault();capturePhoto();" onclick="capturePhoto()">📸</button>
+            <button type="button" class="camera-btn camera-btn-secondary" onclick="switchCameraDirection()">🔄 Flip</button>
           </div>
           <div class="camera-controls-row" id="reviewControls" style="display:none;">
-            <button class="camera-btn camera-btn-retake" onclick="retakePhoto()">↩️ Retake</button>
-            <button class="camera-btn camera-btn-accept" onclick="acceptPhoto()">✓ Accept & Save</button>
+            <button type="button" class="camera-btn camera-btn-retake" ontouchend="event.preventDefault();retakePhoto();" onclick="retakePhoto()">↩️ Retake</button>
+            <button type="button" class="camera-btn camera-btn-accept" id="acceptPhotoBtn" ontouchend="event.preventDefault();acceptPhoto();" onclick="acceptPhoto()">✅ Accept & Save</button>
           </div>
         </div>
       </div>
@@ -11035,13 +11158,17 @@ function capturePhoto() {
   const preview = document.getElementById('capturedPreview');
   const btn = document.getElementById('captureBtn');
   
+  if (!video || !canvas || !preview) return;
+  
   // Animate button
-  btn.classList.add('capturing');
-  setTimeout(() => btn.classList.remove('capturing'), 300);
+  if (btn) {
+    btn.classList.add('capturing');
+    setTimeout(() => btn.classList.remove('capturing'), 300);
+  }
   
   // Set canvas size to video size
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
   
   const ctx = canvas.getContext('2d');
   
@@ -11065,14 +11192,33 @@ function capturePhoto() {
   preview.style.display = 'block';
   video.style.display = 'none';
   
-  // Switch to review mode
-  document.getElementById('cameraSettings').style.display = 'none';
-  document.getElementById('captureControls').style.display = 'none';
-  document.getElementById('reviewControls').style.display = 'flex';
-  document.getElementById('imageEditControls').style.display = 'flex';
+  // Switch to review mode - with explicit flex display
+  const settings = document.getElementById('cameraSettings');
+  const captureCtrl = document.getElementById('captureControls');
+  const reviewCtrl = document.getElementById('reviewControls');
+  const editCtrl = document.getElementById('imageEditControls');
+  
+  if (settings) settings.style.display = 'none';
+  if (captureCtrl) captureCtrl.style.display = 'none';
+  if (reviewCtrl) {
+    reviewCtrl.style.display = 'flex';
+    reviewCtrl.style.visibility = 'visible';
+    reviewCtrl.style.opacity = '1';
+  }
+  if (editCtrl) {
+    editCtrl.style.display = 'flex';
+  }
   
   // Stop camera to save battery
   stopCamera();
+  
+  // MOBILE FIX: Ensure controls are visible by scrolling them into view
+  setTimeout(() => {
+    const acceptBtn = reviewCtrl?.querySelector('.camera-btn-accept');
+    if (acceptBtn && window.innerWidth <= 767) {
+      acceptBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, 100);
 }
 
 function retakePhoto() {
@@ -11150,14 +11296,29 @@ function toggleCapturedMirror() {
 }
 
 function acceptPhoto() {
-  if (!cameraState.capturedImage) return;
+  if (!cameraState.capturedImage) {
+    console.warn('No captured image to accept');
+    return;
+  }
+  
+  // Prevent double-tap issues on mobile
+  const acceptBtn = document.getElementById('acceptPhotoBtn');
+  if (acceptBtn) {
+    if (acceptBtn.dataset.processing === 'true') return;
+    acceptBtn.dataset.processing = 'true';
+    acceptBtn.textContent = '⏳ Saving...';
+    acceptBtn.style.opacity = '0.7';
+  }
   
   // Get the final image from preview (includes rotation)
   const preview = document.getElementById('capturedPreview');
-  const finalImage = preview.src;
+  const finalImage = preview?.src || cameraState.capturedImage;
   
-  closeCameraCapture();
-  saveCapturedPhoto(finalImage);
+  // Small delay to show feedback on mobile
+  setTimeout(() => {
+    closeCameraCapture();
+    saveCapturedPhoto(finalImage);
+  }, 100);
 }
 
 function saveCapturedPhoto(dataUrl) {
