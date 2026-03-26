@@ -6028,323 +6028,124 @@ function calcA1C(){const a=+document.getElementById('a1').value;if(!a)return;con
 
 // ═══════ SETTINGS ═══════
 function renderSettings(c){
-  setPageTitle('Settings');
-  c.innerHTML=`<h3 style="margin-bottom:16px;">System Settings</h3>
-    <div class="form-group" style="margin-bottom:16px;max-width:300px;"><label>Current Role</label><select onchange="db.currentRole=this.value;saveDB();document.getElementById('roleBadge').textContent=this.options[this.selectedIndex].text;render();"><option value="admin" ${db.currentRole==='admin'?'selected':''}>Agency Admin</option><option value="provider" ${db.currentRole==='provider'?'selected':''}>Provider</option><option value="staff" ${db.currentRole==='staff'?'selected':''}>Staff</option></select></div>
-    <div class="section-title">Data Management</div>
-    <div class="btn-group" style="margin-bottom:16px;">
-      <button class="btn btn-danger" onclick="if(confirm('Reset all data?')){localStorage.removeItem('${DB_KEY}');seedDB();render();alert('Done!')}">🔄 Reset Demo Data</button>
-      <button class="btn btn-ghost" onclick="exportData()">📥 Export JSON</button>
-    </div>
-    <div class="section-title">AI/LLM Configuration</div>
-    <p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-bottom:12px;">Transcription → AI auto-SOAP generation pipeline. Each note type will have its own prompt template that the LLM uses to structure the transcribed conversation into the appropriate format. The AI engine processes the full appointment transcription, identifies speakers (doctor vs patient vs guest), and auto-populates SOAP sections for physician review → one-click Approve & Sign.</p>
-    <div class="section-title">System Info</div>
-    <div style="font-size:13px;color:var(--text-muted);line-height:2;">
-      <div>Version: 2.0.0</div>
-      <div>Storage: ${(JSON.stringify(db).length/1024).toFixed(1)} KB</div>
-      <div>Patients: ${db.patients.length} | Providers: ${db.providers.length} | Practices: ${db.practices.length}</div>
-      <div>Encounters: ${db.encounters.length} | Rx: ${db.prescriptions.length} | Labs: ${db.labOrders.length}</div>
-    </div>`;
-}
-function exportData(){const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='amor-emr-backup.json';a.click();}
-
-// ═══════ USER MANAGEMENT ═══════
-function toggleUserDropdown(){
-  const dropdown = document.getElementById('userDropdown');
-  if(dropdown){
-    dropdown.classList.toggle('show');
-    // Close dropdown when clicking outside
-    if(dropdown.classList.contains('show')){
-      setTimeout(() => {
-        document.addEventListener('click', closeUserDropdownOnClickOutside, {once: true});
-      }, 10);
-    }
+  if (!hasPermission('systemSettings') && !hasPermission('manageUsers')) {
+    renderAccessDenied(c, 'Settings');
+    return;
   }
-}
-
-function closeUserDropdownOnClickOutside(e){
-  const dropdown = document.getElementById('userDropdown');
-  const indicator = document.getElementById('userIndicator');
-  if(dropdown && !indicator?.contains(e.target)){
-    dropdown.classList.remove('show');
-  }
-}
-
-function showMyProfileModal(){
-  const currentUser = db.users?.[0] || {name: 'Admin User', email: 'admin@amormedical.com', role: 'admin'};
-  const provider = db.currentProviderId ? db.providers.find(p => p.id === db.currentProviderId) : null;
   
-  showModal(`
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <h3>👤 My Profile</h3>
+  setPageTitle('Settings');
+  const user = getCurrentUser();
+  const roleInfo = user ? getRoleInfo(user.role) : { name: 'Unknown', icon: '❓' };
+  
+  c.innerHTML=`
+    ${getRefreshHeader('System Settings', null, '')}
     
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--bg-input);border-radius:8px;">
-      <div style="width:64px;height:64px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;">
-        ${currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2)}
-      </div>
-      <div>
-        <div style="font-size:18px;font-weight:700;">${currentUser.name}</div>
-        <div style="color:var(--text-muted);font-size:13px;">${currentUser.email}</div>
-        <span class="badge badge-blue" style="margin-top:4px;">${currentUser.role || 'Admin'}</span>
-      </div>
-    </div>
-    
-    <div class="form-grid">
-      <div class="form-group"><label>Name</label><input id="profileName" value="${currentUser.name}"></div>
-      <div class="form-group"><label>Email</label><input id="profileEmail" type="email" value="${currentUser.email}"></div>
-      <div class="form-group full"><label>Phone</label><input id="profilePhone" value="${currentUser.phone || ''}"></div>
-    </div>
-    
-    ${provider ? `
-      <div class="section-title">Provider Profile</div>
-      <div style="padding:12px;background:var(--bg-input);border-radius:8px;font-size:13px;">
-        <div><strong>Provider:</strong> ${provider.name}</div>
-        <div><strong>NPI:</strong> ${provider.npi || '—'}</div>
-        <div><strong>Specialty:</strong> ${provider.specialty || '—'}</div>
-        <div style="margin-top:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="closeModal();editProviderModal('${provider.id}')">✏️ Edit Provider Settings</button>
+    <!-- Current Session Info -->
+    <div style="background:linear-gradient(135deg,var(--primary)20,var(--purple)10);border:1px solid var(--primary);border-radius:var(--radius);padding:16px;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:700;">
+          ${user ? (user.avatar || user.name.split(' ').map(n=>n[0]).join('').slice(0,2)) : '?'}
         </div>
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:18px;font-weight:700;">${user ? user.name : 'Unknown User'}</div>
+          <div style="font-size:13px;color:var(--text-muted);">${user ? user.email : ''}</div>
+          <div style="margin-top:4px;">
+            <span class="user-role-badge ${user ? user.role : ''}" style="font-size:11px;">${roleInfo.icon} ${roleInfo.name}</span>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="showMyProfileModal()">👤 My Profile</button>
+        <button class="btn btn-ghost" onclick="toggleUserDropdown()">🔄 Switch User</button>
       </div>
+    </div>
+    
+    ${hasPermission('systemSettings') ? `
+    <div class="section-title">Data Management</div>
+    <div class="btn-group" style="margin-bottom:24px;">
+      <button class="btn btn-danger" onclick="if(confirm('Reset all data? This will clear everything and reload demo data.')){localStorage.removeItem('${DB_KEY}');seedDB();location.reload();}">🔄 Reset Demo Data</button>
+      <button class="btn btn-ghost" onclick="exportData()">📥 Export JSON</button>
+      <button class="btn btn-ghost" onclick="importData()">📤 Import JSON</button>
+    </div>
+    
+    <div class="section-title">AI/LLM Configuration</div>
+    <p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-bottom:16px;">Transcription → AI auto-SOAP generation pipeline. Each note type will have its own prompt template that the LLM uses to structure the transcribed conversation into the appropriate format.</p>
+    
+    <div class="section-title">Security Settings</div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <div style="font-weight:600;">Session Timeout</div>
+          <div style="font-size:12px;color:var(--text-muted);">Auto-logout after inactivity</div>
+        </div>
+        <select style="max-width:150px;">
+          <option>15 minutes</option>
+          <option selected>30 minutes</option>
+          <option>1 hour</option>
+          <option>Never</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <div style="font-weight:600;">Two-Factor Authentication</div>
+          <div style="font-size:12px;color:var(--text-muted);">Require 2FA for all users</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" style="width:auto;">
+          <span style="font-size:12px;color:var(--text-muted);">Enabled</span>
+        </label>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:600;">Audit Logging</div>
+          <div style="font-size:12px;color:var(--text-muted);">Log all user actions</div>
+        </div>
+        <span class="badge badge-green">Active</span>
+      </div>
+    </div>
     ` : ''}
     
-    <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveMyProfile()">Save Changes</button>
-    </div>
-  `);
-}
-
-function saveMyProfile(){
-  if(!db.users || db.users.length === 0){
-    db.users = [{id: genId(), name: 'Admin User', email: 'admin@amormedical.com', role: 'admin', createdAt: new Date().toISOString()}];
-  }
-  
-  db.users[0].name = document.getElementById('profileName')?.value || db.users[0].name;
-  db.users[0].email = document.getElementById('profileEmail')?.value || db.users[0].email;
-  db.users[0].phone = document.getElementById('profilePhone')?.value || '';
-  
-  saveDB();
-  closeModal();
-  updateUserIndicator();
-  showToast('✅ Profile updated!');
-}
-
-function updateUserIndicator(){
-  const currentUser = db.users?.[0] || {name: 'Admin User', email: 'admin@amormedical.com'};
-  const avatar = document.getElementById('userAvatar');
-  const userName = document.getElementById('userName');
-  const dropdownName = document.getElementById('dropdownUserName');
-  const dropdownEmail = document.getElementById('dropdownUserEmail');
-  
-  if(avatar) avatar.textContent = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2);
-  if(userName) userName.textContent = currentUser.name;
-  if(dropdownName) dropdownName.textContent = currentUser.name;
-  if(dropdownEmail) dropdownEmail.textContent = currentUser.email;
-}
-
-function renderUsers(c){
-  setPageTitle('User Management');
-  
-  const users = db.users || [{id: genId(), name: 'Admin User', email: 'admin@amormedical.com', role: 'admin', createdAt: new Date().toISOString()}];
-  const roleColors = {admin: 'badge-purple', provider: 'badge-blue', staff: 'badge-green', billing: 'badge-yellow'};
-  
-  c.innerHTML = `
-    ${getRefreshHeader('Users', users.length, `<button class="btn btn-primary" onclick="showNewUserModal()">+ Add User</button>`)}
-    
-    <div class="stats-grid" style="margin-bottom:24px;">
-      <div class="stat-card blue"><div class="label">Total Users</div><div class="value">${users.length}</div></div>
-      <div class="stat-card green"><div class="label">Providers</div><div class="value">${users.filter(u => u.role === 'provider').length}</div></div>
-      <div class="stat-card purple"><div class="label">Admins</div><div class="value">${users.filter(u => u.role === 'admin').length}</div></div>
-      <div class="stat-card yellow"><div class="label">Staff</div><div class="value">${users.filter(u => u.role === 'staff' || u.role === 'billing').length}</div></div>
+    <div class="section-title">Quick Links</div>
+    <div class="btn-group" style="margin-bottom:24px;">
+      ${hasPermission('manageUsers') ? '<button class="btn btn-primary" onclick="navigate(\'users\')">👥 User Management</button>' : ''}
+      ${hasPermission('manageUsers') ? '<button class="btn btn-ghost" onclick="showPermissionsMatrix()">📊 Permissions Matrix</button>' : ''}
+      ${hasPermission('accessIntegrations') ? '<button class="btn btn-ghost" onclick="navigate(\'integrations\')">🔌 Integrations</button>' : ''}
     </div>
     
-    <div style="overflow-x:auto;">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Provider</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${users.map(u => {
-            const provider = u.providerId ? db.providers.find(p => p.id === u.providerId) : null;
-            return `
-              <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;">
-                      ${u.name.split(' ').map(n => n[0]).join('').substring(0,2)}
-                    </div>
-                    <strong>${u.name}</strong>
-                  </div>
-                </td>
-                <td>${u.email}</td>
-                <td><span class="badge ${roleColors[u.role] || 'badge-blue'}">${u.role || 'admin'}</span></td>
-                <td>${provider ? provider.name : '—'}</td>
-                <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
-                <td>
-                  <button class="btn btn-ghost btn-sm" onclick="editUserModal('${u.id}')">✏️</button>
-                  <button class="btn btn-ghost btn-sm" onclick="deleteUser('${u.id}')" ${users.length === 1 ? 'disabled title="Cannot delete last user"' : ''}>🗑️</button>
-                </td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-    
-    <div class="section-title" style="margin-top:24px;">Role Permissions</div>
-    <div style="font-size:13px;color:var(--text-muted);line-height:2;">
-      <div><strong>Admin:</strong> Full access to all features, settings, and user management</div>
-      <div><strong>Provider:</strong> Clinical access — patients, encounters, prescriptions, labs</div>
-      <div><strong>Staff:</strong> Front desk — scheduling, check-in, demographics</div>
-      <div><strong>Billing:</strong> Financial — claims, payments, reports</div>
+    <div class="section-title">System Info</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:2;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
+      <div><strong>Version:</strong> 2.0.0 (with Roles & Permissions)</div>
+      <div><strong>Storage:</strong> ${(JSON.stringify(db).length/1024).toFixed(1)} KB</div>
+      <div><strong>Users:</strong> ${db.users.length} (${db.users.filter(u=>u.status==='active').length} active)</div>
+      <div><strong>Patients:</strong> ${db.patients.length} | <strong>Providers:</strong> ${db.providers.length} | <strong>Practices:</strong> ${db.practices.length}</div>
+      <div><strong>Encounters:</strong> ${db.encounters.length} | <strong>Rx:</strong> ${db.prescriptions.length} | <strong>Labs:</strong> ${db.labOrders.length}</div>
     </div>
   `;
 }
 
-function showNewUserModal(){
-  const providerOpts = db.providers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-  
-  showModal(`
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <h3>👤 New User</h3>
-    
-    <div class="form-grid">
-      <div class="form-group"><label>Full Name *</label><input id="nuName" placeholder="John Smith"></div>
-      <div class="form-group"><label>Email *</label><input id="nuEmail" type="email" placeholder="john@amormedical.com"></div>
-      <div class="form-group"><label>Phone</label><input id="nuPhone" placeholder="(305) 555-1234"></div>
-      <div class="form-group"><label>Role *</label>
-        <select id="nuRole" onchange="toggleProviderSelect()">
-          <option value="admin">Admin</option>
-          <option value="provider">Provider</option>
-          <option value="staff">Staff</option>
-          <option value="billing">Billing</option>
-        </select>
-      </div>
-      <div class="form-group" id="providerSelectGroup" style="display:none;">
-        <label>Link to Provider</label>
-        <select id="nuProvider">
-          <option value="">— Select Provider —</option>
-          ${providerOpts}
-        </select>
-      </div>
-    </div>
-    
-    <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="createUser()">Create User</button>
-    </div>
-  `);
-}
-
-function toggleProviderSelect(){
-  const role = document.getElementById('nuRole')?.value;
-  const group = document.getElementById('providerSelectGroup');
-  if(group) group.style.display = role === 'provider' ? 'block' : 'none';
-}
-
-function createUser(){
-  const name = document.getElementById('nuName')?.value?.trim();
-  const email = document.getElementById('nuEmail')?.value?.trim();
-  
-  if(!name || !email){
-    alert('Name and email are required');
-    return;
-  }
-  
-  if(!db.users) db.users = [];
-  
-  const user = {
-    id: genId(),
-    name: name,
-    email: email,
-    phone: document.getElementById('nuPhone')?.value || '',
-    role: document.getElementById('nuRole')?.value || 'admin',
-    providerId: document.getElementById('nuProvider')?.value || null,
-    createdAt: new Date().toISOString()
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (confirm('Replace all data with imported file? This cannot be undone.')) {
+          db = data;
+          saveDB();
+          location.reload();
+        }
+      } catch (err) {
+        alert('Invalid JSON file');
+      }
+    };
+    reader.readAsText(file);
   };
-  
-  db.users.push(user);
-  saveDB();
-  closeModal();
-  render();
+  input.click();
 }
-
-function editUserModal(id){
-  const user = (db.users || []).find(u => u.id === id);
-  if(!user) return;
-  
-  const providerOpts = db.providers.map(p => `<option value="${p.id}" ${p.id === user.providerId ? 'selected' : ''}>${p.name}</option>`).join('');
-  const roles = ['admin', 'provider', 'staff', 'billing'];
-  
-  showModal(`
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <h3>✏️ Edit User</h3>
-    
-    <div class="form-grid">
-      <div class="form-group"><label>Full Name *</label><input id="euName" value="${user.name}"></div>
-      <div class="form-group"><label>Email *</label><input id="euEmail" type="email" value="${user.email}"></div>
-      <div class="form-group"><label>Phone</label><input id="euPhone" value="${user.phone || ''}"></div>
-      <div class="form-group"><label>Role *</label>
-        <select id="euRole">
-          ${roles.map(r => `<option value="${r}" ${user.role === r ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Link to Provider</label>
-        <select id="euProvider">
-          <option value="">— None —</option>
-          ${providerOpts}
-        </select>
-      </div>
-    </div>
-    
-    <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveUserEdit('${id}')">Save Changes</button>
-    </div>
-  `);
-}
-
-function saveUserEdit(id){
-  const user = (db.users || []).find(u => u.id === id);
-  if(!user) return;
-  
-  user.name = document.getElementById('euName')?.value || user.name;
-  user.email = document.getElementById('euEmail')?.value || user.email;
-  user.phone = document.getElementById('euPhone')?.value || '';
-  user.role = document.getElementById('euRole')?.value || user.role;
-  user.providerId = document.getElementById('euProvider')?.value || null;
-  
-  saveDB();
-  closeModal();
-  render();
-  
-  // Update indicator if editing current user
-  if(db.users.indexOf(user) === 0) updateUserIndicator();
-}
-
-function deleteUser(id){
-  if(!db.users || db.users.length <= 1){
-    alert('Cannot delete the last user');
-    return;
-  }
-  
-  const user = db.users.find(u => u.id === id);
-  if(!user) return;
-  
-  if(confirm(`Delete user: ${user.name}?`)){
-    db.users = db.users.filter(u => u.id !== id);
-    saveDB();
-    render();
-  }
-}
+function exportData(){const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='amor-emr-backup.json';a.click();}
 
 // ═══════ MODAL SYSTEM ═══════
 function showModal(html,large){
@@ -12510,6 +12311,17 @@ document.addEventListener('keydown', (e) => {
 
 // ═══════ INIT ═══════
 loadDB();
+
+// Ensure current user exists
+if (!db.currentUserId || !db.users.find(u => u.id === db.currentUserId)) {
+  db.currentUserId = db.users[0]?.id || null;
+  saveDB();
+}
+
+// Initialize user indicator and permissions
+updateUserIndicator();
+updateSidebarPermissions();
+
 render();
 initPullToRefresh();
 
@@ -12521,11 +12333,17 @@ render = function() {
     initPullToRefresh();
     initMobileUI();
     updateMobileNavState();
+    updateUserIndicator();
+    updateSidebarPermissions();
   }, 50);
 };
 
 // Initial mobile UI setup
-document.addEventListener('DOMContentLoaded', initMobileUI);
+document.addEventListener('DOMContentLoaded', () => {
+  initMobileUI();
+  updateUserIndicator();
+  updateSidebarPermissions();
+});
 setTimeout(initMobileUI, 100);
 </script>
 </body>
