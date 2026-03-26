@@ -17,7 +17,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 button{cursor:pointer;font-family:inherit;}
 input,select,textarea{font-family:inherit;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;outline:none;transition:border .2s;width:100%;}
 input:focus,select:focus,textarea:focus{border-color:var(--primary);}
-textarea{resize:vertical;min-height:80px;}
+textarea{resize:vertical;min-height:80px;-webkit-user-select:text;user-select:text;touch-action:manipulation;pointer-events:auto;}
 select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
 
 .app{display:flex;height:100vh;width:100vw;}
@@ -7068,7 +7068,7 @@ function addAmendment(id) {
     </p>
     <div class="form-group">
       <label>Amendment Text *</label>
-      <textarea id="amendmentText" rows="6" placeholder="Enter amendment/addendum text..."></textarea>
+      <textarea id="amendmentText" rows="6" placeholder="Enter amendment/addendum text..." style="pointer-events:auto;-webkit-user-select:text;user-select:text;touch-action:manipulation;"></textarea>
     </div>
     <div class="form-group">
       <label>Reason for Amendment</label>
