@@ -734,6 +734,7 @@ let patientFilters = {
   search: '',
   insurance: '',
   provider: '',
+  practice: '',
   status: '',
   visitFrom: '',
   visitTo: ''
@@ -779,6 +780,13 @@ function renderPatients(c){
           </select>
         </div>
         <div class="form-group">
+          <label>Practice</label>
+          <select id="ptFilterPractice" onchange="applyPatientFilters()">
+            <option value="">All Practices</option>
+            ${db.practices.map(p => `<option value="${p.id}" ${patientFilters.practice===p.id?'selected':''}>${p.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
           <label>Status</label>
           <select id="ptFilterStatus" onchange="applyPatientFilters()">
             <option value="">All Status</option>
@@ -821,6 +829,7 @@ function renderPatients(c){
             <th onclick="sortPatients('dob')" style="cursor:pointer;">DOB ↕</th>
             <th>Phone</th>
             <th>Insurance</th>
+            <th>Practice</th>
             <th>Provider</th>
             <th>Last Visit</th>
             <th>Status</th>
@@ -836,6 +845,7 @@ function renderPatients(c){
 function renderPatientRows(pts){
   return pts.map(p=>{
     const pv=db.providers.find(x=>x.id===p.providerId);
+    const pr=db.practices.find(x=>x.id===p.practiceId);
     const lastVisit = getPatientLastVisit(p.id);
     const status = p.status || 'active';
     const statusBadge = status === 'active' 
@@ -853,11 +863,12 @@ function renderPatientRows(pts){
       <td>${p.dob}</td>
       <td>${p.phone || '—'}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.insurancePrimary||'Self-Pay'}</td>
+      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${pr?pr.name:''}">${pr?(pr.logo||'🏥')+' '+pr.name:'—'}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pv?pv.name:'—'}</td>
       <td>${lastVisit || '—'}</td>
       <td>${statusBadge}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-dim);">No patients found</td></tr>';
+  }).join('') || '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-dim);">No patients found</td></tr>';
 }
 
 function getPatientLastVisit(patientId) {
@@ -871,6 +882,7 @@ function filterPatientsAdvanced() {
   const search = (document.getElementById('ptSearchText')?.value || patientFilters.search || '').toLowerCase();
   const insurance = document.getElementById('ptFilterIns')?.value || patientFilters.insurance || '';
   const provider = document.getElementById('ptFilterProv')?.value || patientFilters.provider || '';
+  const practice = document.getElementById('ptFilterPractice')?.value || patientFilters.practice || '';
   const status = document.getElementById('ptFilterStatus')?.value || patientFilters.status || '';
   const visitFrom = document.getElementById('ptFilterVisitFrom')?.value || patientFilters.visitFrom || '';
   const visitTo = document.getElementById('ptFilterVisitTo')?.value || patientFilters.visitTo || '';
@@ -892,6 +904,10 @@ function filterPatientsAdvanced() {
   
   if (provider) {
     results = results.filter(p => p.providerId === provider);
+  }
+  
+  if (practice) {
+    results = results.filter(p => p.practiceId === practice);
   }
   
   if (status) {
@@ -919,6 +935,7 @@ function applyPatientFilters() {
   patientFilters.search = document.getElementById('ptSearchText')?.value || '';
   patientFilters.insurance = document.getElementById('ptFilterIns')?.value || '';
   patientFilters.provider = document.getElementById('ptFilterProv')?.value || '';
+  patientFilters.practice = document.getElementById('ptFilterPractice')?.value || '';
   patientFilters.status = document.getElementById('ptFilterStatus')?.value || '';
   patientFilters.visitFrom = document.getElementById('ptFilterVisitFrom')?.value || '';
   patientFilters.visitTo = document.getElementById('ptFilterVisitTo')?.value || '';
@@ -928,7 +945,7 @@ function applyPatientFilters() {
 }
 
 function clearPatientFilters() {
-  patientFilters = { search: '', insurance: '', provider: '', status: '', visitFrom: '', visitTo: '' };
+  patientFilters = { search: '', insurance: '', provider: '', practice: '', status: '', visitFrom: '', visitTo: '' };
   render();
 }
 
@@ -4734,14 +4751,237 @@ function deleteProviderConfirm(id){
   }
 }
 
-// ═══════ NEW PRACTICE ═══════
+// ═══════ NEW PRACTICE (Enhanced) ═══════
 function showNewPracticeModal(){
-  showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>New Practice</h3><div class="form-grid"><div class="form-group full"><label>Name *</label><input id="nrN"></div><div class="form-group full"><label>Street</label><input id="nrSt"></div><div class="form-group"><label>City</label><input id="nrCi"></div><div class="form-group"><label>State</label><input id="nrSa" maxlength="2"></div><div class="form-group"><label>Zip</label><input id="nrZi"></div><div class="form-group"><label>Phone</label><input id="nrPh"></div><div class="form-group"><label>NPI</label><input id="nrNp"></div><div class="form-group"><label>Tax ID</label><input id="nrTx"></div><div class="form-group"><label>Specialty *</label><input id="nrSp"></div></div><div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createPractice()">Create</button></div>`);
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>🏥 New Practice</h3>
+    
+    <div class="section-title" style="margin-top:0;">Basic Information</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:span 2;"><label>Practice Name *</label><input id="nrN" placeholder="Amor Medical Group"></div>
+      <div class="form-group"><label>Logo Emoji</label><input id="nrLogo" placeholder="🏥 or 💙" maxlength="2" style="font-size:24px;text-align:center;"></div>
+      <div class="form-group full"><label>Specialty *</label>
+        <select id="nrSp">
+          <option value="">Select Specialty...</option>
+          <option value="Primary Care">Primary Care</option>
+          <option value="Internal Medicine">Internal Medicine</option>
+          <option value="Family Medicine">Family Medicine</option>
+          <option value="Endocrinology & Primary Care">Endocrinology & Primary Care</option>
+          <option value="Cardiology">Cardiology</option>
+          <option value="Orthopedics & Sports Medicine">Orthopedics & Sports Medicine</option>
+          <option value="Multi-Specialty">Multi-Specialty</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="section-title">Location</div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Street Address *</label><input id="nrSt" placeholder="123 Medical Center Blvd, Suite 100"></div>
+      <div class="form-group"><label>City *</label><input id="nrCi" placeholder="Miami"></div>
+      <div class="form-group"><label>State *</label><input id="nrSa" maxlength="2" placeholder="FL" style="text-transform:uppercase;"></div>
+      <div class="form-group"><label>Zip *</label><input id="nrZi" placeholder="33101"></div>
+    </div>
+    
+    <div class="section-title">Contact</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Phone *</label><input id="nrPh" placeholder="(305) 555-1234"></div>
+      <div class="form-group"><label>Fax</label><input id="nrFax" placeholder="(305) 555-1235"></div>
+      <div class="form-group"><label>Email</label><input id="nrEmail" type="email" placeholder="info@practice.com"></div>
+      <div class="form-group"><label>Website</label><input id="nrWeb" placeholder="https://practice.com"></div>
+    </div>
+    
+    <div class="section-title">Identifiers</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Practice NPI</label><input id="nrNp" placeholder="10-digit NPI"></div>
+      <div class="form-group"><label>Tax ID (EIN)</label><input id="nrTx" placeholder="XX-XXXXXXX"></div>
+    </div>
+    
+    <div class="section-title">Practice Hours</div>
+    <div class="form-grid-4" style="font-size:12px;">
+      <div class="form-group"><label>Mon</label><input id="nrHMon" placeholder="8:00-17:00" value="8:00-17:00"></div>
+      <div class="form-group"><label>Tue</label><input id="nrHTue" placeholder="8:00-17:00" value="8:00-17:00"></div>
+      <div class="form-group"><label>Wed</label><input id="nrHWed" placeholder="8:00-17:00" value="8:00-17:00"></div>
+      <div class="form-group"><label>Thu</label><input id="nrHThu" placeholder="8:00-17:00" value="8:00-17:00"></div>
+      <div class="form-group"><label>Fri</label><input id="nrHFri" placeholder="8:00-17:00" value="8:00-17:00"></div>
+      <div class="form-group"><label>Sat</label><input id="nrHSat" placeholder="closed" value="closed"></div>
+      <div class="form-group"><label>Sun</label><input id="nrHSun" placeholder="closed" value="closed"></div>
+    </div>
+    
+    <div class="form-group">
+      <label><input type="checkbox" id="nrAccepting" checked style="width:auto;margin-right:8px;">Accepting New Patients</label>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createPractice()">Create Practice</button>
+    </div>
+  `, true);
 }
-function createPractice(){const p={id:genId(),name:document.getElementById('nrN').value,street:document.getElementById('nrSt').value,city:document.getElementById('nrCi').value,state:document.getElementById('nrSa').value,zip:document.getElementById('nrZi').value,phone:document.getElementById('nrPh').value,npi:document.getElementById('nrNp').value,taxId:document.getElementById('nrTx').value,specialty:document.getElementById('nrSp').value,createdAt:new Date().toISOString()};if(!p.name){alert('Name required');return;}db.practices.push(p);saveDB();closeModal();render();}
-function editPracticeModal(id){const p=db.practices.find(x=>x.id===id);if(!p)return;showModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Edit — ${p.name}</h3><div class="form-grid"><div class="form-group full"><label>Name</label><input id="erN" value="${p.name}"></div><div class="form-group full"><label>Street</label><input id="erSt" value="${p.street||''}"></div><div class="form-group"><label>City</label><input id="erCi" value="${p.city||''}"></div><div class="form-group"><label>State</label><input id="erSa" value="${p.state||''}"></div><div class="form-group"><label>Zip</label><input id="erZi" value="${p.zip||''}"></div><div class="form-group"><label>Phone</label><input id="erPh" value="${p.phone||''}"></div><div class="form-group"><label>NPI</label><input id="erNp" value="${p.npi||''}"></div><div class="form-group"><label>Tax ID</label><input id="erTx" value="${p.taxId||''}"></div><div class="form-group"><label>Specialty</label><input id="erSp" value="${p.specialty||''}"></div></div><div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="savePracticeEdit('${id}')">Save</button></div>`);
+
+function createPractice(){
+  const p = {
+    id: genId(),
+    name: document.getElementById('nrN').value.trim(),
+    logo: document.getElementById('nrLogo').value.trim() || '🏥',
+    specialty: document.getElementById('nrSp').value,
+    street: document.getElementById('nrSt').value.trim(),
+    city: document.getElementById('nrCi').value.trim(),
+    state: document.getElementById('nrSa').value.trim().toUpperCase(),
+    zip: document.getElementById('nrZi').value.trim(),
+    phone: document.getElementById('nrPh').value.trim(),
+    fax: document.getElementById('nrFax').value.trim(),
+    email: document.getElementById('nrEmail').value.trim(),
+    website: document.getElementById('nrWeb').value.trim(),
+    npi: document.getElementById('nrNp').value.trim(),
+    taxId: document.getElementById('nrTx').value.trim(),
+    hours: {
+      mon: document.getElementById('nrHMon').value || 'closed',
+      tue: document.getElementById('nrHTue').value || 'closed',
+      wed: document.getElementById('nrHWed').value || 'closed',
+      thu: document.getElementById('nrHThu').value || 'closed',
+      fri: document.getElementById('nrHFri').value || 'closed',
+      sat: document.getElementById('nrHSat').value || 'closed',
+      sun: document.getElementById('nrHSun').value || 'closed'
+    },
+    acceptingPatients: document.getElementById('nrAccepting').checked,
+    createdAt: new Date().toISOString()
+  };
+  
+  if(!p.name || !p.specialty){
+    alert('Name and specialty are required');
+    return;
+  }
+  
+  db.practices.push(p);
+  saveDB();
+  closeModal();
+  openPracticeDetail(p.id); // Open the new practice's detail page
 }
-function savePracticeEdit(id){const p=db.practices.find(x=>x.id===id);if(!p)return;p.name=document.getElementById('erN').value;p.street=document.getElementById('erSt').value;p.city=document.getElementById('erCi').value;p.state=document.getElementById('erSa').value;p.zip=document.getElementById('erZi').value;p.phone=document.getElementById('erPh').value;p.npi=document.getElementById('erNp').value;p.taxId=document.getElementById('erTx').value;p.specialty=document.getElementById('erSp').value;saveDB();closeModal();render();}
+
+function editPracticeModal(id){
+  const p = db.practices.find(x => x.id === id);
+  if(!p) return;
+  
+  const h = p.hours || {};
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✏️ Edit Practice — ${p.name}</h3>
+    
+    <div class="section-title" style="margin-top:0;">Basic Information</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:span 2;"><label>Practice Name *</label><input id="erN" value="${p.name}"></div>
+      <div class="form-group"><label>Logo Emoji</label><input id="erLogo" value="${p.logo||'🏥'}" maxlength="2" style="font-size:24px;text-align:center;"></div>
+      <div class="form-group full"><label>Specialty</label><input id="erSp" value="${p.specialty||''}"></div>
+    </div>
+    
+    <div class="section-title">Location</div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Street</label><input id="erSt" value="${p.street||''}"></div>
+      <div class="form-group"><label>City</label><input id="erCi" value="${p.city||''}"></div>
+      <div class="form-group"><label>State</label><input id="erSa" value="${p.state||''}" maxlength="2"></div>
+      <div class="form-group"><label>Zip</label><input id="erZi" value="${p.zip||''}"></div>
+    </div>
+    
+    <div class="section-title">Contact</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Phone</label><input id="erPh" value="${p.phone||''}"></div>
+      <div class="form-group"><label>Fax</label><input id="erFax" value="${p.fax||''}"></div>
+      <div class="form-group"><label>Email</label><input id="erEmail" value="${p.email||''}"></div>
+      <div class="form-group"><label>Website</label><input id="erWeb" value="${p.website||''}"></div>
+    </div>
+    
+    <div class="section-title">Identifiers</div>
+    <div class="form-grid">
+      <div class="form-group"><label>NPI</label><input id="erNp" value="${p.npi||''}"></div>
+      <div class="form-group"><label>Tax ID</label><input id="erTx" value="${p.taxId||''}"></div>
+    </div>
+    
+    <div class="section-title">Practice Hours</div>
+    <div class="form-grid-4" style="font-size:12px;">
+      <div class="form-group"><label>Mon</label><input id="erHMon" value="${h.mon||'closed'}"></div>
+      <div class="form-group"><label>Tue</label><input id="erHTue" value="${h.tue||'closed'}"></div>
+      <div class="form-group"><label>Wed</label><input id="erHWed" value="${h.wed||'closed'}"></div>
+      <div class="form-group"><label>Thu</label><input id="erHThu" value="${h.thu||'closed'}"></div>
+      <div class="form-group"><label>Fri</label><input id="erHFri" value="${h.fri||'closed'}"></div>
+      <div class="form-group"><label>Sat</label><input id="erHSat" value="${h.sat||'closed'}"></div>
+      <div class="form-group"><label>Sun</label><input id="erHSun" value="${h.sun||'closed'}"></div>
+    </div>
+    
+    <div class="form-group">
+      <label><input type="checkbox" id="erAccepting" ${p.acceptingPatients !== false ? 'checked' : ''} style="width:auto;margin-right:8px;">Accepting New Patients</label>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-danger" onclick="deletePracticeConfirm('${id}')">🗑️ Delete</button>
+      <div style="flex:1;"></div>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePracticeEdit('${id}')">Save</button>
+    </div>
+  `, true);
+}
+
+function savePracticeEdit(id){
+  const p = db.practices.find(x => x.id === id);
+  if(!p) return;
+  
+  p.name = document.getElementById('erN').value;
+  p.logo = document.getElementById('erLogo').value || '🏥';
+  p.specialty = document.getElementById('erSp').value;
+  p.street = document.getElementById('erSt').value;
+  p.city = document.getElementById('erCi').value;
+  p.state = document.getElementById('erSa').value.toUpperCase();
+  p.zip = document.getElementById('erZi').value;
+  p.phone = document.getElementById('erPh').value;
+  p.fax = document.getElementById('erFax').value;
+  p.email = document.getElementById('erEmail').value;
+  p.website = document.getElementById('erWeb').value;
+  p.npi = document.getElementById('erNp').value;
+  p.taxId = document.getElementById('erTx').value;
+  p.hours = {
+    mon: document.getElementById('erHMon').value || 'closed',
+    tue: document.getElementById('erHTue').value || 'closed',
+    wed: document.getElementById('erHWed').value || 'closed',
+    thu: document.getElementById('erHThu').value || 'closed',
+    fri: document.getElementById('erHFri').value || 'closed',
+    sat: document.getElementById('erHSat').value || 'closed',
+    sun: document.getElementById('erHSun').value || 'closed'
+  };
+  p.acceptingPatients = document.getElementById('erAccepting').checked;
+  
+  saveDB();
+  closeModal();
+  if(selectedPractice && selectedPractice.id === id) selectedPractice = p;
+  render();
+}
+
+function deletePracticeConfirm(id){
+  const p = db.practices.find(x => x.id === id);
+  if(!p) return;
+  
+  const patientCount = db.patients.filter(pt => pt.practiceId === id).length;
+  const providerCount = (db.providerPractices||[]).filter(pp => pp.practiceId === id).length;
+  
+  if(patientCount > 0 || providerCount > 0){
+    alert(`Cannot delete practice with existing records.\n\nThis practice has:\n- ${patientCount} patient(s)\n- ${providerCount} provider affiliation(s)`);
+    return;
+  }
+  
+  if(confirm(`Delete practice: ${p.name}?\n\nThis action cannot be undone.`)){
+    const idx = db.practices.findIndex(x => x.id === id);
+    if(idx > -1){
+      db.practices.splice(idx, 1);
+      // Remove locations
+      db.locations = (db.locations||[]).filter(l => l.practiceId !== id);
+      saveDB();
+      closeModal();
+      selectedPractice = null;
+      navigate('practices');
+    }
+  }
+}
 
 // ═══════ NEW ENCOUNTER ═══════
 function showNewEncounterModal(patientId){
