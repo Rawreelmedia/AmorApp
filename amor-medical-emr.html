@@ -761,6 +761,7 @@ function renderExecutive(c){
   const maxEnc=Math.max(...provProd.map(p=>p.cnt),1);
 
   c.innerHTML=`
+    ${getRefreshHeader('Executive View', null, '')}
     <div class="stats-grid">
       <div class="stat-card blue"><div class="label">Total Encounters</div><div class="value">${totalEnc}</div></div>
       <div class="stat-card green"><div class="label">Signed</div><div class="value">${signed}</div></div>
@@ -5311,39 +5312,684 @@ const rxPharmacies = [
   {name:'CVS Caremark',address:'Mail Order',city:'Phoenix',state:'AZ',zip:'85040',phone:'(866) 416-2880',fax:'(800) 378-0323',type:'mail-order'},
 ];
 
-// Common ICD-10 Diagnosis Codes
-const commonICD10 = [
-  {code:'E11.9',desc:'Type 2 diabetes mellitus without complications'},
-  {code:'E11.65',desc:'Type 2 DM with hyperglycemia'},
-  {code:'E11.40',desc:'Type 2 DM with diabetic neuropathy'},
-  {code:'E11.21',desc:'Type 2 DM with diabetic nephropathy'},
-  {code:'E10.9',desc:'Type 1 diabetes mellitus without complications'},
-  {code:'E03.9',desc:'Hypothyroidism, unspecified'},
-  {code:'E05.90',desc:'Thyrotoxicosis, unspecified'},
-  {code:'I10',desc:'Essential (primary) hypertension'},
-  {code:'I25.10',desc:'Atherosclerotic heart disease'},
-  {code:'I48.91',desc:'Unspecified atrial fibrillation'},
-  {code:'I50.9',desc:'Heart failure, unspecified'},
-  {code:'J06.9',desc:'Acute upper respiratory infection'},
-  {code:'J20.9',desc:'Acute bronchitis, unspecified'},
-  {code:'J45.909',desc:'Unspecified asthma, uncomplicated'},
-  {code:'J44.9',desc:'COPD, unspecified'},
-  {code:'K21.0',desc:'GERD with esophagitis'},
-  {code:'K59.00',desc:'Constipation, unspecified'},
-  {code:'M54.5',desc:'Low back pain'},
-  {code:'M79.3',desc:'Panniculitis, unspecified'},
-  {code:'G43.909',desc:'Migraine, unspecified'},
-  {code:'G47.00',desc:'Insomnia, unspecified'},
-  {code:'F32.9',desc:'Major depressive disorder, single episode'},
-  {code:'F41.1',desc:'Generalized anxiety disorder'},
-  {code:'F41.9',desc:'Anxiety disorder, unspecified'},
-  {code:'N39.0',desc:'Urinary tract infection, site not specified'},
-  {code:'R05.9',desc:'Cough, unspecified'},
-  {code:'R10.9',desc:'Unspecified abdominal pain'},
-  {code:'R50.9',desc:'Fever, unspecified'},
-  {code:'Z00.00',desc:'Encounter for general adult medical exam'},
-  {code:'Z23',desc:'Encounter for immunization'},
+// ═══════════════════════════════════════════
+// COMPREHENSIVE ICD-10 CODE DATABASE (200+ codes)
+// ═══════════════════════════════════════════
+const ICD10_DATABASE = [
+  // ═══════ ENDOCRINOLOGY (E00-E89) ═══════
+  // Thyroid Disorders (E00-E07)
+  {code:'E00.0',desc:'Congenital iodine-deficiency syndrome, neurological type',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E00.9',desc:'Congenital iodine-deficiency syndrome, unspecified',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E01.0',desc:'Iodine-deficiency related diffuse (endemic) goiter',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E01.1',desc:'Iodine-deficiency related multinodular (endemic) goiter',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E02',desc:'Subclinical iodine-deficiency hypothyroidism',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E03.0',desc:'Congenital hypothyroidism with diffuse goiter',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E03.1',desc:'Congenital hypothyroidism without goiter',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E03.2',desc:'Hypothyroidism due to medicaments and other exogenous substances',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E03.3',desc:'Postinfectious hypothyroidism',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E03.4',desc:'Atrophy of thyroid (acquired)',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E03.5',desc:'Myxedema coma',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E03.8',desc:'Other specified hypothyroidism',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E03.9',desc:'Hypothyroidism, unspecified',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E04.0',desc:'Nontoxic diffuse goiter',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E04.1',desc:'Nontoxic single thyroid nodule',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E04.2',desc:'Nontoxic multinodular goiter',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E04.9',desc:'Nontoxic goiter, unspecified',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E05.00',desc:'Thyrotoxicosis with diffuse goiter without thyrotoxic crisis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E05.01',desc:'Thyrotoxicosis with diffuse goiter with thyrotoxic crisis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E05.10',desc:'Thyrotoxicosis with toxic single thyroid nodule without crisis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E05.20',desc:'Thyrotoxicosis with toxic multinodular goiter without crisis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E05.30',desc:'Thyrotoxicosis from ectopic thyroid tissue without crisis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E05.40',desc:'Thyrotoxicosis factitia without thyrotoxic crisis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E05.80',desc:'Other thyrotoxicosis without thyrotoxic crisis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E05.90',desc:'Thyrotoxicosis, unspecified without thyrotoxic crisis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E06.0',desc:'Acute thyroiditis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E06.1',desc:'Subacute thyroiditis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E06.2',desc:'Chronic thyroiditis with transient thyrotoxicosis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E06.3',desc:'Autoimmune thyroiditis (Hashimoto)',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E06.4',desc:'Drug-induced thyroiditis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E06.5',desc:'Other chronic thyroiditis',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E06.9',desc:'Thyroiditis, unspecified',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E07.0',desc:'Hypersecretion of calcitonin',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E07.1',desc:'Dyshormogenetic goiter',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E07.81',desc:'Sick-euthyroid syndrome',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E07.89',desc:'Other specified disorders of thyroid',category:'Endocrinology',subcategory:'Thyroid'},
+  {code:'E07.9',desc:'Disorder of thyroid, unspecified',category:'Endocrinology',subcategory:'Thyroid'},
+  
+  // Diabetes Mellitus - Type 1 (E10)
+  {code:'E10.10',desc:'Type 1 diabetes mellitus with ketoacidosis without coma',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.11',desc:'Type 1 diabetes mellitus with ketoacidosis with coma',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.21',desc:'Type 1 diabetes mellitus with diabetic nephropathy',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.22',desc:'Type 1 diabetes mellitus with diabetic chronic kidney disease',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.29',desc:'Type 1 diabetes mellitus with other diabetic kidney complication',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.311',desc:'Type 1 DM with unspecified diabetic retinopathy with macular edema',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.319',desc:'Type 1 DM with unspecified diabetic retinopathy without macular edema',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.36',desc:'Type 1 diabetes mellitus with diabetic cataract',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.40',desc:'Type 1 diabetes mellitus with diabetic neuropathy, unspecified',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.41',desc:'Type 1 diabetes mellitus with diabetic mononeuropathy',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.42',desc:'Type 1 diabetes mellitus with diabetic polyneuropathy',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.43',desc:'Type 1 diabetes mellitus with diabetic autonomic neuropathy',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.44',desc:'Type 1 diabetes mellitus with diabetic amyotrophy',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.51',desc:'Type 1 diabetes mellitus with diabetic peripheral angiopathy without gangrene',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.52',desc:'Type 1 diabetes mellitus with diabetic peripheral angiopathy with gangrene',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.59',desc:'Type 1 diabetes mellitus with other circulatory complications',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.610',desc:'Type 1 diabetes mellitus with diabetic neuropathic arthropathy',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.618',desc:'Type 1 diabetes mellitus with other diabetic arthropathy',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.620',desc:'Type 1 diabetes mellitus with diabetic dermatitis',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.621',desc:'Type 1 diabetes mellitus with foot ulcer',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.622',desc:'Type 1 diabetes mellitus with other skin ulcer',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.628',desc:'Type 1 diabetes mellitus with other skin complications',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.630',desc:'Type 1 diabetes mellitus with periodontal disease',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.638',desc:'Type 1 diabetes mellitus with other oral complications',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.641',desc:'Type 1 diabetes mellitus with hypoglycemia with coma',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.649',desc:'Type 1 diabetes mellitus with hypoglycemia without coma',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.65',desc:'Type 1 diabetes mellitus with hyperglycemia',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.69',desc:'Type 1 diabetes mellitus with other specified complication',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.8',desc:'Type 1 diabetes mellitus with unspecified complications',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  {code:'E10.9',desc:'Type 1 diabetes mellitus without complications',category:'Endocrinology',subcategory:'Diabetes Type 1'},
+  
+  // Diabetes Mellitus - Type 2 (E11)
+  {code:'E11.00',desc:'Type 2 diabetes mellitus with hyperosmolarity without NKHHC',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.01',desc:'Type 2 diabetes mellitus with hyperosmolarity with coma',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.10',desc:'Type 2 diabetes mellitus with ketoacidosis without coma',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.11',desc:'Type 2 diabetes mellitus with ketoacidosis with coma',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.21',desc:'Type 2 diabetes mellitus with diabetic nephropathy',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.22',desc:'Type 2 diabetes mellitus with diabetic chronic kidney disease',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.29',desc:'Type 2 diabetes mellitus with other diabetic kidney complication',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.311',desc:'Type 2 DM with unspecified diabetic retinopathy with macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.319',desc:'Type 2 DM with unspecified diabetic retinopathy without macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.321',desc:'Type 2 DM with mild nonproliferative retinopathy with macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.329',desc:'Type 2 DM with mild nonproliferative retinopathy without macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.331',desc:'Type 2 DM with moderate nonproliferative retinopathy with macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.339',desc:'Type 2 DM with moderate nonproliferative retinopathy without macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.341',desc:'Type 2 DM with severe nonproliferative retinopathy with macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.349',desc:'Type 2 DM with severe nonproliferative retinopathy without macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.351',desc:'Type 2 DM with proliferative diabetic retinopathy with macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.359',desc:'Type 2 DM with proliferative diabetic retinopathy without macular edema',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.36',desc:'Type 2 diabetes mellitus with diabetic cataract',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.37X1',desc:'Type 2 DM with diabetic macular edema, resolved following treatment, right eye',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.40',desc:'Type 2 diabetes mellitus with diabetic neuropathy, unspecified',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.41',desc:'Type 2 diabetes mellitus with diabetic mononeuropathy',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.42',desc:'Type 2 diabetes mellitus with diabetic polyneuropathy',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.43',desc:'Type 2 diabetes mellitus with diabetic autonomic (poly)neuropathy',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.44',desc:'Type 2 diabetes mellitus with diabetic amyotrophy',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.49',desc:'Type 2 diabetes mellitus with other diabetic neurological complication',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.51',desc:'Type 2 DM with diabetic peripheral angiopathy without gangrene',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.52',desc:'Type 2 DM with diabetic peripheral angiopathy with gangrene',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.59',desc:'Type 2 diabetes mellitus with other circulatory complications',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.610',desc:'Type 2 diabetes mellitus with diabetic neuropathic arthropathy',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.618',desc:'Type 2 diabetes mellitus with other diabetic arthropathy',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.620',desc:'Type 2 diabetes mellitus with diabetic dermatitis',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.621',desc:'Type 2 diabetes mellitus with foot ulcer',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.622',desc:'Type 2 diabetes mellitus with other skin ulcer',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.628',desc:'Type 2 diabetes mellitus with other skin complications',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.630',desc:'Type 2 diabetes mellitus with periodontal disease',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.638',desc:'Type 2 diabetes mellitus with other oral complications',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.641',desc:'Type 2 diabetes mellitus with hypoglycemia with coma',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.649',desc:'Type 2 diabetes mellitus with hypoglycemia without coma',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.65',desc:'Type 2 diabetes mellitus with hyperglycemia',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.69',desc:'Type 2 diabetes mellitus with other specified complication',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.8',desc:'Type 2 diabetes mellitus with unspecified complications',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  {code:'E11.9',desc:'Type 2 diabetes mellitus without complications',category:'Endocrinology',subcategory:'Diabetes Type 2'},
+  
+  // Other Diabetes Types
+  {code:'E13.9',desc:'Other specified diabetes mellitus without complications',category:'Endocrinology',subcategory:'Diabetes Other'},
+  {code:'E13.65',desc:'Other specified diabetes mellitus with hyperglycemia',category:'Endocrinology',subcategory:'Diabetes Other'},
+  
+  // Obesity & Metabolic (E65-E68)
+  {code:'E66.01',desc:'Morbid (severe) obesity due to excess calories',category:'Endocrinology',subcategory:'Obesity'},
+  {code:'E66.09',desc:'Other obesity due to excess calories',category:'Endocrinology',subcategory:'Obesity'},
+  {code:'E66.1',desc:'Drug-induced obesity',category:'Endocrinology',subcategory:'Obesity'},
+  {code:'E66.2',desc:'Morbid (severe) obesity with alveolar hypoventilation',category:'Endocrinology',subcategory:'Obesity'},
+  {code:'E66.3',desc:'Overweight',category:'Endocrinology',subcategory:'Obesity'},
+  {code:'E66.8',desc:'Other obesity',category:'Endocrinology',subcategory:'Obesity'},
+  {code:'E66.9',desc:'Obesity, unspecified',category:'Endocrinology',subcategory:'Obesity'},
+  {code:'E78.00',desc:'Pure hypercholesterolemia, unspecified',category:'Endocrinology',subcategory:'Lipid Disorders'},
+  {code:'E78.01',desc:'Familial hypercholesterolemia',category:'Endocrinology',subcategory:'Lipid Disorders'},
+  {code:'E78.1',desc:'Pure hyperglyceridemia',category:'Endocrinology',subcategory:'Lipid Disorders'},
+  {code:'E78.2',desc:'Mixed hyperlipidemia',category:'Endocrinology',subcategory:'Lipid Disorders'},
+  {code:'E78.4',desc:'Other hyperlipidemia',category:'Endocrinology',subcategory:'Lipid Disorders'},
+  {code:'E78.5',desc:'Hyperlipidemia, unspecified',category:'Endocrinology',subcategory:'Lipid Disorders'},
+  {code:'E79.0',desc:'Hyperuricemia without signs of inflammatory arthritis and tophaceous disease',category:'Endocrinology',subcategory:'Metabolic'},
+  
+  // Other Endocrine
+  {code:'E20.0',desc:'Idiopathic hypoparathyroidism',category:'Endocrinology',subcategory:'Parathyroid'},
+  {code:'E20.1',desc:'Pseudohypoparathyroidism',category:'Endocrinology',subcategory:'Parathyroid'},
+  {code:'E21.0',desc:'Primary hyperparathyroidism',category:'Endocrinology',subcategory:'Parathyroid'},
+  {code:'E21.1',desc:'Secondary hyperparathyroidism, not elsewhere classified',category:'Endocrinology',subcategory:'Parathyroid'},
+  {code:'E21.3',desc:'Hyperparathyroidism, unspecified',category:'Endocrinology',subcategory:'Parathyroid'},
+  {code:'E22.0',desc:'Acromegaly and pituitary gigantism',category:'Endocrinology',subcategory:'Pituitary'},
+  {code:'E22.1',desc:'Hyperprolactinemia',category:'Endocrinology',subcategory:'Pituitary'},
+  {code:'E22.2',desc:'Syndrome of inappropriate secretion of antidiuretic hormone (SIADH)',category:'Endocrinology',subcategory:'Pituitary'},
+  {code:'E23.0',desc:'Hypopituitarism',category:'Endocrinology',subcategory:'Pituitary'},
+  {code:'E23.2',desc:'Diabetes insipidus',category:'Endocrinology',subcategory:'Pituitary'},
+  {code:'E24.0',desc:'Pituitary-dependent Cushing disease',category:'Endocrinology',subcategory:'Adrenal'},
+  {code:'E24.2',desc:'Drug-induced Cushing syndrome',category:'Endocrinology',subcategory:'Adrenal'},
+  {code:'E24.9',desc:'Cushing syndrome, unspecified',category:'Endocrinology',subcategory:'Adrenal'},
+  {code:'E25.0',desc:'Congenital adrenogenital disorders associated with enzyme deficiency',category:'Endocrinology',subcategory:'Adrenal'},
+  {code:'E26.01',desc:'Conn syndrome (primary aldosteronism)',category:'Endocrinology',subcategory:'Adrenal'},
+  {code:'E27.1',desc:'Primary adrenocortical insufficiency (Addison disease)',category:'Endocrinology',subcategory:'Adrenal'},
+  {code:'E27.2',desc:'Addisonian crisis',category:'Endocrinology',subcategory:'Adrenal'},
+  {code:'E27.40',desc:'Unspecified adrenocortical insufficiency',category:'Endocrinology',subcategory:'Adrenal'},
+  {code:'E28.0',desc:'Estrogen excess',category:'Endocrinology',subcategory:'Gonadal'},
+  {code:'E28.2',desc:'Polycystic ovarian syndrome (PCOS)',category:'Endocrinology',subcategory:'Gonadal'},
+  {code:'E28.310',desc:'Symptomatic premature menopause',category:'Endocrinology',subcategory:'Gonadal'},
+  {code:'E28.39',desc:'Other primary ovarian failure',category:'Endocrinology',subcategory:'Gonadal'},
+  {code:'E29.1',desc:'Testicular hypofunction',category:'Endocrinology',subcategory:'Gonadal'},
+  {code:'E34.9',desc:'Endocrine disorder, unspecified',category:'Endocrinology',subcategory:'Other'},
+  {code:'E55.9',desc:'Vitamin D deficiency, unspecified',category:'Endocrinology',subcategory:'Vitamin D'},
+  {code:'E83.52',desc:'Hypercalcemia',category:'Endocrinology',subcategory:'Calcium'},
+  {code:'E83.51',desc:'Hypocalcemia',category:'Endocrinology',subcategory:'Calcium'},
+  {code:'E87.1',desc:'Hypo-osmolality and hyponatremia',category:'Endocrinology',subcategory:'Electrolytes'},
+  {code:'E87.0',desc:'Hyperosmolality and hypernatremia',category:'Endocrinology',subcategory:'Electrolytes'},
+  {code:'E87.5',desc:'Hyperkalemia',category:'Endocrinology',subcategory:'Electrolytes'},
+  {code:'E87.6',desc:'Hypokalemia',category:'Endocrinology',subcategory:'Electrolytes'},
+  
+  // ═══════ HYPERTENSION (I10-I16) ═══════
+  {code:'I10',desc:'Essential (primary) hypertension',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I11.0',desc:'Hypertensive heart disease with heart failure',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I11.9',desc:'Hypertensive heart disease without heart failure',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I12.0',desc:'Hypertensive chronic kidney disease with stage 5 CKD or ESRD',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I12.9',desc:'Hypertensive chronic kidney disease with stage 1-4 CKD or unspecified',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I13.0',desc:'Hypertensive heart and CKD with heart failure and stage 1-4 CKD',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I13.10',desc:'Hypertensive heart and CKD without heart failure, with stage 1-4 CKD',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I13.11',desc:'Hypertensive heart and CKD without heart failure, with stage 5 CKD or ESRD',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I13.2',desc:'Hypertensive heart and CKD with heart failure and stage 5 CKD or ESRD',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I15.0',desc:'Renovascular hypertension',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I15.1',desc:'Hypertension secondary to other renal disorders',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I15.2',desc:'Hypertension secondary to endocrine disorders',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I15.8',desc:'Other secondary hypertension',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I15.9',desc:'Secondary hypertension, unspecified',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I16.0',desc:'Hypertensive urgency',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I16.1',desc:'Hypertensive emergency',category:'Cardiovascular',subcategory:'Hypertension'},
+  {code:'I16.9',desc:'Hypertensive crisis, unspecified',category:'Cardiovascular',subcategory:'Hypertension'},
+  
+  // ═══════ CARDIOVASCULAR (I20-I52) ═══════
+  // Ischemic Heart Disease
+  {code:'I20.0',desc:'Unstable angina',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I20.1',desc:'Angina pectoris with documented spasm (Prinzmetal)',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I20.8',desc:'Other forms of angina pectoris',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I20.9',desc:'Angina pectoris, unspecified',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.01',desc:'ST elevation (STEMI) MI involving left main coronary artery',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.02',desc:'ST elevation (STEMI) MI involving left anterior descending artery',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.09',desc:'ST elevation (STEMI) MI involving other coronary artery of anterior wall',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.11',desc:'ST elevation (STEMI) MI involving right coronary artery',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.19',desc:'ST elevation (STEMI) MI involving other coronary artery of inferior wall',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.21',desc:'ST elevation (STEMI) MI involving left circumflex coronary artery',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.29',desc:'ST elevation (STEMI) MI involving other sites',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.3',desc:'ST elevation (STEMI) MI of unspecified site',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.4',desc:'Non-ST elevation (NSTEMI) myocardial infarction',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I21.9',desc:'Acute myocardial infarction, unspecified',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.10',desc:'Atherosclerotic heart disease of native coronary artery without angina',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.110',desc:'Atherosclerotic heart disease of native coronary artery with unstable angina',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.111',desc:'Atherosclerotic heart disease of native coronary artery with angina pectoris with documented spasm',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.118',desc:'Atherosclerotic heart disease of native coronary artery with other forms of angina',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.119',desc:'Atherosclerotic heart disease of native coronary artery with unspecified angina',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.2',desc:'Old myocardial infarction',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.5',desc:'Ischemic cardiomyopathy',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.6',desc:'Silent myocardial ischemia',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.700',desc:'Atherosclerosis of coronary artery bypass graft, unspecified',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.810',desc:'Atherosclerosis of coronary artery bypass graft without angina pectoris',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.82',desc:'Chronic total occlusion of coronary artery',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.83',desc:'Coronary atherosclerosis due to lipid rich plaque',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.84',desc:'Coronary atherosclerosis due to calcified coronary lesion',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.89',desc:'Other forms of chronic ischemic heart disease',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  {code:'I25.9',desc:'Chronic ischemic heart disease, unspecified',category:'Cardiovascular',subcategory:'Ischemic Heart'},
+  
+  // Heart Failure
+  {code:'I50.1',desc:'Left ventricular failure, unspecified',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.20',desc:'Unspecified systolic (congestive) heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.21',desc:'Acute systolic (congestive) heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.22',desc:'Chronic systolic (congestive) heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.23',desc:'Acute on chronic systolic (congestive) heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.30',desc:'Unspecified diastolic (congestive) heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.31',desc:'Acute diastolic (congestive) heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.32',desc:'Chronic diastolic (congestive) heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.33',desc:'Acute on chronic diastolic (congestive) heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.40',desc:'Unspecified combined systolic and diastolic heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.41',desc:'Acute combined systolic and diastolic heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.42',desc:'Chronic combined systolic and diastolic heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.43',desc:'Acute on chronic combined systolic and diastolic heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.810',desc:'Right heart failure, unspecified',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.811',desc:'Acute right heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.812',desc:'Chronic right heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.813',desc:'Acute on chronic right heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.814',desc:'Right heart failure due to left heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.82',desc:'Biventricular heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.83',desc:'High output heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.84',desc:'End stage heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.89',desc:'Other heart failure',category:'Cardiovascular',subcategory:'Heart Failure'},
+  {code:'I50.9',desc:'Heart failure, unspecified',category:'Cardiovascular',subcategory:'Heart Failure'},
+  
+  // Arrhythmias
+  {code:'I47.0',desc:'Re-entry ventricular arrhythmia',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I47.1',desc:'Supraventricular tachycardia',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I47.2',desc:'Ventricular tachycardia',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I47.9',desc:'Paroxysmal tachycardia, unspecified',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I48.0',desc:'Paroxysmal atrial fibrillation',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I48.1',desc:'Persistent atrial fibrillation',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I48.2',desc:'Chronic atrial fibrillation',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I48.3',desc:'Typical atrial flutter',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I48.4',desc:'Atypical atrial flutter',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I48.91',desc:'Unspecified atrial fibrillation',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I48.92',desc:'Unspecified atrial flutter',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I49.01',desc:'Ventricular fibrillation',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I49.02',desc:'Ventricular flutter',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I49.1',desc:'Atrial premature depolarization',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I49.3',desc:'Ventricular premature depolarization',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I49.5',desc:'Sick sinus syndrome',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I49.8',desc:'Other specified cardiac arrhythmias',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I49.9',desc:'Cardiac arrhythmia, unspecified',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I44.0',desc:'Atrioventricular block, first degree',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I44.1',desc:'Atrioventricular block, second degree',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I44.2',desc:'Atrioventricular block, complete',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I44.30',desc:'Unspecified atrioventricular block',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I45.10',desc:'Unspecified right bundle-branch block',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I45.2',desc:'Bifascicular block',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I45.3',desc:'Trifascicular block',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I45.4',desc:'Nonspecific intraventricular block',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I45.5',desc:'Other specified heart block',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'I45.6',desc:'Pre-excitation syndrome',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'R00.0',desc:'Tachycardia, unspecified',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'R00.1',desc:'Bradycardia, unspecified',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  {code:'R00.2',desc:'Palpitations',category:'Cardiovascular',subcategory:'Arrhythmia'},
+  
+  // Other Cardiovascular
+  {code:'I42.0',desc:'Dilated cardiomyopathy',category:'Cardiovascular',subcategory:'Cardiomyopathy'},
+  {code:'I42.1',desc:'Obstructive hypertrophic cardiomyopathy',category:'Cardiovascular',subcategory:'Cardiomyopathy'},
+  {code:'I42.2',desc:'Other hypertrophic cardiomyopathy',category:'Cardiovascular',subcategory:'Cardiomyopathy'},
+  {code:'I42.5',desc:'Other restrictive cardiomyopathy',category:'Cardiovascular',subcategory:'Cardiomyopathy'},
+  {code:'I42.9',desc:'Cardiomyopathy, unspecified',category:'Cardiovascular',subcategory:'Cardiomyopathy'},
+  {code:'I26.99',desc:'Other pulmonary embolism without acute cor pulmonale',category:'Cardiovascular',subcategory:'Pulmonary'},
+  {code:'I26.02',desc:'Saddle embolus of pulmonary artery with acute cor pulmonale',category:'Cardiovascular',subcategory:'Pulmonary'},
+  {code:'I27.0',desc:'Primary pulmonary hypertension',category:'Cardiovascular',subcategory:'Pulmonary'},
+  {code:'I27.20',desc:'Pulmonary hypertension, unspecified',category:'Cardiovascular',subcategory:'Pulmonary'},
+  {code:'I27.21',desc:'Secondary pulmonary arterial hypertension',category:'Cardiovascular',subcategory:'Pulmonary'},
+  {code:'I27.82',desc:'Chronic pulmonary embolism',category:'Cardiovascular',subcategory:'Pulmonary'},
+  
+  // ═══════ RESPIRATORY (J00-J99) ═══════
+  {code:'J00',desc:'Acute nasopharyngitis (common cold)',category:'Respiratory',subcategory:'Upper Respiratory'},
+  {code:'J01.90',desc:'Acute sinusitis, unspecified',category:'Respiratory',subcategory:'Upper Respiratory'},
+  {code:'J02.9',desc:'Acute pharyngitis, unspecified',category:'Respiratory',subcategory:'Upper Respiratory'},
+  {code:'J03.90',desc:'Acute tonsillitis, unspecified',category:'Respiratory',subcategory:'Upper Respiratory'},
+  {code:'J06.9',desc:'Acute upper respiratory infection, unspecified',category:'Respiratory',subcategory:'Upper Respiratory'},
+  {code:'J18.9',desc:'Pneumonia, unspecified organism',category:'Respiratory',subcategory:'Pneumonia'},
+  {code:'J20.9',desc:'Acute bronchitis, unspecified',category:'Respiratory',subcategory:'Lower Respiratory'},
+  {code:'J30.1',desc:'Allergic rhinitis due to pollen',category:'Respiratory',subcategory:'Allergic'},
+  {code:'J30.9',desc:'Allergic rhinitis, unspecified',category:'Respiratory',subcategory:'Allergic'},
+  {code:'J32.9',desc:'Chronic sinusitis, unspecified',category:'Respiratory',subcategory:'Chronic'},
+  {code:'J40',desc:'Bronchitis, not specified as acute or chronic',category:'Respiratory',subcategory:'Bronchitis'},
+  {code:'J42',desc:'Unspecified chronic bronchitis',category:'Respiratory',subcategory:'Bronchitis'},
+  {code:'J44.0',desc:'COPD with (acute) lower respiratory infection',category:'Respiratory',subcategory:'COPD'},
+  {code:'J44.1',desc:'COPD with (acute) exacerbation',category:'Respiratory',subcategory:'COPD'},
+  {code:'J44.9',desc:'Chronic obstructive pulmonary disease, unspecified',category:'Respiratory',subcategory:'COPD'},
+  {code:'J45.20',desc:'Mild intermittent asthma, uncomplicated',category:'Respiratory',subcategory:'Asthma'},
+  {code:'J45.30',desc:'Mild persistent asthma, uncomplicated',category:'Respiratory',subcategory:'Asthma'},
+  {code:'J45.40',desc:'Moderate persistent asthma, uncomplicated',category:'Respiratory',subcategory:'Asthma'},
+  {code:'J45.50',desc:'Severe persistent asthma, uncomplicated',category:'Respiratory',subcategory:'Asthma'},
+  {code:'J45.901',desc:'Unspecified asthma with (acute) exacerbation',category:'Respiratory',subcategory:'Asthma'},
+  {code:'J45.902',desc:'Unspecified asthma with status asthmaticus',category:'Respiratory',subcategory:'Asthma'},
+  {code:'J45.909',desc:'Unspecified asthma, uncomplicated',category:'Respiratory',subcategory:'Asthma'},
+  {code:'J96.00',desc:'Acute respiratory failure, unspecified whether with hypoxia or hypercapnia',category:'Respiratory',subcategory:'Respiratory Failure'},
+  {code:'J96.01',desc:'Acute respiratory failure with hypoxia',category:'Respiratory',subcategory:'Respiratory Failure'},
+  {code:'J96.02',desc:'Acute respiratory failure with hypercapnia',category:'Respiratory',subcategory:'Respiratory Failure'},
+  {code:'J96.10',desc:'Chronic respiratory failure, unspecified whether with hypoxia or hypercapnia',category:'Respiratory',subcategory:'Respiratory Failure'},
+  
+  // ═══════ GASTROINTESTINAL (K00-K95) ═══════
+  {code:'K21.0',desc:'Gastro-esophageal reflux disease with esophagitis',category:'Gastrointestinal',subcategory:'GERD'},
+  {code:'K21.9',desc:'Gastro-esophageal reflux disease without esophagitis',category:'Gastrointestinal',subcategory:'GERD'},
+  {code:'K25.9',desc:'Gastric ulcer, unspecified as acute or chronic, without hemorrhage or perforation',category:'Gastrointestinal',subcategory:'Peptic Ulcer'},
+  {code:'K26.9',desc:'Duodenal ulcer, unspecified as acute or chronic, without hemorrhage or perforation',category:'Gastrointestinal',subcategory:'Peptic Ulcer'},
+  {code:'K29.70',desc:'Gastritis, unspecified, without bleeding',category:'Gastrointestinal',subcategory:'Gastritis'},
+  {code:'K30',desc:'Functional dyspepsia',category:'Gastrointestinal',subcategory:'Dyspepsia'},
+  {code:'K50.90',desc:'Crohn disease, unspecified, without complications',category:'Gastrointestinal',subcategory:'IBD'},
+  {code:'K51.90',desc:'Ulcerative colitis, unspecified, without complications',category:'Gastrointestinal',subcategory:'IBD'},
+  {code:'K58.0',desc:'Irritable bowel syndrome with diarrhea',category:'Gastrointestinal',subcategory:'IBS'},
+  {code:'K58.1',desc:'Irritable bowel syndrome with constipation',category:'Gastrointestinal',subcategory:'IBS'},
+  {code:'K58.2',desc:'Mixed irritable bowel syndrome',category:'Gastrointestinal',subcategory:'IBS'},
+  {code:'K58.9',desc:'Irritable bowel syndrome without diarrhea',category:'Gastrointestinal',subcategory:'IBS'},
+  {code:'K59.00',desc:'Constipation, unspecified',category:'Gastrointestinal',subcategory:'Bowel'},
+  {code:'K59.01',desc:'Slow transit constipation',category:'Gastrointestinal',subcategory:'Bowel'},
+  {code:'K59.09',desc:'Other constipation',category:'Gastrointestinal',subcategory:'Bowel'},
+  {code:'K76.0',desc:'Fatty (change of) liver, not elsewhere classified',category:'Gastrointestinal',subcategory:'Liver'},
+  {code:'K74.60',desc:'Unspecified cirrhosis of liver',category:'Gastrointestinal',subcategory:'Liver'},
+  {code:'K80.20',desc:'Calculus of gallbladder without cholecystitis without obstruction',category:'Gastrointestinal',subcategory:'Biliary'},
+  {code:'K81.0',desc:'Acute cholecystitis',category:'Gastrointestinal',subcategory:'Biliary'},
+  {code:'K85.90',desc:'Acute pancreatitis without necrosis or infection, unspecified',category:'Gastrointestinal',subcategory:'Pancreas'},
+  
+  // ═══════ MUSCULOSKELETAL (M00-M99) ═══════
+  {code:'M54.2',desc:'Cervicalgia',category:'Musculoskeletal',subcategory:'Spine'},
+  {code:'M54.5',desc:'Low back pain',category:'Musculoskeletal',subcategory:'Spine'},
+  {code:'M54.6',desc:'Pain in thoracic spine',category:'Musculoskeletal',subcategory:'Spine'},
+  {code:'M47.812',desc:'Spondylosis without myelopathy or radiculopathy, cervical region',category:'Musculoskeletal',subcategory:'Spine'},
+  {code:'M47.816',desc:'Spondylosis without myelopathy or radiculopathy, lumbar region',category:'Musculoskeletal',subcategory:'Spine'},
+  {code:'M51.16',desc:'Intervertebral disc degeneration, lumbar region',category:'Musculoskeletal',subcategory:'Spine'},
+  {code:'M17.11',desc:'Primary osteoarthritis, right knee',category:'Musculoskeletal',subcategory:'Osteoarthritis'},
+  {code:'M17.12',desc:'Primary osteoarthritis, left knee',category:'Musculoskeletal',subcategory:'Osteoarthritis'},
+  {code:'M17.9',desc:'Osteoarthritis of knee, unspecified',category:'Musculoskeletal',subcategory:'Osteoarthritis'},
+  {code:'M16.11',desc:'Primary osteoarthritis, right hip',category:'Musculoskeletal',subcategory:'Osteoarthritis'},
+  {code:'M16.12',desc:'Primary osteoarthritis, left hip',category:'Musculoskeletal',subcategory:'Osteoarthritis'},
+  {code:'M19.011',desc:'Primary osteoarthritis, right shoulder',category:'Musculoskeletal',subcategory:'Osteoarthritis'},
+  {code:'M75.100',desc:'Rotator cuff tear or rupture, unspecified shoulder',category:'Musculoskeletal',subcategory:'Shoulder'},
+  {code:'M75.101',desc:'Unspecified rotator cuff tear or rupture, right shoulder, not specified as traumatic',category:'Musculoskeletal',subcategory:'Shoulder'},
+  {code:'M75.102',desc:'Unspecified rotator cuff tear or rupture, left shoulder, not specified as traumatic',category:'Musculoskeletal',subcategory:'Shoulder'},
+  {code:'M75.111',desc:'Incomplete rotator cuff tear or rupture, right shoulder',category:'Musculoskeletal',subcategory:'Shoulder'},
+  {code:'M75.50',desc:'Bursitis of unspecified shoulder',category:'Musculoskeletal',subcategory:'Shoulder'},
+  {code:'M79.3',desc:'Panniculitis, unspecified',category:'Musculoskeletal',subcategory:'Soft Tissue'},
+  {code:'M79.1',desc:'Myalgia',category:'Musculoskeletal',subcategory:'Soft Tissue'},
+  {code:'M79.7',desc:'Fibromyalgia',category:'Musculoskeletal',subcategory:'Soft Tissue'},
+  {code:'M10.9',desc:'Gout, unspecified',category:'Musculoskeletal',subcategory:'Gout'},
+  {code:'M10.00',desc:'Idiopathic gout, unspecified site',category:'Musculoskeletal',subcategory:'Gout'},
+  {code:'M06.9',desc:'Rheumatoid arthritis, unspecified',category:'Musculoskeletal',subcategory:'Inflammatory'},
+  
+  // ═══════ NEUROLOGICAL (G00-G99) ═══════
+  {code:'G43.909',desc:'Migraine, unspecified, not intractable, without status migrainosus',category:'Neurological',subcategory:'Headache'},
+  {code:'G43.919',desc:'Migraine, unspecified, intractable, without status migrainosus',category:'Neurological',subcategory:'Headache'},
+  {code:'G43.001',desc:'Migraine without aura, not intractable, with status migrainosus',category:'Neurological',subcategory:'Headache'},
+  {code:'G43.009',desc:'Migraine without aura, not intractable, without status migrainosus',category:'Neurological',subcategory:'Headache'},
+  {code:'G43.101',desc:'Migraine with aura, not intractable, with status migrainosus',category:'Neurological',subcategory:'Headache'},
+  {code:'G43.109',desc:'Migraine with aura, not intractable, without status migrainosus',category:'Neurological',subcategory:'Headache'},
+  {code:'G44.1',desc:'Vascular headache, not elsewhere classified',category:'Neurological',subcategory:'Headache'},
+  {code:'G44.209',desc:'Tension-type headache, unspecified, not intractable',category:'Neurological',subcategory:'Headache'},
+  {code:'R51.9',desc:'Headache, unspecified',category:'Neurological',subcategory:'Headache'},
+  {code:'G47.00',desc:'Insomnia, unspecified',category:'Neurological',subcategory:'Sleep'},
+  {code:'G47.10',desc:'Hypersomnia, unspecified',category:'Neurological',subcategory:'Sleep'},
+  {code:'G47.30',desc:'Sleep apnea, unspecified',category:'Neurological',subcategory:'Sleep'},
+  {code:'G47.33',desc:'Obstructive sleep apnea (adult) (pediatric)',category:'Neurological',subcategory:'Sleep'},
+  {code:'G47.9',desc:'Sleep disorder, unspecified',category:'Neurological',subcategory:'Sleep'},
+  {code:'G62.9',desc:'Polyneuropathy, unspecified',category:'Neurological',subcategory:'Neuropathy'},
+  {code:'G60.0',desc:'Hereditary motor and sensory neuropathy',category:'Neurological',subcategory:'Neuropathy'},
+  {code:'G56.00',desc:'Carpal tunnel syndrome, unspecified upper limb',category:'Neurological',subcategory:'Entrapment'},
+  {code:'G56.01',desc:'Carpal tunnel syndrome, right upper limb',category:'Neurological',subcategory:'Entrapment'},
+  {code:'G56.02',desc:'Carpal tunnel syndrome, left upper limb',category:'Neurological',subcategory:'Entrapment'},
+  {code:'G40.909',desc:'Epilepsy, unspecified, not intractable, without status epilepticus',category:'Neurological',subcategory:'Seizure'},
+  {code:'G20',desc:'Parkinson disease',category:'Neurological',subcategory:'Movement'},
+  {code:'G35',desc:'Multiple sclerosis',category:'Neurological',subcategory:'Demyelinating'},
+  {code:'G30.9',desc:'Alzheimer disease, unspecified',category:'Neurological',subcategory:'Dementia'},
+  
+  // ═══════ MENTAL HEALTH (F00-F99) ═══════
+  {code:'F32.0',desc:'Major depressive disorder, single episode, mild',category:'Mental Health',subcategory:'Depression'},
+  {code:'F32.1',desc:'Major depressive disorder, single episode, moderate',category:'Mental Health',subcategory:'Depression'},
+  {code:'F32.2',desc:'Major depressive disorder, single episode, severe without psychotic features',category:'Mental Health',subcategory:'Depression'},
+  {code:'F32.9',desc:'Major depressive disorder, single episode, unspecified',category:'Mental Health',subcategory:'Depression'},
+  {code:'F33.0',desc:'Major depressive disorder, recurrent, mild',category:'Mental Health',subcategory:'Depression'},
+  {code:'F33.1',desc:'Major depressive disorder, recurrent, moderate',category:'Mental Health',subcategory:'Depression'},
+  {code:'F33.2',desc:'Major depressive disorder, recurrent severe without psychotic features',category:'Mental Health',subcategory:'Depression'},
+  {code:'F33.9',desc:'Major depressive disorder, recurrent, unspecified',category:'Mental Health',subcategory:'Depression'},
+  {code:'F41.0',desc:'Panic disorder [episodic paroxysmal anxiety]',category:'Mental Health',subcategory:'Anxiety'},
+  {code:'F41.1',desc:'Generalized anxiety disorder',category:'Mental Health',subcategory:'Anxiety'},
+  {code:'F41.9',desc:'Anxiety disorder, unspecified',category:'Mental Health',subcategory:'Anxiety'},
+  {code:'F43.10',desc:'Post-traumatic stress disorder, unspecified',category:'Mental Health',subcategory:'Trauma'},
+  {code:'F43.11',desc:'Post-traumatic stress disorder, acute',category:'Mental Health',subcategory:'Trauma'},
+  {code:'F43.12',desc:'Post-traumatic stress disorder, chronic',category:'Mental Health',subcategory:'Trauma'},
+  {code:'F40.10',desc:'Social phobia, unspecified',category:'Mental Health',subcategory:'Phobia'},
+  {code:'F42.2',desc:'Mixed obsessional thoughts and acts',category:'Mental Health',subcategory:'OCD'},
+  {code:'F90.0',desc:'ADHD, predominantly inattentive type',category:'Mental Health',subcategory:'ADHD'},
+  {code:'F90.1',desc:'ADHD, predominantly hyperactive type',category:'Mental Health',subcategory:'ADHD'},
+  {code:'F90.2',desc:'ADHD, combined type',category:'Mental Health',subcategory:'ADHD'},
+  {code:'F90.9',desc:'Attention-deficit hyperactivity disorder, unspecified type',category:'Mental Health',subcategory:'ADHD'},
+  {code:'F31.9',desc:'Bipolar disorder, unspecified',category:'Mental Health',subcategory:'Bipolar'},
+  {code:'F20.9',desc:'Schizophrenia, unspecified',category:'Mental Health',subcategory:'Psychosis'},
+  {code:'F10.10',desc:'Alcohol use disorder, mild',category:'Mental Health',subcategory:'Substance Use'},
+  {code:'F10.20',desc:'Alcohol use disorder, moderate/severe',category:'Mental Health',subcategory:'Substance Use'},
+  {code:'F17.210',desc:'Nicotine dependence, cigarettes, uncomplicated',category:'Mental Health',subcategory:'Substance Use'},
+  
+  // ═══════ GENITOURINARY (N00-N99) ═══════
+  {code:'N39.0',desc:'Urinary tract infection, site not specified',category:'Genitourinary',subcategory:'UTI'},
+  {code:'N30.00',desc:'Acute cystitis without hematuria',category:'Genitourinary',subcategory:'UTI'},
+  {code:'N30.01',desc:'Acute cystitis with hematuria',category:'Genitourinary',subcategory:'UTI'},
+  {code:'N18.1',desc:'Chronic kidney disease, stage 1',category:'Genitourinary',subcategory:'CKD'},
+  {code:'N18.2',desc:'Chronic kidney disease, stage 2 (mild)',category:'Genitourinary',subcategory:'CKD'},
+  {code:'N18.3',desc:'Chronic kidney disease, stage 3 (moderate)',category:'Genitourinary',subcategory:'CKD'},
+  {code:'N18.4',desc:'Chronic kidney disease, stage 4 (severe)',category:'Genitourinary',subcategory:'CKD'},
+  {code:'N18.5',desc:'Chronic kidney disease, stage 5',category:'Genitourinary',subcategory:'CKD'},
+  {code:'N18.6',desc:'End stage renal disease',category:'Genitourinary',subcategory:'CKD'},
+  {code:'N18.9',desc:'Chronic kidney disease, unspecified',category:'Genitourinary',subcategory:'CKD'},
+  {code:'N17.9',desc:'Acute kidney failure, unspecified',category:'Genitourinary',subcategory:'AKI'},
+  {code:'N40.0',desc:'Benign prostatic hyperplasia without lower urinary tract symptoms',category:'Genitourinary',subcategory:'Prostate'},
+  {code:'N40.1',desc:'Benign prostatic hyperplasia with lower urinary tract symptoms',category:'Genitourinary',subcategory:'Prostate'},
+  {code:'N52.9',desc:'Male erectile dysfunction, unspecified',category:'Genitourinary',subcategory:'Sexual Dysfunction'},
+  {code:'N95.1',desc:'Menopausal and female climacteric states',category:'Genitourinary',subcategory:'Menopause'},
+  {code:'N92.0',desc:'Excessive and frequent menstruation with regular cycle',category:'Genitourinary',subcategory:'Menstrual'},
+  {code:'N92.1',desc:'Excessive and frequent menstruation with irregular cycle',category:'Genitourinary',subcategory:'Menstrual'},
+  {code:'N94.6',desc:'Dysmenorrhea, unspecified',category:'Genitourinary',subcategory:'Menstrual'},
+  
+  // ═══════ SYMPTOMS & SIGNS (R00-R99) ═══════
+  {code:'R05.9',desc:'Cough, unspecified',category:'Symptoms',subcategory:'Respiratory'},
+  {code:'R06.00',desc:'Dyspnea, unspecified',category:'Symptoms',subcategory:'Respiratory'},
+  {code:'R06.02',desc:'Shortness of breath',category:'Symptoms',subcategory:'Respiratory'},
+  {code:'R06.09',desc:'Other forms of dyspnea',category:'Symptoms',subcategory:'Respiratory'},
+  {code:'R07.9',desc:'Chest pain, unspecified',category:'Symptoms',subcategory:'Chest'},
+  {code:'R07.89',desc:'Other chest pain',category:'Symptoms',subcategory:'Chest'},
+  {code:'R10.10',desc:'Upper abdominal pain, unspecified',category:'Symptoms',subcategory:'Abdominal'},
+  {code:'R10.30',desc:'Lower abdominal pain, unspecified',category:'Symptoms',subcategory:'Abdominal'},
+  {code:'R10.9',desc:'Unspecified abdominal pain',category:'Symptoms',subcategory:'Abdominal'},
+  {code:'R11.0',desc:'Nausea',category:'Symptoms',subcategory:'GI'},
+  {code:'R11.10',desc:'Vomiting, unspecified',category:'Symptoms',subcategory:'GI'},
+  {code:'R11.2',desc:'Nausea with vomiting, unspecified',category:'Symptoms',subcategory:'GI'},
+  {code:'R19.7',desc:'Diarrhea, unspecified',category:'Symptoms',subcategory:'GI'},
+  {code:'R42',desc:'Dizziness and giddiness',category:'Symptoms',subcategory:'Neurological'},
+  {code:'R55',desc:'Syncope and collapse',category:'Symptoms',subcategory:'Neurological'},
+  {code:'R53.1',desc:'Weakness',category:'Symptoms',subcategory:'General'},
+  {code:'R53.81',desc:'Other malaise',category:'Symptoms',subcategory:'General'},
+  {code:'R53.83',desc:'Other fatigue',category:'Symptoms',subcategory:'General'},
+  {code:'R50.9',desc:'Fever, unspecified',category:'Symptoms',subcategory:'General'},
+  {code:'R63.4',desc:'Abnormal weight loss',category:'Symptoms',subcategory:'General'},
+  {code:'R63.5',desc:'Abnormal weight gain',category:'Symptoms',subcategory:'General'},
+  {code:'R21',desc:'Rash and other nonspecific skin eruption',category:'Symptoms',subcategory:'Skin'},
+  {code:'R22.9',desc:'Localized swelling, mass and lump, unspecified',category:'Symptoms',subcategory:'General'},
+  {code:'R60.0',desc:'Localized edema',category:'Symptoms',subcategory:'General'},
+  {code:'R60.9',desc:'Edema, unspecified',category:'Symptoms',subcategory:'General'},
+  {code:'R73.03',desc:'Prediabetes',category:'Symptoms',subcategory:'Metabolic'},
+  {code:'R73.09',desc:'Other abnormal glucose',category:'Symptoms',subcategory:'Metabolic'},
+  
+  // ═══════ PREVENTIVE / WELLNESS (Z00-Z99) ═══════
+  {code:'Z00.00',desc:'Encounter for general adult medical examination without abnormal findings',category:'Preventive',subcategory:'Wellness'},
+  {code:'Z00.01',desc:'Encounter for general adult medical examination with abnormal findings',category:'Preventive',subcategory:'Wellness'},
+  {code:'Z00.121',desc:'Encounter for routine child health exam with abnormal findings',category:'Preventive',subcategory:'Wellness'},
+  {code:'Z23',desc:'Encounter for immunization',category:'Preventive',subcategory:'Immunization'},
+  {code:'Z01.818',desc:'Encounter for other preprocedural examination',category:'Preventive',subcategory:'Preoperative'},
+  {code:'Z12.11',desc:'Encounter for screening for malignant neoplasm of colon',category:'Preventive',subcategory:'Screening'},
+  {code:'Z12.31',desc:'Encounter for screening mammogram for malignant neoplasm of breast',category:'Preventive',subcategory:'Screening'},
+  {code:'Z12.4',desc:'Encounter for screening for malignant neoplasm of cervix',category:'Preventive',subcategory:'Screening'},
+  {code:'Z13.1',desc:'Encounter for screening for diabetes mellitus',category:'Preventive',subcategory:'Screening'},
+  {code:'Z13.220',desc:'Encounter for screening for lipoid disorders',category:'Preventive',subcategory:'Screening'},
+  {code:'Z13.6',desc:'Encounter for screening for cardiovascular disorders',category:'Preventive',subcategory:'Screening'},
+  {code:'Z79.4',desc:'Long term (current) use of insulin',category:'Preventive',subcategory:'Medication Status'},
+  {code:'Z79.84',desc:'Long term (current) use of oral hypoglycemic drugs',category:'Preventive',subcategory:'Medication Status'},
+  {code:'Z79.82',desc:'Long term (current) use of aspirin',category:'Preventive',subcategory:'Medication Status'},
+  {code:'Z79.01',desc:'Long term (current) use of anticoagulants',category:'Preventive',subcategory:'Medication Status'},
+  {code:'Z79.02',desc:'Long term (current) use of antithrombotics/antiplatelets',category:'Preventive',subcategory:'Medication Status'},
+  {code:'Z79.899',desc:'Other long term (current) drug therapy',category:'Preventive',subcategory:'Medication Status'},
+  {code:'Z86.73',desc:'Personal history of transient ischemic attack (TIA), and cerebral infarction without residual deficits',category:'Preventive',subcategory:'History'},
+  {code:'Z86.79',desc:'Personal history of other diseases of the circulatory system',category:'Preventive',subcategory:'History'},
+  {code:'Z87.11',desc:'Personal history of peptic ulcer disease',category:'Preventive',subcategory:'History'},
+  {code:'Z87.891',desc:'Personal history of nicotine dependence',category:'Preventive',subcategory:'History'},
+  {code:'Z96.1',desc:'Presence of intraocular lens',category:'Preventive',subcategory:'Implants'},
+  {code:'Z95.0',desc:'Presence of cardiac pacemaker',category:'Preventive',subcategory:'Implants'},
+  {code:'Z95.1',desc:'Presence of aortocoronary bypass graft',category:'Preventive',subcategory:'Implants'},
+  {code:'Z95.5',desc:'Presence of coronary angioplasty implant and graft',category:'Preventive',subcategory:'Implants'},
+  {code:'Z95.810',desc:'Presence of automatic (implantable) cardiac defibrillator',category:'Preventive',subcategory:'Implants'},
+  {code:'Z96.641',desc:'Presence of right artificial hip joint',category:'Preventive',subcategory:'Implants'},
+  {code:'Z96.642',desc:'Presence of left artificial hip joint',category:'Preventive',subcategory:'Implants'},
+  {code:'Z96.651',desc:'Presence of right artificial knee joint',category:'Preventive',subcategory:'Implants'},
+  {code:'Z96.652',desc:'Presence of left artificial knee joint',category:'Preventive',subcategory:'Implants'},
 ];
+
+// Legacy alias for backward compatibility
+const commonICD10 = ICD10_DATABASE;
+
+// ═══════════════════════════════════════════
+// ICD-10 DIAGNOSIS PICKER SYSTEM
+// ═══════════════════════════════════════════
+let selectedDiagnoses = [];
+
+// Search ICD-10 codes by code or description
+function searchICD10Codes(query, targetId = 'icd10Results') {
+  const results = document.getElementById(targetId);
+  if (!results) return;
+  
+  if (query.length < 2) {
+    results.style.display = 'none';
+    return;
+  }
+  
+  const q = query.toLowerCase();
+  const matches = ICD10_DATABASE.filter(d =>
+    d.code.toLowerCase().includes(q) ||
+    d.desc.toLowerCase().includes(q) ||
+    (d.category && d.category.toLowerCase().includes(q)) ||
+    (d.subcategory && d.subcategory.toLowerCase().includes(q))
+  ).slice(0, 15);
+  
+  if (!matches.length) {
+    results.innerHTML = '<div style="padding:12px;color:var(--text-dim);text-align:center;">No ICD-10 codes found</div>';
+  } else {
+    results.innerHTML = matches.map(d => `
+      <div onclick="addDiagnosis('${d.code}','${d.desc.replace(/'/g, "\\'")}','${d.category || ''}')" 
+           style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;" 
+           onmouseover="this.style.background='var(--bg-hover)'" 
+           onmouseout="this.style.background=''">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:600;color:var(--primary);font-family:monospace;">${d.code}</span>
+          <span class="badge badge-blue" style="font-size:10px;">${d.category || ''}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text);margin-top:2px;">${d.desc}</div>
+      </div>
+    `).join('');
+  }
+  results.style.display = 'block';
+}
+
+// Add a diagnosis to the selected list
+function addDiagnosis(code, desc, category) {
+  // Check if already added
+  if (selectedDiagnoses.find(d => d.code === code)) {
+    showToast('Diagnosis already added', 'warning');
+    return;
+  }
+  
+  const isPrimary = selectedDiagnoses.length === 0; // First one is primary
+  selectedDiagnoses.push({ code, desc, category, isPrimary });
+  
+  renderSelectedDiagnoses();
+  
+  // Clear search
+  const searchInput = document.getElementById('dxSearchInput');
+  if (searchInput) searchInput.value = '';
+  const results = document.getElementById('dxSearchResults');
+  if (results) results.style.display = 'none';
+  
+  // Update hidden ICD10 field with all codes
+  updateICD10Field();
+}
+
+// Remove a diagnosis
+function removeDiagnosis(code) {
+  const wasPrimary = selectedDiagnoses.find(d => d.code === code)?.isPrimary;
+  selectedDiagnoses = selectedDiagnoses.filter(d => d.code !== code);
+  
+  // If removed was primary, make first remaining one primary
+  if (wasPrimary && selectedDiagnoses.length > 0) {
+    selectedDiagnoses[0].isPrimary = true;
+  }
+  
+  renderSelectedDiagnoses();
+  updateICD10Field();
+}
+
+// Set a diagnosis as primary
+function setPrimaryDiagnosis(code) {
+  selectedDiagnoses.forEach(d => {
+    d.isPrimary = (d.code === code);
+  });
+  renderSelectedDiagnoses();
+  updateICD10Field();
+}
+
+// Render the selected diagnoses list
+function renderSelectedDiagnoses() {
+  const container = document.getElementById('selectedDiagnosesList');
+  if (!container) return;
+  
+  if (selectedDiagnoses.length === 0) {
+    container.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-dim);font-size:13px;">No diagnoses selected. Search above to add ICD-10 codes.</div>';
+    return;
+  }
+  
+  container.innerHTML = selectedDiagnoses.map((d, idx) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:10px;background:${d.isPrimary ? 'rgba(14,165,233,.1)' : 'var(--bg-input)'};border:1px solid ${d.isPrimary ? 'var(--primary)' : 'var(--border)'};border-radius:8px;margin-bottom:8px;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-weight:700;color:var(--primary);font-family:monospace;font-size:14px;">${d.code}</span>
+          ${d.isPrimary ? '<span class="badge badge-blue" style="font-size:10px;">PRIMARY</span>' : ''}
+        </div>
+        <div style="font-size:12px;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.desc}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        ${!d.isPrimary ? `<button onclick="setPrimaryDiagnosis('${d.code}')" class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;" title="Set as primary">⭐</button>` : ''}
+        <button onclick="removeDiagnosis('${d.code}')" class="btn btn-ghost btn-sm" style="padding:4px 8px;color:var(--danger);font-size:11px;" title="Remove">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Update hidden ICD10 field
+function updateICD10Field() {
+  const field = document.getElementById('neICD');
+  if (field) {
+    // Put primary first, then others
+    const sorted = [...selectedDiagnoses].sort((a, b) => b.isPrimary - a.isPrimary);
+    field.value = sorted.map(d => d.code).join(', ');
+  }
+  
+  // Also update assessment text area to include diagnoses
+  const assessField = document.getElementById('neA');
+  if (assessField && selectedDiagnoses.length > 0) {
+    // Only auto-populate if assessment is empty or contains previous auto-populated content
+    const currentVal = assessField.value.trim();
+    if (!currentVal || currentVal.startsWith('1.') || currentVal.startsWith('Diagnoses:')) {
+      const dxText = selectedDiagnoses
+        .sort((a, b) => b.isPrimary - a.isPrimary)
+        .map((d, idx) => `${idx + 1}. ${d.code} - ${d.desc}${d.isPrimary ? ' (Primary)' : ''}`)
+        .join('\n');
+      assessField.value = dxText;
+    }
+  }
+}
+
+// Quick add common diagnosis
+function quickAddDiagnosis(code) {
+  const dx = ICD10_DATABASE.find(d => d.code === code);
+  if (dx) {
+    addDiagnosis(dx.code, dx.desc, dx.category);
+  }
+}
+
+// Toast notification helper
+function showToast(message, type = 'info') {
+  // Remove existing toasts
+  document.querySelectorAll('.toast-notification').forEach(t => t.remove());
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    z-index: 9999;
+    animation: slideIn 0.3s ease;
+    background: ${type === 'warning' ? 'var(--warning)' : type === 'error' ? 'var(--danger)' : 'var(--primary)'};
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => toast.remove(), 3000);
+}
 
 // ═══════ ENHANCED PRESCRIPTIONS PAGE ═══════
 function renderPrescriptions(c){
