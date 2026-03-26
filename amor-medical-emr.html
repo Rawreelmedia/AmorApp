@@ -1658,6 +1658,810 @@ function seedDB(){
 }
 
 // ═══════════════════════════════════════════
+// USER ROLES & PERMISSIONS SYSTEM
+// ═══════════════════════════════════════════
+
+// Role definitions with hierarchy level (higher = more access)
+const ROLES = {
+  frontdesk: { level: 1, name: 'Front Desk', icon: '🪑', color: '#94A3B8', desc: 'Check-in, scheduling, demographics only' },
+  ma: { level: 2, name: 'Medical Assistant', icon: '💉', color: '#0EA5E9', desc: 'Vitals, intake, limited chart access' },
+  nurse: { level: 3, name: 'Nurse (RN/LPN)', icon: '👩‍⚕️', color: '#10B981', desc: 'Clinical notes view, medication admin, triage' },
+  np: { level: 4, name: 'Nurse Practitioner / PA', icon: '🩺', color: '#8B5CF6', desc: 'Full clinical, prescribe (non-controlled)' },
+  md: { level: 5, name: 'Physician', icon: '👨‍⚕️', color: '#F59E0B', desc: 'Full clinical, all prescribing including controlled' },
+  officemgr: { level: 3, name: 'Office Manager', icon: '📋', color: '#EF4444', desc: 'Staff management, reports, billing view, no clinical' },
+  practiceadmin: { level: 6, name: 'Practice Admin', icon: '🏥', color: '#0EA5E9', desc: 'Full practice access, user management' },
+  agencyadmin: { level: 7, name: 'Agency Admin', icon: '👑', color: '#8B5CF6', desc: 'Multi-practice access, all features, system settings' }
+};
+
+// Permissions matrix - defines what each role can do
+const PERMISSIONS = {
+  // Schedule permissions
+  viewSchedule: ['frontdesk', 'ma', 'nurse', 'np', 'md', 'officemgr', 'practiceadmin', 'agencyadmin'],
+  editSchedule: ['frontdesk', 'np', 'md', 'officemgr', 'practiceadmin', 'agencyadmin'],
+  
+  // Patient permissions
+  viewPatientLimited: ['frontdesk'], // Demographics only
+  viewPatientFull: ['ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  editPatientDemographics: ['frontdesk', 'ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  editPatientClinical: ['ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  
+  // Clinical notes permissions
+  viewNotesLimited: ['ma'], // Only vitals/intake
+  viewNotesFull: ['nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  createNotes: ['nurse', 'np', 'md', 'agencyadmin'],
+  signNotes: ['np', 'md', 'agencyadmin'],
+  
+  // Prescription permissions
+  prescribeNonControlled: ['np', 'md'],
+  prescribeControlled: ['md'],
+  viewPrescriptions: ['nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  
+  // Labs permissions
+  orderLabs: ['np', 'md'],
+  viewLabs: ['ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  
+  // Reports permissions
+  viewOwnReports: ['np', 'md'],
+  viewAllReports: ['officemgr', 'practiceadmin', 'agencyadmin'],
+  
+  // Admin permissions
+  viewBilling: ['officemgr', 'practiceadmin', 'agencyadmin'],
+  manageUsers: ['practiceadmin', 'agencyadmin'],
+  manageProviders: ['practiceadmin', 'agencyadmin'],
+  managePractices: ['agencyadmin'],
+  systemSettings: ['agencyadmin'],
+  
+  // Module access
+  accessDashboard: ['frontdesk', 'ma', 'nurse', 'np', 'md', 'officemgr', 'practiceadmin', 'agencyadmin'],
+  accessExecutive: ['officemgr', 'practiceadmin', 'agencyadmin'],
+  accessPatients: ['frontdesk', 'ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessProviders: ['practiceadmin', 'agencyadmin'],
+  accessPractices: ['practiceadmin', 'agencyadmin'],
+  accessMyTeam: ['np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessReferrals: ['nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessScheduling: ['frontdesk', 'ma', 'nurse', 'np', 'md', 'officemgr', 'practiceadmin', 'agencyadmin'],
+  accessEncounters: ['ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessNotes: ['ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessPrescriptions: ['nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessLabs: ['ma', 'nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessIntegrations: ['practiceadmin', 'agencyadmin'],
+  accessCalculators: ['nurse', 'np', 'md', 'practiceadmin', 'agencyadmin'],
+  accessCredentialing: ['officemgr', 'practiceadmin', 'agencyadmin'],
+  accessUsers: ['practiceadmin', 'agencyadmin'],
+  accessSettings: ['practiceadmin', 'agencyadmin']
+};
+
+// Navigation items with required permissions
+const NAV_PERMISSIONS = {
+  dashboard: 'accessDashboard',
+  executive: 'accessExecutive',
+  patients: 'accessPatients',
+  providers: 'accessProviders',
+  practices: 'accessPractices',
+  myteam: 'accessMyTeam',
+  referrals: 'accessReferrals',
+  scheduling: 'accessScheduling',
+  encounters: 'accessEncounters',
+  notes: 'accessNotes',
+  prescriptions: 'accessPrescriptions',
+  labs: 'accessLabs',
+  integrations: 'accessIntegrations',
+  calculators: 'accessCalculators',
+  credentialing: 'accessCredentialing',
+  users: 'accessUsers',
+  settings: 'accessSettings'
+};
+
+// Get current user
+function getCurrentUser() {
+  if (!db.currentUserId) return null;
+  return db.users.find(u => u.id === db.currentUserId) || null;
+}
+
+// Get current user's role
+function getCurrentRole() {
+  const user = getCurrentUser();
+  return user ? user.role : 'frontdesk';
+}
+
+// Check if current user has permission
+function hasPermission(permission) {
+  const role = getCurrentRole();
+  return PERMISSIONS[permission] ? PERMISSIONS[permission].includes(role) : false;
+}
+
+// Check if current user can access a page
+function canAccessPage(page) {
+  const permKey = NAV_PERMISSIONS[page];
+  if (!permKey) return true; // Pages without defined permissions are accessible
+  return hasPermission(permKey);
+}
+
+// Get role display info
+function getRoleInfo(roleKey) {
+  return ROLES[roleKey] || { level: 0, name: 'Unknown', icon: '❓', color: '#666', desc: '' };
+}
+
+// Update user indicator in topbar
+function updateUserIndicator() {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  const roleInfo = getRoleInfo(user.role);
+  const avatar = user.avatar || user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  
+  document.getElementById('userAvatar').textContent = avatar;
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('dropdownUserName').textContent = user.name;
+  document.getElementById('dropdownUserEmail').textContent = user.email || '';
+  
+  const badge = document.getElementById('userRoleBadge');
+  badge.textContent = roleInfo.name;
+  badge.className = 'user-role-badge ' + user.role;
+  
+  // Populate switch user list
+  const switchList = document.getElementById('userSwitchList');
+  if (switchList) {
+    switchList.innerHTML = db.users.filter(u => u.status === 'active').map(u => {
+      const ri = getRoleInfo(u.role);
+      const av = u.avatar || u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const isActive = u.id === db.currentUserId;
+      return `
+        <div class="user-switch-item ${isActive ? 'active' : ''}" onclick="event.stopPropagation();switchUser('${u.id}');">
+          <div class="user-switch-avatar" style="background:${ri.color};color:#fff;">${av}</div>
+          <div class="user-switch-info">
+            <div class="user-switch-name">${u.name}</div>
+            <div class="user-switch-role">${ri.icon} ${ri.name}</div>
+          </div>
+          ${isActive ? '<span style="color:var(--accent);">✓</span>' : ''}
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+// Toggle user dropdown
+function toggleUserDropdown() {
+  const dropdown = document.getElementById('userDropdown');
+  dropdown.classList.toggle('show');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('userDropdown');
+  const indicator = document.getElementById('userIndicator');
+  if (dropdown && indicator && !indicator.contains(e.target)) {
+    dropdown.classList.remove('show');
+  }
+});
+
+// Switch user (for demo purposes)
+function switchUser(userId) {
+  const user = db.users.find(u => u.id === userId);
+  if (!user || user.status !== 'active') return;
+  
+  db.currentUserId = userId;
+  saveDB();
+  
+  document.getElementById('userDropdown').classList.remove('show');
+  updateUserIndicator();
+  updateSidebarPermissions();
+  
+  // Check if current page is still accessible
+  if (!canAccessPage(currentPage)) {
+    navigate('dashboard');
+  } else {
+    render();
+  }
+  
+  showToast(`👤 Switched to ${user.name} (${getRoleInfo(user.role).name})`);
+}
+
+// Update sidebar based on permissions
+function updateSidebarPermissions() {
+  const navItems = document.querySelectorAll('.nav-item[data-nav]');
+  navItems.forEach(item => {
+    const page = item.getAttribute('data-nav');
+    if (page && NAV_PERMISSIONS[page]) {
+      if (canAccessPage(page)) {
+        item.classList.remove('disabled');
+        item.style.display = '';
+      } else {
+        item.classList.add('disabled');
+        // Optionally hide completely: item.style.display = 'none';
+      }
+    }
+  });
+}
+
+// Show access denied page
+function renderAccessDenied(c, pageName) {
+  const roleInfo = getRoleInfo(getCurrentRole());
+  c.innerHTML = `
+    <div class="access-denied">
+      <div class="access-denied-icon">🚫</div>
+      <div class="access-denied-title">Access Denied</div>
+      <div class="access-denied-text">
+        You don't have permission to access the <strong>${pageName}</strong> section.<br><br>
+        Your current role (<strong>${roleInfo.icon} ${roleInfo.name}</strong>) does not include this permission. 
+        Please contact your administrator if you believe this is an error.
+      </div>
+      <button class="btn btn-primary access-denied-btn" onclick="navigate('dashboard')">← Back to Dashboard</button>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// USER MANAGEMENT MODULE
+// ═══════════════════════════════════════════
+
+function renderUsers(c) {
+  if (!hasPermission('manageUsers')) {
+    renderAccessDenied(c, 'User Management');
+    return;
+  }
+  
+  setPageTitle('User Management');
+  
+  const roleOptions = Object.entries(ROLES).map(([key, val]) => 
+    `<option value="${key}">${val.icon} ${val.name}</option>`
+  ).join('');
+  
+  const practiceOptions = db.practices.map(p => 
+    `<option value="${p.id}">${p.logo || '🏥'} ${p.name}</option>`
+  ).join('');
+  
+  const activeUsers = db.users.filter(u => u.status === 'active').length;
+  const inactiveUsers = db.users.filter(u => u.status !== 'active').length;
+  
+  c.innerHTML = `
+    ${getRefreshHeader('User Management', db.users.length, `
+      <button class="btn btn-primary" onclick="showNewUserModal()">+ New User</button>
+      <button class="btn btn-ghost" onclick="showPermissionsMatrix()">📊 Permissions Matrix</button>
+    `)}
+    
+    <div class="stats-grid" style="margin-bottom:24px;">
+      <div class="stat-card blue"><div class="label">Total Users</div><div class="value">${db.users.length}</div></div>
+      <div class="stat-card green"><div class="label">Active</div><div class="value">${activeUsers}</div></div>
+      <div class="stat-card red"><div class="label">Inactive</div><div class="value">${inactiveUsers}</div></div>
+      <div class="stat-card purple"><div class="label">Roles</div><div class="value">${Object.keys(ROLES).length}</div></div>
+    </div>
+    
+    <div class="tabs" style="margin-bottom:16px;">
+      <div class="tab active" onclick="filterUsersByStatus('all', this)">All Users</div>
+      <div class="tab" onclick="filterUsersByStatus('active', this)">Active</div>
+      <div class="tab" onclick="filterUsersByStatus('inactive', this)">Inactive</div>
+    </div>
+    
+    <div class="doc-filter-bar" style="margin-bottom:16px;">
+      <input type="text" id="userSearchInput" placeholder="Search users..." oninput="filterUsersRender()">
+      <select id="userRoleFilter" onchange="filterUsersRender()">
+        <option value="">All Roles</option>
+        ${roleOptions}
+      </select>
+      <select id="userPracticeFilter" onchange="filterUsersRender()">
+        <option value="">All Practices</option>
+        ${practiceOptions}
+      </select>
+    </div>
+    
+    <div class="users-grid" id="usersGrid">
+      ${renderUserCards(db.users)}
+    </div>
+    
+    <div class="section-title" style="margin-top:32px;">Role Hierarchy</div>
+    <div class="role-hierarchy">
+      ${Object.entries(ROLES).sort((a, b) => b[1].level - a[1].level).map(([key, val]) => {
+        const current = getCurrentRole() === key;
+        return `
+          <div class="role-hierarchy-item ${current ? 'current' : ''}">
+            <div class="role-hierarchy-level" style="background:${val.color};color:#fff;">${val.level}</div>
+            <span style="font-size:18px;">${val.icon}</span>
+            <span class="role-hierarchy-name">${val.name}</span>
+            <span class="role-hierarchy-desc">${val.desc}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+let userStatusFilter = 'all';
+
+function filterUsersByStatus(status, btn) {
+  userStatusFilter = status;
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  filterUsersRender();
+}
+
+function filterUsersRender() {
+  const search = (document.getElementById('userSearchInput')?.value || '').toLowerCase();
+  const roleFilter = document.getElementById('userRoleFilter')?.value || '';
+  const practiceFilter = document.getElementById('userPracticeFilter')?.value || '';
+  
+  let users = [...db.users];
+  
+  // Status filter
+  if (userStatusFilter === 'active') {
+    users = users.filter(u => u.status === 'active');
+  } else if (userStatusFilter === 'inactive') {
+    users = users.filter(u => u.status !== 'active');
+  }
+  
+  // Search filter
+  if (search) {
+    users = users.filter(u => 
+      u.name.toLowerCase().includes(search) ||
+      (u.email || '').toLowerCase().includes(search) ||
+      (u.title || '').toLowerCase().includes(search)
+    );
+  }
+  
+  // Role filter
+  if (roleFilter) {
+    users = users.filter(u => u.role === roleFilter);
+  }
+  
+  // Practice filter
+  if (practiceFilter) {
+    users = users.filter(u => u.practiceIds && u.practiceIds.includes(practiceFilter));
+  }
+  
+  document.getElementById('usersGrid').innerHTML = renderUserCards(users);
+}
+
+function renderUserCards(users) {
+  if (users.length === 0) {
+    return '<div class="empty-state"><div class="empty-icon">👤</div><p>No users found</p></div>';
+  }
+  
+  return users.map(u => {
+    const roleInfo = getRoleInfo(u.role);
+    const practices = (u.practiceIds || []).map(pid => db.practices.find(p => p.id === pid)).filter(Boolean);
+    const practiceNames = practices.map(p => p.name).join(', ') || 'No practice assigned';
+    const avatar = u.avatar || u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    const isInactive = u.status !== 'active';
+    
+    return `
+      <div class="user-card ${isInactive ? 'inactive' : ''}">
+        <div class="user-card-status">
+          <span class="badge ${isInactive ? 'badge-red' : 'badge-green'}">${isInactive ? 'Inactive' : 'Active'}</span>
+        </div>
+        <div class="user-card-header">
+          <div class="user-card-avatar" style="background:${roleInfo.color};">${avatar}</div>
+          <div class="user-card-info">
+            <div class="user-card-name">${u.name}</div>
+            <div class="user-card-email">${u.email || '—'}</div>
+            <div class="user-card-practice">${practiceNames}</div>
+          </div>
+        </div>
+        <div class="user-card-body">
+          <div class="user-card-field">
+            <span class="user-card-field-label">Role</span>
+            <span class="user-card-field-value">${roleInfo.icon} ${roleInfo.name}</span>
+          </div>
+          <div class="user-card-field">
+            <span class="user-card-field-label">Title</span>
+            <span class="user-card-field-value">${u.title || '—'}</span>
+          </div>
+          <div class="user-card-field">
+            <span class="user-card-field-label">Phone</span>
+            <span class="user-card-field-value">${u.phone || '—'}</span>
+          </div>
+          <div class="user-card-field">
+            <span class="user-card-field-label">Access Level</span>
+            <span class="user-card-field-value">Level ${roleInfo.level}</span>
+          </div>
+        </div>
+        <div class="user-card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editUserModal('${u.id}')">✏️ Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="showUserPermissions('${u.id}')">🔑 Permissions</button>
+          ${isInactive 
+            ? `<button class="btn btn-accent btn-sm" onclick="activateUser('${u.id}')">✅ Activate</button>`
+            : `<button class="btn btn-ghost btn-sm" onclick="deactivateUser('${u.id}')">🔴 Deactivate</button>`
+          }
+          <button class="btn btn-ghost btn-sm" onclick="resetUserPassword('${u.id}')">🔐 Reset PW</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showNewUserModal() {
+  const roleOptions = Object.entries(ROLES).map(([key, val]) => 
+    `<option value="${key}">${val.icon} ${val.name}</option>`
+  ).join('');
+  
+  const practiceCheckboxes = db.practices.map(p => 
+    `<label style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:4px;"><input type="checkbox" value="${p.id}" class="new-user-practice" style="width:auto;"> ${p.logo || '🏥'} ${p.name}</label>`
+  ).join('');
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>👤 Create New User</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Full Name *</label><input id="newUserName" placeholder="John Smith"></div>
+      <div class="form-group"><label>Email *</label><input id="newUserEmail" type="email" placeholder="john@example.com"></div>
+      <div class="form-group"><label>Phone</label><input id="newUserPhone" placeholder="(555) 123-4567"></div>
+      <div class="form-group"><label>Job Title</label><input id="newUserTitle" placeholder="e.g., Registered Nurse"></div>
+      <div class="form-group full"><label>Role *</label><select id="newUserRole">${roleOptions}</select></div>
+      <div class="form-group full">
+        <label>Practice Assignment *</label>
+        <div style="max-height:150px;overflow-y:auto;background:var(--bg-input);padding:12px;border-radius:6px;border:1px solid var(--border);">
+          ${practiceCheckboxes}
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Link to Provider (optional)</label>
+        <select id="newUserProviderId">
+          <option value="">— Not linked to a provider —</option>
+          ${db.providers.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+        </select>
+        <span style="font-size:11px;color:var(--text-dim);margin-top:4px;display:block;">Only select if this user is a clinical provider</span>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createUser()">Create User</button>
+    </div>
+  `);
+}
+
+function createUser() {
+  const name = document.getElementById('newUserName').value.trim();
+  const email = document.getElementById('newUserEmail').value.trim();
+  const phone = document.getElementById('newUserPhone').value.trim();
+  const title = document.getElementById('newUserTitle').value.trim();
+  const role = document.getElementById('newUserRole').value;
+  const providerId = document.getElementById('newUserProviderId').value;
+  const practiceIds = Array.from(document.querySelectorAll('.new-user-practice:checked')).map(cb => cb.value);
+  
+  if (!name || !email || !role) {
+    alert('Please fill in all required fields (Name, Email, Role)');
+    return;
+  }
+  
+  if (practiceIds.length === 0) {
+    alert('Please assign at least one practice');
+    return;
+  }
+  
+  // Check for duplicate email
+  if (db.users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+    alert('A user with this email already exists');
+    return;
+  }
+  
+  const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  
+  const newUser = {
+    id: genId(),
+    name,
+    email,
+    phone,
+    title,
+    role,
+    providerId: providerId || null,
+    practiceIds,
+    avatar,
+    status: 'active',
+    createdAt: new Date().toISOString()
+  };
+  
+  db.users.push(newUser);
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ User "${name}" created successfully`);
+}
+
+function editUserModal(userId) {
+  const u = db.users.find(x => x.id === userId);
+  if (!u) return;
+  
+  const roleOptions = Object.entries(ROLES).map(([key, val]) => 
+    `<option value="${key}" ${u.role === key ? 'selected' : ''}>${val.icon} ${val.name}</option>`
+  ).join('');
+  
+  const practiceCheckboxes = db.practices.map(p => {
+    const checked = u.practiceIds && u.practiceIds.includes(p.id) ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:4px;"><input type="checkbox" value="${p.id}" class="edit-user-practice" ${checked} style="width:auto;"> ${p.logo || '🏥'} ${p.name}</label>`;
+  }).join('');
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✏️ Edit User</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Full Name *</label><input id="editUserName" value="${u.name || ''}"></div>
+      <div class="form-group"><label>Email *</label><input id="editUserEmail" type="email" value="${u.email || ''}"></div>
+      <div class="form-group"><label>Phone</label><input id="editUserPhone" value="${u.phone || ''}"></div>
+      <div class="form-group"><label>Job Title</label><input id="editUserTitle" value="${u.title || ''}"></div>
+      <div class="form-group full"><label>Role *</label><select id="editUserRole">${roleOptions}</select></div>
+      <div class="form-group full">
+        <label>Practice Assignment *</label>
+        <div style="max-height:150px;overflow-y:auto;background:var(--bg-input);padding:12px;border-radius:6px;border:1px solid var(--border);">
+          ${practiceCheckboxes}
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Link to Provider</label>
+        <select id="editUserProviderId">
+          <option value="">— Not linked to a provider —</option>
+          ${db.providers.map(p => `<option value="${p.id}" ${u.providerId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateUser('${userId}')">Save Changes</button>
+    </div>
+  `);
+}
+
+function updateUser(userId) {
+  const u = db.users.find(x => x.id === userId);
+  if (!u) return;
+  
+  const name = document.getElementById('editUserName').value.trim();
+  const email = document.getElementById('editUserEmail').value.trim();
+  const phone = document.getElementById('editUserPhone').value.trim();
+  const title = document.getElementById('editUserTitle').value.trim();
+  const role = document.getElementById('editUserRole').value;
+  const providerId = document.getElementById('editUserProviderId').value;
+  const practiceIds = Array.from(document.querySelectorAll('.edit-user-practice:checked')).map(cb => cb.value);
+  
+  if (!name || !email || !role) {
+    alert('Please fill in all required fields');
+    return;
+  }
+  
+  if (practiceIds.length === 0) {
+    alert('Please assign at least one practice');
+    return;
+  }
+  
+  // Check for duplicate email (excluding current user)
+  if (db.users.some(x => x.id !== userId && x.email.toLowerCase() === email.toLowerCase())) {
+    alert('A user with this email already exists');
+    return;
+  }
+  
+  u.name = name;
+  u.email = email;
+  u.phone = phone;
+  u.title = title;
+  u.role = role;
+  u.providerId = providerId || null;
+  u.practiceIds = practiceIds;
+  u.avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  u.updatedAt = new Date().toISOString();
+  
+  saveDB();
+  closeModal();
+  updateUserIndicator();
+  render();
+  showToast(`✅ User "${name}" updated`);
+}
+
+function deactivateUser(userId) {
+  const u = db.users.find(x => x.id === userId);
+  if (!u) return;
+  
+  // Can't deactivate yourself
+  if (userId === db.currentUserId) {
+    alert('You cannot deactivate your own account');
+    return;
+  }
+  
+  if (confirm(`Deactivate user "${u.name}"?\n\nThey will no longer be able to log in.`)) {
+    u.status = 'inactive';
+    u.deactivatedAt = new Date().toISOString();
+    saveDB();
+    render();
+    showToast(`🔴 User "${u.name}" deactivated`);
+  }
+}
+
+function activateUser(userId) {
+  const u = db.users.find(x => x.id === userId);
+  if (!u) return;
+  
+  u.status = 'active';
+  u.activatedAt = new Date().toISOString();
+  saveDB();
+  render();
+  showToast(`✅ User "${u.name}" activated`);
+}
+
+function resetUserPassword(userId) {
+  const u = db.users.find(x => x.id === userId);
+  if (!u) return;
+  
+  if (confirm(`Send password reset email to "${u.email}"?\n\n(Demo mode: Password would be reset to "temp123")`)) {
+    u.passwordResetAt = new Date().toISOString();
+    u.tempPassword = 'temp123';
+    saveDB();
+    showToast(`📧 Password reset sent to ${u.email}`);
+  }
+}
+
+function showUserPermissions(userId) {
+  const u = db.users.find(x => x.id === userId);
+  if (!u) return;
+  
+  const roleInfo = getRoleInfo(u.role);
+  
+  // Get all permissions for this role
+  const userPerms = Object.entries(PERMISSIONS).filter(([perm, roles]) => 
+    roles.includes(u.role)
+  ).map(([perm]) => perm);
+  
+  const permCategories = {
+    'Schedule': ['viewSchedule', 'editSchedule'],
+    'Patients': ['viewPatientLimited', 'viewPatientFull', 'editPatientDemographics', 'editPatientClinical'],
+    'Clinical Notes': ['viewNotesLimited', 'viewNotesFull', 'createNotes', 'signNotes'],
+    'Prescriptions': ['viewPrescriptions', 'prescribeNonControlled', 'prescribeControlled'],
+    'Labs': ['viewLabs', 'orderLabs'],
+    'Reports': ['viewOwnReports', 'viewAllReports'],
+    'Admin': ['viewBilling', 'manageUsers', 'manageProviders', 'managePractices', 'systemSettings']
+  };
+  
+  const permHtml = Object.entries(permCategories).map(([category, perms]) => `
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text-muted);">${category}</div>
+      ${perms.map(p => {
+        const has = userPerms.includes(p);
+        const label = p.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+        return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;">
+          <span style="color:${has ? 'var(--accent)' : 'var(--danger)'};">${has ? '✅' : '❌'}</span>
+          <span style="color:${has ? 'var(--text)' : 'var(--text-dim)'};">${label}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>🔑 Permissions for ${u.name}</h3>
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-input);border-radius:8px;margin-bottom:16px;">
+      <div style="width:48px;height:48px;border-radius:50%;background:${roleInfo.color};display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;">${roleInfo.icon}</div>
+      <div>
+        <div style="font-weight:600;">${roleInfo.name}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Access Level ${roleInfo.level}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${roleInfo.desc}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-height:400px;overflow-y:auto;">
+      ${permHtml}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="closeModal();editUserModal('${userId}')">Edit Role</button>
+    </div>
+  `);
+}
+
+function showPermissionsMatrix() {
+  const roles = Object.keys(ROLES);
+  const features = [
+    { name: 'View Schedule', perm: 'viewSchedule' },
+    { name: 'Edit Schedule', perm: 'editSchedule' },
+    { name: 'View Patient (Limited)', perm: 'viewPatientLimited' },
+    { name: 'View Patient (Full)', perm: 'viewPatientFull' },
+    { name: 'Edit Patient Demographics', perm: 'editPatientDemographics' },
+    { name: 'Edit Patient Clinical', perm: 'editPatientClinical' },
+    { name: 'View Notes (Limited)', perm: 'viewNotesLimited' },
+    { name: 'View Notes (Full)', perm: 'viewNotesFull' },
+    { name: 'Create Notes', perm: 'createNotes' },
+    { name: 'Sign Notes', perm: 'signNotes' },
+    { name: 'View Prescriptions', perm: 'viewPrescriptions' },
+    { name: 'Prescribe (Non-Controlled)', perm: 'prescribeNonControlled' },
+    { name: 'Prescribe (Controlled)', perm: 'prescribeControlled' },
+    { name: 'View Labs', perm: 'viewLabs' },
+    { name: 'Order Labs', perm: 'orderLabs' },
+    { name: 'View Own Reports', perm: 'viewOwnReports' },
+    { name: 'View All Reports', perm: 'viewAllReports' },
+    { name: 'View Billing', perm: 'viewBilling' },
+    { name: 'Manage Users', perm: 'manageUsers' },
+    { name: 'Manage Providers', perm: 'manageProviders' },
+    { name: 'Manage Practices', perm: 'managePractices' },
+    { name: 'System Settings', perm: 'systemSettings' }
+  ];
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📊 Permissions Matrix</h3>
+    <div class="permissions-matrix">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            ${roles.map(r => `<th style="background:${ROLES[r].color}20;color:${ROLES[r].color};">${ROLES[r].icon}<br>${ROLES[r].name.split(' ')[0]}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${features.map(f => `
+            <tr>
+              <td>${f.name}</td>
+              ${roles.map(r => {
+                const has = PERMISSIONS[f.perm] && PERMISSIONS[f.perm].includes(r);
+                return `<td><span class="${has ? 'perm-yes' : 'perm-no'}">${has ? '✓' : '✗'}</span></td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:16px;font-size:11px;color:var(--text-dim);">
+      ✓ = Full access | ✗ = No access
+    </div>
+  `, true);
+}
+
+function showMyProfileModal() {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  const roleInfo = getRoleInfo(user.role);
+  document.getElementById('userDropdown').classList.remove('show');
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>👤 My Profile</h3>
+    <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg-input);border-radius:8px;margin-bottom:16px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:${roleInfo.color};display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;font-weight:700;">
+        ${user.avatar || user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700;">${user.name}</div>
+        <div style="font-size:13px;color:var(--text-muted);">${user.email}</div>
+        <div style="margin-top:4px;">
+          <span class="user-role-badge ${user.role}">${roleInfo.icon} ${roleInfo.name}</span>
+        </div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Phone</label>
+        <div style="padding:8px 12px;background:var(--bg);border-radius:6px;">${user.phone || '—'}</div>
+      </div>
+      <div class="form-group">
+        <label>Title</label>
+        <div style="padding:8px 12px;background:var(--bg);border-radius:6px;">${user.title || '—'}</div>
+      </div>
+      <div class="form-group full">
+        <label>Assigned Practices</label>
+        <div style="padding:8px 12px;background:var(--bg);border-radius:6px;">
+          ${(user.practiceIds || []).map(pid => {
+            const p = db.practices.find(x => x.id === pid);
+            return p ? `<span style="display:inline-block;margin-right:8px;margin-bottom:4px;padding:2px 8px;background:var(--bg-input);border-radius:4px;font-size:12px;">${p.logo || '🏥'} ${p.name}</span>` : '';
+          }).join('') || '—'}
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Account Created</label>
+        <div style="padding:8px 12px;background:var(--bg);border-radius:6px;font-size:13px;">
+          ${user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}
+        </div>
+      </div>
+    </div>
+    <div class="section-title">My Permissions</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+      ${Object.entries(PERMISSIONS).filter(([p, roles]) => roles.includes(user.role)).slice(0, 10).map(([p]) => 
+        `<span class="badge badge-green">${p.replace(/([A-Z])/g, ' $1').trim()}</span>`
+      ).join('')}
+      ${Object.entries(PERMISSIONS).filter(([p, roles]) => roles.includes(user.role)).length > 10 
+        ? `<span class="badge badge-blue">+${Object.entries(PERMISSIONS).filter(([p, roles]) => roles.includes(user.role)).length - 10} more</span>` 
+        : ''}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+
+// ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
 let currentPage='dashboard';
@@ -1667,6 +2471,12 @@ let modalStack=[];
 let activeFieldDictation=null;
 
 function navigate(page){
+  // Check permission before navigating
+  if (!canAccessPage(page)) {
+    showToast(`🚫 Access denied to ${page}`);
+    return;
+  }
+  
   currentPage=page;
   if(page!=='patient-detail') selectedPatient=null;
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -5237,6 +6047,304 @@ function renderSettings(c){
     </div>`;
 }
 function exportData(){const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='amor-emr-backup.json';a.click();}
+
+// ═══════ USER MANAGEMENT ═══════
+function toggleUserDropdown(){
+  const dropdown = document.getElementById('userDropdown');
+  if(dropdown){
+    dropdown.classList.toggle('show');
+    // Close dropdown when clicking outside
+    if(dropdown.classList.contains('show')){
+      setTimeout(() => {
+        document.addEventListener('click', closeUserDropdownOnClickOutside, {once: true});
+      }, 10);
+    }
+  }
+}
+
+function closeUserDropdownOnClickOutside(e){
+  const dropdown = document.getElementById('userDropdown');
+  const indicator = document.getElementById('userIndicator');
+  if(dropdown && !indicator?.contains(e.target)){
+    dropdown.classList.remove('show');
+  }
+}
+
+function showMyProfileModal(){
+  const currentUser = db.users?.[0] || {name: 'Admin User', email: 'admin@amormedical.com', role: 'admin'};
+  const provider = db.currentProviderId ? db.providers.find(p => p.id === db.currentProviderId) : null;
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>👤 My Profile</h3>
+    
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--bg-input);border-radius:8px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;">
+        ${currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2)}
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700;">${currentUser.name}</div>
+        <div style="color:var(--text-muted);font-size:13px;">${currentUser.email}</div>
+        <span class="badge badge-blue" style="margin-top:4px;">${currentUser.role || 'Admin'}</span>
+      </div>
+    </div>
+    
+    <div class="form-grid">
+      <div class="form-group"><label>Name</label><input id="profileName" value="${currentUser.name}"></div>
+      <div class="form-group"><label>Email</label><input id="profileEmail" type="email" value="${currentUser.email}"></div>
+      <div class="form-group full"><label>Phone</label><input id="profilePhone" value="${currentUser.phone || ''}"></div>
+    </div>
+    
+    ${provider ? `
+      <div class="section-title">Provider Profile</div>
+      <div style="padding:12px;background:var(--bg-input);border-radius:8px;font-size:13px;">
+        <div><strong>Provider:</strong> ${provider.name}</div>
+        <div><strong>NPI:</strong> ${provider.npi || '—'}</div>
+        <div><strong>Specialty:</strong> ${provider.specialty || '—'}</div>
+        <div style="margin-top:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal();editProviderModal('${provider.id}')">✏️ Edit Provider Settings</button>
+        </div>
+      </div>
+    ` : ''}
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMyProfile()">Save Changes</button>
+    </div>
+  `);
+}
+
+function saveMyProfile(){
+  if(!db.users || db.users.length === 0){
+    db.users = [{id: genId(), name: 'Admin User', email: 'admin@amormedical.com', role: 'admin', createdAt: new Date().toISOString()}];
+  }
+  
+  db.users[0].name = document.getElementById('profileName')?.value || db.users[0].name;
+  db.users[0].email = document.getElementById('profileEmail')?.value || db.users[0].email;
+  db.users[0].phone = document.getElementById('profilePhone')?.value || '';
+  
+  saveDB();
+  closeModal();
+  updateUserIndicator();
+  showToast('✅ Profile updated!');
+}
+
+function updateUserIndicator(){
+  const currentUser = db.users?.[0] || {name: 'Admin User', email: 'admin@amormedical.com'};
+  const avatar = document.getElementById('userAvatar');
+  const userName = document.getElementById('userName');
+  const dropdownName = document.getElementById('dropdownUserName');
+  const dropdownEmail = document.getElementById('dropdownUserEmail');
+  
+  if(avatar) avatar.textContent = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2);
+  if(userName) userName.textContent = currentUser.name;
+  if(dropdownName) dropdownName.textContent = currentUser.name;
+  if(dropdownEmail) dropdownEmail.textContent = currentUser.email;
+}
+
+function renderUsers(c){
+  setPageTitle('User Management');
+  
+  const users = db.users || [{id: genId(), name: 'Admin User', email: 'admin@amormedical.com', role: 'admin', createdAt: new Date().toISOString()}];
+  const roleColors = {admin: 'badge-purple', provider: 'badge-blue', staff: 'badge-green', billing: 'badge-yellow'};
+  
+  c.innerHTML = `
+    ${getRefreshHeader('Users', users.length, `<button class="btn btn-primary" onclick="showNewUserModal()">+ Add User</button>`)}
+    
+    <div class="stats-grid" style="margin-bottom:24px;">
+      <div class="stat-card blue"><div class="label">Total Users</div><div class="value">${users.length}</div></div>
+      <div class="stat-card green"><div class="label">Providers</div><div class="value">${users.filter(u => u.role === 'provider').length}</div></div>
+      <div class="stat-card purple"><div class="label">Admins</div><div class="value">${users.filter(u => u.role === 'admin').length}</div></div>
+      <div class="stat-card yellow"><div class="label">Staff</div><div class="value">${users.filter(u => u.role === 'staff' || u.role === 'billing').length}</div></div>
+    </div>
+    
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Provider</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users.map(u => {
+            const provider = u.providerId ? db.providers.find(p => p.id === u.providerId) : null;
+            return `
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;">
+                      ${u.name.split(' ').map(n => n[0]).join('').substring(0,2)}
+                    </div>
+                    <strong>${u.name}</strong>
+                  </div>
+                </td>
+                <td>${u.email}</td>
+                <td><span class="badge ${roleColors[u.role] || 'badge-blue'}">${u.role || 'admin'}</span></td>
+                <td>${provider ? provider.name : '—'}</td>
+                <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
+                <td>
+                  <button class="btn btn-ghost btn-sm" onclick="editUserModal('${u.id}')">✏️</button>
+                  <button class="btn btn-ghost btn-sm" onclick="deleteUser('${u.id}')" ${users.length === 1 ? 'disabled title="Cannot delete last user"' : ''}>🗑️</button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="section-title" style="margin-top:24px;">Role Permissions</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:2;">
+      <div><strong>Admin:</strong> Full access to all features, settings, and user management</div>
+      <div><strong>Provider:</strong> Clinical access — patients, encounters, prescriptions, labs</div>
+      <div><strong>Staff:</strong> Front desk — scheduling, check-in, demographics</div>
+      <div><strong>Billing:</strong> Financial — claims, payments, reports</div>
+    </div>
+  `;
+}
+
+function showNewUserModal(){
+  const providerOpts = db.providers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>👤 New User</h3>
+    
+    <div class="form-grid">
+      <div class="form-group"><label>Full Name *</label><input id="nuName" placeholder="John Smith"></div>
+      <div class="form-group"><label>Email *</label><input id="nuEmail" type="email" placeholder="john@amormedical.com"></div>
+      <div class="form-group"><label>Phone</label><input id="nuPhone" placeholder="(305) 555-1234"></div>
+      <div class="form-group"><label>Role *</label>
+        <select id="nuRole" onchange="toggleProviderSelect()">
+          <option value="admin">Admin</option>
+          <option value="provider">Provider</option>
+          <option value="staff">Staff</option>
+          <option value="billing">Billing</option>
+        </select>
+      </div>
+      <div class="form-group" id="providerSelectGroup" style="display:none;">
+        <label>Link to Provider</label>
+        <select id="nuProvider">
+          <option value="">— Select Provider —</option>
+          ${providerOpts}
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createUser()">Create User</button>
+    </div>
+  `);
+}
+
+function toggleProviderSelect(){
+  const role = document.getElementById('nuRole')?.value;
+  const group = document.getElementById('providerSelectGroup');
+  if(group) group.style.display = role === 'provider' ? 'block' : 'none';
+}
+
+function createUser(){
+  const name = document.getElementById('nuName')?.value?.trim();
+  const email = document.getElementById('nuEmail')?.value?.trim();
+  
+  if(!name || !email){
+    alert('Name and email are required');
+    return;
+  }
+  
+  if(!db.users) db.users = [];
+  
+  const user = {
+    id: genId(),
+    name: name,
+    email: email,
+    phone: document.getElementById('nuPhone')?.value || '',
+    role: document.getElementById('nuRole')?.value || 'admin',
+    providerId: document.getElementById('nuProvider')?.value || null,
+    createdAt: new Date().toISOString()
+  };
+  
+  db.users.push(user);
+  saveDB();
+  closeModal();
+  render();
+}
+
+function editUserModal(id){
+  const user = (db.users || []).find(u => u.id === id);
+  if(!user) return;
+  
+  const providerOpts = db.providers.map(p => `<option value="${p.id}" ${p.id === user.providerId ? 'selected' : ''}>${p.name}</option>`).join('');
+  const roles = ['admin', 'provider', 'staff', 'billing'];
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✏️ Edit User</h3>
+    
+    <div class="form-grid">
+      <div class="form-group"><label>Full Name *</label><input id="euName" value="${user.name}"></div>
+      <div class="form-group"><label>Email *</label><input id="euEmail" type="email" value="${user.email}"></div>
+      <div class="form-group"><label>Phone</label><input id="euPhone" value="${user.phone || ''}"></div>
+      <div class="form-group"><label>Role *</label>
+        <select id="euRole">
+          ${roles.map(r => `<option value="${r}" ${user.role === r ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Link to Provider</label>
+        <select id="euProvider">
+          <option value="">— None —</option>
+          ${providerOpts}
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUserEdit('${id}')">Save Changes</button>
+    </div>
+  `);
+}
+
+function saveUserEdit(id){
+  const user = (db.users || []).find(u => u.id === id);
+  if(!user) return;
+  
+  user.name = document.getElementById('euName')?.value || user.name;
+  user.email = document.getElementById('euEmail')?.value || user.email;
+  user.phone = document.getElementById('euPhone')?.value || '';
+  user.role = document.getElementById('euRole')?.value || user.role;
+  user.providerId = document.getElementById('euProvider')?.value || null;
+  
+  saveDB();
+  closeModal();
+  render();
+  
+  // Update indicator if editing current user
+  if(db.users.indexOf(user) === 0) updateUserIndicator();
+}
+
+function deleteUser(id){
+  if(!db.users || db.users.length <= 1){
+    alert('Cannot delete the last user');
+    return;
+  }
+  
+  const user = db.users.find(u => u.id === id);
+  if(!user) return;
+  
+  if(confirm(`Delete user: ${user.name}?`)){
+    db.users = db.users.filter(u => u.id !== id);
+    saveDB();
+    render();
+  }
+}
 
 // ═══════ MODAL SYSTEM ═══════
 function showModal(html,large){
