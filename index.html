@@ -29,6 +29,35 @@ textarea{resize:vertical;min-height:60px;}
 .top-nav .logo{font-size:18px;font-weight:800;color:var(--primary);white-space:nowrap;}
 .top-nav .spacer{flex:1;}
 .install-btn{background:var(--primary);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;display:none;width:auto;}
+.nav-btn{background:var(--input);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:14px;transition:all .15s;}
+.nav-btn:hover{background:var(--hover);border-color:var(--primary);}
+.refresh-btn{background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;}
+.refresh-btn:hover{opacity:.9;}
+
+/* UPDATE BANNER */
+.update-banner{position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,var(--primary),var(--accent));color:#fff;padding:10px 16px;font-size:13px;font-weight:600;display:none;z-index:1000;text-align:center;cursor:pointer;animation:pulse 2s infinite;}
+.update-banner.show{display:flex;align-items:center;justify-content:center;gap:10px;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.85;}}
+
+/* SETTINGS MODAL */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:none;z-index:2000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:360px;max-height:80vh;overflow-y:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);}
+.modal-header h2{font-size:16px;margin:0;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;padding:4px 8px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:16px;}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.settings-item:last-child{border-bottom:none;}
+.settings-label{font-size:13px;color:var(--muted);}
+.settings-value{font-size:13px;font-weight:600;color:var(--text);}
+.settings-btn{background:var(--input);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;width:100%;margin-top:8px;transition:all .15s;}
+.settings-btn:hover{border-color:var(--primary);background:var(--hover);}
+.settings-btn.danger{border-color:var(--danger);color:var(--danger);}
+.settings-btn.danger:hover{background:var(--danger);color:#fff;}
+.settings-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+.settings-btn.primary:hover{opacity:.9;}
 
 /* MODULE TABS */
 .module-tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
@@ -80,10 +109,53 @@ textarea{resize:vertical;min-height:60px;}
 </head>
 <body>
 <div class="shell">
+  <!-- UPDATE BANNER -->
+  <div class="update-banner" id="updateBanner" onclick="refreshApp()">
+    <span>🎉 Update available!</span>
+    <span style="background:rgba(255,255,255,.2);padding:4px 10px;border-radius:4px;">Tap to refresh</span>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>⚙️ Settings</h2>
+        <button class="modal-close" onclick="closeSettings()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-item">
+          <span class="settings-label">App Version</span>
+          <span class="settings-value" id="appVersionDisplay">v1.0.2</span>
+        </div>
+        <div class="settings-item">
+          <span class="settings-label">Server Version</span>
+          <span class="settings-value" id="serverVersionDisplay">Checking...</span>
+        </div>
+        <div class="settings-item">
+          <span class="settings-label">Last Updated</span>
+          <span class="settings-value" id="lastUpdated">-</span>
+        </div>
+        
+        <div style="margin-top:16px;">
+          <button class="settings-btn primary" onclick="checkForUpdates()">🔍 Check for Updates</button>
+          <button class="settings-btn" onclick="refreshApp()">🔄 Clear Cache & Reload</button>
+          <button class="settings-btn danger" onclick="hardReset()">🗑️ Full Reset (Nuclear)</button>
+        </div>
+        
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
+          <p style="font-size:11px;color:var(--dim);margin:0;">Amor Medical Platform</p>
+          <p style="font-size:10px;color:var(--dim);margin:4px 0 0;">Built with 💙 by Emily & Ashley</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TOP -->
   <div class="top-nav">
     <div class="logo">💙 Amor Medical</div>
     <div class="spacer"></div>
+    <button class="refresh-btn" onclick="refreshApp()" title="Refresh App">🔄</button>
+    <button class="nav-btn" onclick="openSettings()" title="Settings">⚙️</button>
     <button class="install-btn" id="installBtn" onclick="installPWA()">📲 Install App</button>
   </div>
 
@@ -112,13 +184,209 @@ textarea{resize:vertical;min-height:60px;}
 </div>
 
 <script>
-// PWA Install
+// ============================================
+// VERSION & UPDATE SYSTEM
+// ============================================
+const APP_VERSION = '1.0.2';
+let serverVersion = null;
+
+// Display current version
+document.getElementById('appVersionDisplay').textContent = 'v' + APP_VERSION;
+
+// Check for updates on load
+window.addEventListener('load', () => {
+  checkForUpdates(true); // Silent check on load
+  updateLastUpdatedTime();
+});
+
+// Check server version
+async function checkForUpdates(silent = false) {
+  const serverDisplay = document.getElementById('serverVersionDisplay');
+  serverDisplay.textContent = 'Checking...';
+  
+  try {
+    // Add cache-buster to always get fresh version.json
+    const response = await fetch('version.json?t=' + Date.now());
+    const data = await response.json();
+    serverVersion = data.version;
+    serverDisplay.textContent = 'v' + serverVersion;
+    
+    // Compare versions
+    if (isNewerVersion(serverVersion, APP_VERSION)) {
+      showUpdateBanner();
+      if (!silent) {
+        alert('🎉 New version available: v' + serverVersion + '\n\nCurrent: v' + APP_VERSION + '\n\nTap "Clear Cache & Reload" to update!');
+      }
+    } else if (!silent) {
+      alert('✅ You have the latest version!\n\nv' + APP_VERSION);
+    }
+  } catch (err) {
+    serverDisplay.textContent = 'Offline';
+    if (!silent) {
+      alert('⚠️ Could not check for updates.\nYou may be offline.');
+    }
+  }
+}
+
+// Compare version strings (e.g., "1.0.3" > "1.0.2")
+function isNewerVersion(server, local) {
+  const s = server.split('.').map(Number);
+  const l = local.split('.').map(Number);
+  for (let i = 0; i < Math.max(s.length, l.length); i++) {
+    const sv = s[i] || 0;
+    const lv = l[i] || 0;
+    if (sv > lv) return true;
+    if (sv < lv) return false;
+  }
+  return false;
+}
+
+// Show update banner
+function showUpdateBanner() {
+  document.getElementById('updateBanner').classList.add('show');
+}
+
+// Update last updated time display
+function updateLastUpdatedTime() {
+  const lastUpdate = localStorage.getItem('amorAppLastUpdate');
+  const el = document.getElementById('lastUpdated');
+  if (lastUpdate) {
+    const date = new Date(parseInt(lastUpdate));
+    el.textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  } else {
+    el.textContent = 'Never';
+  }
+}
+
+// ============================================
+// CACHE & REFRESH FUNCTIONS
+// ============================================
+
+// Refresh app - clear caches, unregister SW, reload
+async function refreshApp() {
+  const banner = document.getElementById('updateBanner');
+  banner.innerHTML = '<span>⏳ Refreshing...</span>';
+  
+  try {
+    // 1. Clear all caches
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => {
+        console.log('[App] Deleting cache:', name);
+        return caches.delete(name);
+      }));
+      console.log('[App] All caches cleared');
+    }
+    
+    // 2. Unregister service worker
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(reg => {
+        console.log('[App] Unregistering SW');
+        return reg.unregister();
+      }));
+      console.log('[App] Service workers unregistered');
+    }
+    
+    // 3. Record update time
+    localStorage.setItem('amorAppLastUpdate', Date.now().toString());
+    
+    // 4. Force reload from server
+    window.location.reload(true);
+    
+  } catch (err) {
+    console.error('[App] Refresh error:', err);
+    // Try reload anyway
+    window.location.reload(true);
+  }
+}
+
+// Nuclear option - full reset
+async function hardReset() {
+  if (!confirm('🗑️ FULL RESET\n\nThis will:\n• Clear ALL cached data\n• Unregister service worker\n• Clear localStorage\n• Force reload\n\nContinue?')) {
+    return;
+  }
+  
+  try {
+    // Clear caches
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+    }
+    
+    // Unregister service workers
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(reg => reg.unregister()));
+    }
+    
+    // Clear localStorage (except important stuff)
+    localStorage.clear();
+    localStorage.setItem('amorAppLastUpdate', Date.now().toString());
+    
+    // Clear sessionStorage
+    sessionStorage.clear();
+    
+    alert('✅ Full reset complete!\n\nReloading app...');
+    window.location.href = window.location.pathname + '?reset=' + Date.now();
+    
+  } catch (err) {
+    console.error('[App] Hard reset error:', err);
+    window.location.reload(true);
+  }
+}
+
+// ============================================
+// SETTINGS MODAL
+// ============================================
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('show');
+  checkForUpdates(true); // Refresh server version when opening
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSettings();
+});
+
+// ============================================
+// PWA INSTALL
+// ============================================
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display='block';});
 function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{if(r.outcome==='accepted')document.getElementById('installBtn').style.display='none';deferredPrompt=null;});}}
 
-// Service Worker
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+// ============================================
+// SERVICE WORKER
+// ============================================
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js')
+    .then(reg => {
+      console.log('[App] SW registered');
+      
+      // Listen for updates
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version available
+            console.log('[App] New SW version available');
+            showUpdateBanner();
+          }
+        });
+      });
+    })
+    .catch(err => console.log('[App] SW registration failed:', err));
+  
+  // Listen for controller changes (new SW took over)
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('[App] New SW controller, reloading...');
+  });
+}
 
 // Module switching
 let currentModule='home';
@@ -193,8 +461,9 @@ function renderHome(){
     </div>
 
     <div style="text-align:center;padding:20px 0;font-size:11px;color:var(--dim);">
-      Amor Medical Platform v1.0 · Built by Emily 🌿 + Ashley 💜<br>
-      © 2026 Dr. Roger Gonzalez · Rico Solutions
+      Amor Medical Platform v${APP_VERSION} · Built by Emily 🌿 + Ashley 💜<br>
+      © 2026 Dr. Roger Gonzalez · Rico Solutions<br>
+      <button onclick="openSettings()" style="background:none;border:none;color:var(--primary);font-size:11px;margin-top:6px;cursor:pointer;">⚙️ Settings & Updates</button>
     </div>
   `;
 }

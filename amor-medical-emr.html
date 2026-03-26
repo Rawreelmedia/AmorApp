@@ -277,11 +277,146 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .legend-item{display:flex;align-items:center;gap:4px;}
 .legend-dot{width:12px;height:12px;border-radius:3px;}
 
+/* ═══════ DOCUMENT UPLOAD SYSTEM ═══════ */
+.doc-upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg-input);}
+.doc-upload-zone:hover,.doc-upload-zone.dragover{border-color:var(--primary);background:rgba(14,165,233,.1);}
+.doc-upload-zone.dragover{transform:scale(1.02);}
+.doc-upload-zone .upload-icon{font-size:48px;margin-bottom:12px;opacity:.7;}
+.doc-upload-zone .upload-text{font-size:14px;color:var(--text-muted);margin-bottom:8px;}
+.doc-upload-zone .upload-hint{font-size:11px;color:var(--text-dim);}
+.doc-upload-zone .upload-btn{margin-top:12px;}
+
+.doc-progress{margin-top:12px;display:none;}
+.doc-progress.active{display:block;}
+.doc-progress-bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;}
+.doc-progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:3px;transition:width .3s;width:0%;}
+.doc-progress-text{font-size:11px;color:var(--text-muted);margin-top:4px;text-align:center;}
+
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:16px;}
+.doc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .15s;}
+.doc-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.2);}
+.doc-card .doc-preview{height:120px;background:var(--bg);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.doc-card .doc-preview img{width:100%;height:100%;object-fit:cover;}
+.doc-card .doc-preview .doc-icon{font-size:48px;opacity:.5;}
+.doc-card .doc-info{padding:12px;}
+.doc-card .doc-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-card .doc-meta{font-size:11px;color:var(--text-dim);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;}
+.doc-card .doc-type{position:absolute;top:8px;right:8px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;}
+.doc-card .doc-type.pdf{background:rgba(239,68,68,.9);color:#fff;}
+.doc-card .doc-type.image{background:rgba(14,165,233,.9);color:#fff;}
+.doc-card .doc-type.doc{background:rgba(139,92,246,.9);color:#fff;}
+.doc-card .doc-actions{display:flex;gap:4px;padding:8px 12px;border-top:1px solid var(--border);}
+.doc-card .doc-actions button{flex:1;padding:4px;font-size:11px;}
+
+.doc-list-view{margin-top:16px;}
+.doc-list-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;cursor:pointer;transition:all .15s;}
+.doc-list-item:hover{border-color:var(--primary);}
+.doc-list-item .doc-thumb{width:48px;height:48px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+.doc-list-item .doc-thumb img{width:100%;height:100%;object-fit:cover;}
+.doc-list-item .doc-thumb .thumb-icon{font-size:24px;opacity:.5;}
+.doc-list-item .doc-details{flex:1;min-width:0;}
+.doc-list-item .doc-details .doc-title{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-list-item .doc-details .doc-desc{font-size:11px;color:var(--text-dim);margin-top:2px;}
+
+.doc-viewer-modal{max-width:1000px;max-height:90vh;}
+.doc-viewer-content{background:var(--bg);border-radius:8px;margin:16px 0;overflow:hidden;min-height:400px;display:flex;align-items:center;justify-content:center;}
+.doc-viewer-content img{max-width:100%;max-height:60vh;object-fit:contain;cursor:zoom-in;}
+.doc-viewer-content img.zoomed{max-width:none;max-height:none;cursor:zoom-out;}
+.doc-viewer-content iframe{width:100%;height:60vh;border:none;}
+.doc-viewer-content .no-preview{text-align:center;padding:40px;color:var(--text-dim);}
+.doc-viewer-content .no-preview .icon{font-size:48px;margin-bottom:12px;}
+
+.doc-filter-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.doc-filter-bar input[type="text"]{max-width:250px;}
+.doc-filter-bar select{max-width:150px;}
+.doc-view-toggle{display:flex;gap:2px;background:var(--bg-input);border-radius:6px;padding:2px;}
+.doc-view-toggle button{background:transparent;border:none;color:var(--text-muted);padding:6px 12px;border-radius:4px;font-size:14px;}
+.doc-view-toggle button.active{background:var(--primary);color:#fff;}
+
 @media(max-width:900px){
   .sidebar{width:var(--sidebar-mini);}
   .sidebar .nav-label,.sidebar .logo-text,.sidebar-footer span{display:none;}
   .right-panel{width:0;padding:0;opacity:0;overflow:hidden;}
 }
+
+/* ═══════════════════════════════════════════
+   CAMERA CAPTURE SYSTEM
+   ═══════════════════════════════════════════ */
+.camera-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+.camera-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;width:95%;max-width:720px;max-height:95vh;overflow:hidden;display:flex;flex-direction:column;}
+.camera-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg);}
+.camera-header h3{margin:0;font-size:16px;display:flex;align-items:center;gap:8px;}
+.camera-close{background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .15s;}
+.camera-close:hover{background:var(--bg-input);color:var(--text);}
+
+.camera-body{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.camera-preview-container{position:relative;background:#000;flex:1;display:flex;align-items:center;justify-content:center;min-height:300px;max-height:60vh;}
+#cameraVideo{width:100%;height:100%;object-fit:contain;}
+#cameraVideo.mirror{transform:scaleX(-1);}
+#cameraCanvas{display:none;}
+#capturedPreview{width:100%;height:100%;object-fit:contain;display:none;}
+.camera-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--text-muted);}
+.camera-loading .spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.camera-error{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--danger);padding:20px;}
+.camera-error .error-icon{font-size:48px;margin-bottom:12px;}
+
+.camera-controls{padding:16px 20px;background:var(--bg);border-top:1px solid var(--border);}
+.camera-controls-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:12px;}
+.camera-controls-row:last-child{margin-bottom:0;}
+
+.camera-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:all .15s;}
+.camera-btn-capture{width:64px;height:64px;border-radius:50%;background:var(--danger);color:#fff;font-size:24px;padding:0;box-shadow:0 4px 12px rgba(239,68,68,.4);}
+.camera-btn-capture:hover{transform:scale(1.05);box-shadow:0 6px 16px rgba(239,68,68,.5);}
+.camera-btn-capture:active{transform:scale(0.95);}
+.camera-btn-capture.capturing{animation:pulse-capture .3s;}
+@keyframes pulse-capture{0%{transform:scale(1);}50%{transform:scale(0.85);}100%{transform:scale(1);}}
+
+.camera-btn-secondary{background:var(--bg-input);color:var(--text);border:1px solid var(--border);}
+.camera-btn-secondary:hover{background:var(--bg-hover);border-color:var(--text-dim);}
+.camera-btn-secondary.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+.camera-btn-accept{background:var(--accent);color:#fff;}
+.camera-btn-accept:hover{opacity:.9;}
+.camera-btn-retake{background:var(--bg-input);color:var(--text);border:1px solid var(--border);}
+.camera-btn-retake:hover{background:var(--bg-hover);}
+
+.camera-settings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;}
+.camera-select{background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:12px;min-width:150px;max-width:200px;}
+.camera-select:focus{border-color:var(--primary);outline:none;}
+
+.camera-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;}
+.camera-toggle:hover{border-color:var(--text-dim);color:var(--text);}
+.camera-toggle.active{background:rgba(14,165,233,.15);border-color:var(--primary);color:var(--primary);}
+
+/* Capture Option Modal */
+.capture-option-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;width:90%;max-width:360px;text-align:center;}
+.capture-option-modal h3{margin:0 0 8px;font-size:18px;}
+.capture-option-modal p{color:var(--text-muted);font-size:13px;margin-bottom:20px;}
+.capture-options{display:flex;flex-direction:column;gap:12px;}
+.capture-option-btn{display:flex;align-items:center;gap:12px;padding:16px;border-radius:10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text);cursor:pointer;transition:all .15s;text-align:left;}
+.capture-option-btn:hover{background:var(--bg-hover);border-color:var(--primary);}
+.capture-option-btn .option-icon{font-size:28px;}
+.capture-option-btn .option-text{font-weight:600;font-size:14px;}
+.capture-option-btn .option-desc{font-size:11px;color:var(--text-muted);margin-top:2px;}
+
+/* Image Edit Controls */
+.image-edit-controls{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:var(--bg);border-top:1px solid var(--border);}
+.edit-btn{background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;}
+.edit-btn:hover{border-color:var(--primary);color:var(--primary);}
+.edit-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+/* Clinical Photos Grid */
+.clinical-photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:12px;}
+.clinical-photo-card{position:relative;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;overflow:hidden;aspect-ratio:1;}
+.clinical-photo-card img{width:100%;height:100%;object-fit:cover;cursor:pointer;}
+.clinical-photo-card .photo-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);color:#fff;font-size:10px;padding:4px 6px;text-align:center;}
+.clinical-photo-card .photo-delete{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:10px;cursor:pointer;display:none;}
+.clinical-photo-card:hover .photo-delete{display:flex;align-items:center;justify-content:center;}
+.add-clinical-photo{background:var(--bg);border:2px dashed var(--border);border-radius:8px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--text-dim);}
+.add-clinical-photo:hover{border-color:var(--primary);color:var(--primary);}
+.add-clinical-photo .add-icon{font-size:24px;margin-bottom:4px;}
+.add-clinical-photo span{font-size:11px;}
 </style>
 </head>
 <body>
@@ -297,6 +432,8 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
       <div class="nav-item" onclick="navigate('patients')" data-nav="patients"><span class="icon">👥</span><span class="nav-label">Patients</span></div>
       <div class="nav-item" onclick="navigate('providers')" data-nav="providers"><span class="icon">🩺</span><span class="nav-label">Providers</span></div>
       <div class="nav-item" onclick="navigate('practices')" data-nav="practices"><span class="icon">🏥</span><span class="nav-label">Practices</span></div>
+      <div class="nav-item" onclick="navigate('myteam')" data-nav="myteam"><span class="icon">👥</span><span class="nav-label">My Team</span></div>
+      <div class="nav-item" onclick="navigate('referrals')" data-nav="referrals"><span class="icon">🔗</span><span class="nav-label">Referrals</span></div>
       <div class="nav-item" onclick="navigate('scheduling')" data-nav="scheduling"><span class="icon">📅</span><span class="nav-label">Scheduling</span></div>
       <div class="nav-item" onclick="navigate('encounters')" data-nav="encounters"><span class="icon">📋</span><span class="nav-label">Encounters</span></div>
       <div class="nav-item" onclick="navigate('notes')" data-nav="notes"><span class="icon">📝</span><span class="nav-label">Clinical Notes</span></div>
@@ -373,6 +510,7 @@ function seedDB(){
       {id:genId(),patientId:ptIds[0],providerId:pvIds[3],vendor:'Quest Diagnostics',tests:['CBC','CMP','A1C','Lipid Panel'],orderedDate:'2026-03-10',status:'resulted',results:'A1C: 7.2%, FBG: 132, TC: 198, LDL: 118, HDL: 52, TG: 140',icd10:'E11.65'},
       {id:genId(),patientId:ptIds[2],providerId:pvIds[2],vendor:'LabCorp',tests:['TSH','Free T4','Free T3'],orderedDate:'2026-03-15',status:'pending',results:'',icd10:'E03.9'}
     ],
+    documents:[],
     integrations:[
       {id:genId(),name:'Quest Diagnostics',type:'lab',status:'connected',apiKey:'',endpoint:'https://api.questdiagnostics.com/v1',notes:'Primary lab vendor'},
       {id:genId(),name:'LabCorp',type:'lab',status:'configured',apiKey:'',endpoint:'https://api.labcorp.com/v1',notes:'Secondary lab vendor'},
@@ -457,7 +595,11 @@ function render(){
     case 'patients': renderPatients(c); break;
     case 'patient-detail': renderPatientDetail(c); renderPatientRightPanel(rp); break;
     case 'providers': renderProviders(c); break;
+    case 'provider-detail': renderProviderDetail(c); break;
     case 'practices': renderPractices(c); break;
+    case 'practice-detail': renderPracticeDetail(c); break;
+    case 'myteam': renderMyTeam(c); break;
+    case 'referrals': renderReferrals(c); break;
     case 'scheduling': renderScheduling(c); break;
     case 'encounters': renderEncounters(c); break;
     case 'notes': renderNotesModule(c); break;
@@ -832,7 +974,7 @@ function openPatientDetail(id){
 function renderPatientDetail(c){
   const p=selectedPatient;if(!p){navigate('patients');return;}
   setPageTitle(p.firstName+' '+p.lastName);
-  const tabs=['demographics','insurance','photos','history','medications','allergies','encounters','labs','vitals','billing'];
+  const tabs=['demographics','insurance','documents','photos','history','medications','allergies','encounters','labs','vitals','billing'];
   const status = p.status || 'active';
   const statusBadge = status === 'active' 
     ? '<span class="badge badge-green">Active</span>'
@@ -914,6 +1056,7 @@ function renderPatientTab(p){
   switch(selectedPatientTab){
     case 'demographics': return renderDemographics(p);
     case 'insurance': return renderInsuranceTab(p);
+    case 'documents': return renderDocumentsTab(p);
     case 'photos': return renderPhotosTab(p);
     case 'history': return renderPMH(p);
     case 'medications': return renderPatientMeds(p);
@@ -1555,6 +1698,7 @@ function renderPatientRightPanel(rp){
     <h4>Quick Access</h4>
     <div class="quick-link ${selectedPatientTab==='demographics'?'active':''}" onclick="selectedPatientTab='demographics';render()">👤 Demographics</div>
     <div class="quick-link ${selectedPatientTab==='insurance'?'active':''}" onclick="selectedPatientTab='insurance';render()">🏥 Insurance</div>
+    <div class="quick-link ${selectedPatientTab==='documents'?'active':''}" onclick="selectedPatientTab='documents';render()">📄 Documents (${getPatientDocCount(p.id)})</div>
     <div class="quick-link ${selectedPatientTab==='photos'?'active':''}" onclick="selectedPatientTab='photos';render()">📷 Photos & Docs</div>
     <div class="quick-link ${selectedPatientTab==='history'?'active':''}" onclick="selectedPatientTab='history';render()">📜 Medical History</div>
     <div class="quick-link ${selectedPatientTab==='medications'?'active':''}" onclick="selectedPatientTab='medications';render()">💊 Medications (${rxCnt})</div>
