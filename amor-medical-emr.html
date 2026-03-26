@@ -277,6 +277,17 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .legend-item{display:flex;align-items:center;gap:4px;}
 .legend-dot{width:12px;height:12px;border-radius:3px;}
 
+/* ═══════ ICD-10 DIAGNOSIS PICKER ═══════ */
+.dx-search-results{max-height:200px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,.2);}
+.dx-selected-item{display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;transition:all .15s;}
+.dx-selected-item.primary{background:rgba(14,165,233,.1);border-color:var(--primary);}
+.dx-selected-item:hover{border-color:var(--primary);}
+.dx-code{font-weight:700;color:var(--primary);font-family:monospace;font-size:14px;}
+.dx-desc{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dx-quick-btn{padding:3px 8px !important;font-size:10px !important;white-space:nowrap;}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.toast-notification{animation:slideIn 0.3s ease;box-shadow:0 4px 12px rgba(0,0,0,.3);}
+
 /* ═══════ DOCUMENT UPLOAD SYSTEM ═══════ */
 .doc-upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg-input);}
 .doc-upload-zone:hover,.doc-upload-zone.dragover{border-color:var(--primary);background:rgba(14,165,233,.1);}
@@ -2453,7 +2464,11 @@ function renderPatientEncounters(p){
   return encs.map(e=>{
     const pv=db.providers.find(x=>x.id===e.providerId);
     const typeIcon=e.type==='telehealth'?'💻':e.type==='phone'?'📞':'🏥';
-    return `<div class="encounter-card" onclick="openEncounterDetail('${e.id}')"><div class="enc-header"><span class="enc-date">${typeIcon} ${e.date} — ${e.noteType||'SOAP'}</span><span class="badge ${e.status==='signed'?'badge-green':'badge-yellow'}">${e.status}</span></div><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">${pv?pv.name:''} | ${e.icd10||''} | ${e.cpt||''}</div><div class="enc-preview"><strong>CC:</strong> ${e.chiefComplaint}</div></div>`;
+    const icdCodes = e.icd10 ? e.icd10.split(',').slice(0, 3).map(c => c.trim()) : [];
+    const icdDisplay = icdCodes.length > 0 
+      ? icdCodes.map(c => `<span style="font-family:monospace;color:var(--primary);font-weight:600;">${c}</span>`).join(', ')
+      : '<span style="color:var(--text-dim);">No Dx</span>';
+    return `<div class="encounter-card" onclick="openEncounterDetail('${e.id}')"><div class="enc-header"><span class="enc-date">${typeIcon} ${e.date} — ${e.noteType||'SOAP'}</span><span class="badge ${e.status==='signed'?'badge-green':'badge-yellow'}">${e.status}</span></div><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">${pv?pv.name:''} | ${icdDisplay} | CPT: ${e.cpt||'—'}</div><div class="enc-preview"><strong>CC:</strong> ${e.chiefComplaint}</div></div>`;
   }).join('');
 }
 function renderPatientLabs(p){
@@ -3749,7 +3764,11 @@ function renderEncList(encs){
   return encs.map(e=>{
     const p=db.patients.find(x=>x.id===e.patientId);const pv=db.providers.find(x=>x.id===e.providerId);
     const typeIcon=e.type==='telehealth'?'💻':e.type==='phone'?'📞':'🏥';
-    return `<div class="encounter-card" onclick="openEncounterDetail('${e.id}')"><div class="enc-header"><span class="enc-date">${typeIcon} ${e.date} — ${p?p.firstName+' '+p.lastName:''}</span><div><span class="badge badge-blue" style="margin-right:4px;">${e.noteType||'SOAP'}</span><span class="badge ${e.status==='signed'?'badge-green':'badge-yellow'}">${e.status}</span></div></div><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">${pv?pv.name:''} | ${e.icd10||''} | ${e.cpt||''}</div><div class="enc-preview"><strong>CC:</strong> ${e.chiefComplaint}</div></div>`;
+    const icdCodesEnc = e.icd10 ? e.icd10.split(',').slice(0, 3).map(c => c.trim()) : [];
+    const icdDisplayEnc = icdCodesEnc.length > 0 
+      ? icdCodesEnc.map(c => `<span style="font-family:monospace;color:var(--primary);font-weight:600;">${c}</span>`).join(', ')
+      : '<span style="color:var(--text-dim);">No Dx</span>';
+    return `<div class="encounter-card" onclick="openEncounterDetail('${e.id}')"><div class="enc-header"><span class="enc-date">${typeIcon} ${e.date} — ${p?p.firstName+' '+p.lastName:''}</span><div><span class="badge badge-blue" style="margin-right:4px;">${e.noteType||'SOAP'}</span><span class="badge ${e.status==='signed'?'badge-green':'badge-yellow'}">${e.status}</span></div></div><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">${pv?pv.name:''} | ${icdDisplayEnc} | CPT: ${e.cpt||'—'}</div><div class="enc-preview"><strong>CC:</strong> ${e.chiefComplaint}</div></div>`;
   }).join('');
 }
 function filterEnc(el,type){
@@ -3813,7 +3832,21 @@ function openEncounterDetail(id){
     <div class="soap-section soap-o"><div class="soap-label">O — Objective</div><div style="padding:8px;font-size:13px;line-height:1.5;">${enc.objective||'—'}</div></div>
     <div class="soap-section soap-a"><div class="soap-label">A — Assessment</div><div style="padding:8px;font-size:13px;line-height:1.5;">${enc.assessment||'—'}</div></div>
     <div class="soap-section soap-p"><div class="soap-label">P — Plan</div><div style="padding:8px;font-size:13px;line-height:1.5;">${enc.plan||'—'}</div></div>
-    <div style="font-size:12px;color:var(--text-dim);margin-top:12px;">ICD-10: ${enc.icd10||'—'} | CPT: ${enc.cpt||'—'}</div>
+    
+    <!-- Enhanced ICD-10 & Billing Codes Display -->
+    <div style="margin-top:16px;padding:12px;background:var(--bg-input);border-radius:8px;border:1px solid var(--border);">
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px;">🏥 Billing Codes</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">ICD-10 Diagnosis Codes:</div>
+          ${formatICD10Display(enc.icd10)}
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">CPT Procedure Code:</div>
+          <div style="font-size:14px;font-weight:600;color:var(--accent);font-family:monospace;">${enc.cpt||'—'}</div>
+        </div>
+      </div>
+    </div>
     <!-- Attached Documents Section -->
     ${renderEncounterDocumentsSection(enc.id)}
     
@@ -3844,7 +3877,10 @@ function renderEncounterDocumentsSection(encounterId) {
   '</div>';
 }
 
-function signEncounter(id){const e=db.encounters.find(x=>x.id===id);if(e){e.status='signed';e.signedAt=new Date().toISOString();saveDB();}closeModal();render();}
+function signEncounter(id){
+  // Redirect to the new signature confirmation modal
+  showSignConfirmationModal(id);
+}
 
 // ═══════ PRESCRIPTIONS ═══════
 function renderPrescriptions(c){
@@ -5063,6 +5099,9 @@ function deletePracticeConfirm(id){
 
 // ═══════ NEW ENCOUNTER ═══════
 function showNewEncounterModal(patientId){
+  // Reset diagnoses for new encounter
+  selectedDiagnoses = [];
+  
   const patOpts=db.patients.map(p=>`<option value="${p.id}" ${p.id===patientId?'selected':''}>${p.firstName} ${p.lastName}</option>`).join('');
   const pvOpts=db.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   const ntOpts=db.noteTypes.map(n=>`<option>${n}</option>`).join('');
@@ -5091,11 +5130,57 @@ function showNewEncounterModal(patientId){
     </div>
     <div class="soap-section soap-s"><div style="display:flex;align-items:center;gap:8px;"><div class="soap-label">S — Subjective</div><button class="mic-btn" onclick="dictateField('neS')" title="Dictate">🎙️</button></div><textarea id="neS" rows="3" placeholder="Patient's reported symptoms..."></textarea></div>
     <div class="soap-section soap-o"><div style="display:flex;align-items:center;gap:8px;"><div class="soap-label">O — Objective</div><button class="mic-btn" onclick="dictateField('neO')" title="Dictate">🎙️</button></div><textarea id="neO" rows="3" placeholder="Physical exam findings..."></textarea></div>
-    <div class="soap-section soap-a"><div style="display:flex;align-items:center;gap:8px;"><div class="soap-label">A — Assessment</div><button class="mic-btn" onclick="dictateField('neA')" title="Dictate">🎙️</button></div><textarea id="neA" rows="2" placeholder="Diagnosis / clinical impression..."></textarea></div>
+    <div class="soap-section soap-a">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div class="soap-label">A — Assessment / Diagnoses</div>
+        <button class="mic-btn" onclick="dictateField('neA')" title="Dictate">🎙️</button>
+      </div>
+      
+      <!-- ICD-10 Diagnosis Picker -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:12px;font-weight:600;color:var(--text-muted);">🔍 ICD-10 Diagnosis Search</span>
+          <span style="font-size:10px;color:var(--text-dim);">Type code or description</span>
+        </div>
+        <input type="text" id="dxSearchInput" placeholder="Search: E11.9, diabetes, hypertension, chest pain..." 
+               autocomplete="off" 
+               oninput="searchICD10Codes(this.value, 'dxSearchResults')"
+               style="margin-bottom:4px;">
+        <div id="dxSearchResults" style="max-height:200px;overflow-y:auto;display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;margin-top:4px;"></div>
+        
+        <!-- Quick Add Common Diagnoses -->
+        <div style="margin-top:8px;">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">Quick Add:</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            <button type="button" onclick="quickAddDiagnosis('I10')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">HTN (I10)</button>
+            <button type="button" onclick="quickAddDiagnosis('E11.9')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">T2DM (E11.9)</button>
+            <button type="button" onclick="quickAddDiagnosis('E11.65')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">T2DM+HG (E11.65)</button>
+            <button type="button" onclick="quickAddDiagnosis('E03.9')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">Hypothyroid (E03.9)</button>
+            <button type="button" onclick="quickAddDiagnosis('E78.5')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">Hyperlipidemia (E78.5)</button>
+            <button type="button" onclick="quickAddDiagnosis('E66.9')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">Obesity (E66.9)</button>
+            <button type="button" onclick="quickAddDiagnosis('J06.9')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">URI (J06.9)</button>
+            <button type="button" onclick="quickAddDiagnosis('M54.5')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">LBP (M54.5)</button>
+            <button type="button" onclick="quickAddDiagnosis('Z00.00')" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;">Annual Exam (Z00.00)</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Selected Diagnoses List -->
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">Selected Diagnoses (click ⭐ to set primary):</div>
+      <div id="selectedDiagnosesList" style="min-height:60px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:8px;">
+        <div style="padding:16px;text-align:center;color:var(--text-dim);font-size:13px;">No diagnoses selected. Search above to add ICD-10 codes.</div>
+      </div>
+      
+      <!-- Assessment Text Area -->
+      <div style="margin-top:8px;">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">Clinical Impression / Notes:</div>
+        <textarea id="neA" rows="2" placeholder="Additional clinical notes..."></textarea>
+      </div>
+    </div>
     <div class="soap-section soap-p"><div style="display:flex;align-items:center;gap:8px;"><div class="soap-label">P — Plan</div><button class="mic-btn" onclick="dictateField('nePl')" title="Dictate">🎙️</button></div><textarea id="nePl" rows="3" placeholder="Treatment plan..."></textarea></div>
     <div class="form-grid" style="margin-top:12px;">
-      <div class="form-group"><label>ICD-10</label><input id="neICD"></div>
-      <div class="form-group"><label>CPT Code</label><input id="neCPT"></div>
+      <div class="form-group"><label>ICD-10 Codes (auto-populated)</label><input id="neICD" readonly style="background:var(--bg);cursor:not-allowed;" placeholder="Select diagnoses above..."></div>
+      <div class="form-group"><label>CPT Code</label><input id="neCPT" placeholder="99213, 99214..."></div>
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
@@ -5991,6 +6076,50 @@ function showToast(message, type = 'info') {
   setTimeout(() => toast.remove(), 3000);
 }
 
+// Format ICD-10 codes for display with descriptions
+function formatICD10Display(icd10String) {
+  if (!icd10String || icd10String === '—') {
+    return '<div style="font-size:13px;color:var(--text-dim);">—</div>';
+  }
+  
+  // Split by comma and get descriptions
+  const codes = icd10String.split(',').map(c => c.trim()).filter(Boolean);
+  
+  if (codes.length === 0) {
+    return '<div style="font-size:13px;color:var(--text-dim);">—</div>';
+  }
+  
+  return codes.map((code, idx) => {
+    const dx = ICD10_DATABASE.find(d => d.code === code);
+    const desc = dx ? dx.desc : 'Unknown code';
+    const isPrimary = idx === 0;
+    
+    return `
+      <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;padding:6px 8px;background:${isPrimary ? 'rgba(14,165,233,.1)' : 'var(--bg)'};border-radius:6px;border:1px solid ${isPrimary ? 'var(--primary)' : 'var(--border)'};">
+        <span style="font-weight:700;color:var(--primary);font-family:monospace;font-size:13px;white-space:nowrap;">${code}</span>
+        ${isPrimary ? '<span class="badge badge-blue" style="font-size:9px;white-space:nowrap;">PRIMARY</span>' : ''}
+        <span style="font-size:12px;color:var(--text);">${desc}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Get ICD-10 code description
+function getICD10Description(code) {
+  const dx = ICD10_DATABASE.find(d => d.code === code);
+  return dx ? dx.desc : code;
+}
+
+// Get ICD-10 codes by category for quick access
+function getICD10ByCategory(category) {
+  return ICD10_DATABASE.filter(d => d.category === category);
+}
+
+// Get ICD-10 codes by subcategory
+function getICD10BySubcategory(subcategory) {
+  return ICD10_DATABASE.filter(d => d.subcategory === subcategory);
+}
+
 // ═══════ ENHANCED PRESCRIPTIONS PAGE ═══════
 function renderPrescriptions(c){
   setPageTitle('E-Prescribe / Prescriptions');
@@ -6447,22 +6576,32 @@ function autoCalcQuantity(){
   document.getElementById('rxQuantity').value=qty;
 }
 
-// ICD-10 Search
+// ICD-10 Search (for prescriptions - uses enhanced database)
 function searchICD10(q){
   const results=document.getElementById('icd10Results');
   if(q.length<2){results.style.display='none';return;}
   
-  const matches=commonICD10.filter(d=>
-    d.code.toLowerCase().includes(q.toLowerCase())||
-    d.desc.toLowerCase().includes(q.toLowerCase())
-  ).slice(0,10);
+  const qLower = q.toLowerCase();
+  const matches=ICD10_DATABASE.filter(d=>
+    d.code.toLowerCase().includes(qLower)||
+    d.desc.toLowerCase().includes(qLower)||
+    (d.category && d.category.toLowerCase().includes(qLower))||
+    (d.subcategory && d.subcategory.toLowerCase().includes(qLower))
+  ).slice(0,12);
   
   if(!matches.length){
-    results.innerHTML='<div style="padding:8px;color:var(--text-dim);">No codes found</div>';
+    results.innerHTML='<div style="padding:12px;color:var(--text-dim);text-align:center;">No ICD-10 codes found</div>';
   } else {
     results.innerHTML=matches.map(d=>`
-      <div onclick="selectICD10('${d.code}','${d.desc.replace(/'/g,"\\'")}')" style="padding:8px;border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
-        <span style="font-weight:600;color:var(--primary);">${d.code}</span> — ${d.desc}
+      <div onclick="selectICD10('${d.code}','${d.desc.replace(/'/g,"\\'")}')" 
+           style="padding:10px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;" 
+           onmouseover="this.style.background='var(--bg-hover)'" 
+           onmouseout="this.style.background=''">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:600;color:var(--primary);font-family:monospace;">${d.code}</span>
+          ${d.category ? `<span class="badge badge-blue" style="font-size:9px;">${d.category}</span>` : ''}
+        </div>
+        <div style="font-size:12px;color:var(--text);margin-top:2px;">${d.desc}</div>
       </div>
     `).join('');
   }
@@ -7015,11 +7154,31 @@ function generateEncounterPDF(encId){
   <div class="soap-label">ASSESSMENT</div><p>${enc.assessment||'—'}</p>
   <div class="soap-label">PLAN</div><p>${enc.plan||'—'}</p>
   <h2>Coding</h2><table><tr><td><strong>ICD-10:</strong> ${enc.icd10||'—'}</td><td><strong>CPT:</strong> ${enc.cpt||'—'}</td></tr></table>
-  <div class="signature"><strong>Provider Signature</strong><br><br>
-  <div class="sig-line"></div><br>
-  <strong>${pv?pv.name:''}</strong> | ${pv?pv.specialty:''} | License: ${pv?pv.license:''}<br>
-  ${enc.status==='signed'?`<em>Electronically signed: ${enc.signedAt?new Date(enc.signedAt).toLocaleString():now}</em>`:
-  '<em style="color:red;">⚠️ UNSIGNED — DRAFT</em>'}</div>
+  <div class="signature" style="background:#f0fff4;border:2px solid #10B981;border-radius:8px;padding:20px;margin-top:30px;">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">
+      <span style="font-size:16px;">🔒</span>
+      <strong style="color:#10B981;font-size:14px;">ELECTRONICALLY SIGNED</strong>
+    </div>
+    ${enc.status==='signed' && (enc.signedBy?.signatureData || pv?.signatureData) ? `
+      <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:12px;display:inline-block;margin-bottom:12px;">
+        <img src="${enc.signedBy?.signatureData || pv?.signatureData}" style="max-height:60px;max-width:250px;" alt="Provider Signature">
+      </div><br>
+    ` : `
+      <div style="font-family:cursive;font-size:28px;color:#1a1a2e;margin-bottom:12px;background:#fff;padding:10px 20px;display:inline-block;border-radius:6px;border:1px solid #ddd;">
+        ${enc.signedBy?.name || pv?.name || 'Provider'}
+      </div><br>
+    `}
+    <strong>${enc.signedBy?.name || pv?.name || ''}</strong><br>
+    ${enc.signedBy?.credentials || pv?.credentials || ''} | ${pv?.specialty || ''}<br>
+    License: ${pv?.license || ''} | NPI: ${enc.signedBy?.npi || pv?.npi || ''}<br><br>
+    ${enc.status==='signed'?`
+      <div style="font-size:12px;color:#333;">
+        Electronically signed on ${enc.signedAt ? new Date(enc.signedAt).toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) : now} 
+        at ${enc.signedAt ? new Date(enc.signedAt).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}) : ''}
+      </div>
+      ${enc.attestationConfirmed ? '<div style="font-size:11px;color:#666;margin-top:8px;">✓ Provider attested that information is accurate and complete</div>' : ''}
+    `:'<em style="color:red;font-size:14px;">⚠️ UNSIGNED — DRAFT — NOT FOR CLINICAL USE</em>'}
+  </div>
   <div style="margin-top:30px;font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:8px;">Amor Medical EMR — Confidential Medical Record — Generated ${now}</div>
   </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
@@ -7743,8 +7902,40 @@ function openSOAPNoteDetail(id) {
     
     <div style="font-size:12px;color:var(--text-dim);margin-top:12px;padding:8px;background:var(--bg-input);border-radius:6px;">
       <strong>ICD-10:</strong> ${enc.icd10 || '—'} | <strong>CPT:</strong> ${enc.cpt || '—'}
-      ${enc.signedAt ? '<br><strong>Signed:</strong> ' + new Date(enc.signedAt).toLocaleString() : ''}
     </div>
+    
+    ${isLocked ? `
+      <div class="signed-note-footer">
+        <div class="signed-badge" style="margin-bottom:12px;">
+          <span class="lock-icon">🔒</span>
+          Electronically Signed & Locked
+        </div>
+        <div class="signature-section">
+          ${enc.signedBy?.signatureData ? `
+            <div class="signature-image">
+              <img src="${enc.signedBy.signatureData}" alt="Provider Signature">
+            </div>
+          ` : `
+            <div class="signature-image" style="font-family:'Dancing Script',cursive;font-size:24px;color:#1a1a2e;padding:12px;">
+              ${enc.signedBy?.name || pv?.name || 'Provider'}
+            </div>
+          `}
+          <div class="signature-info">
+            <div class="signer-name">${enc.signedBy?.name || pv?.name || 'Provider'}</div>
+            <div class="signer-credentials">${enc.signedBy?.credentials || pv?.credentials || ''} ${enc.signedBy?.npi ? '| NPI: ' + enc.signedBy.npi : ''}</div>
+            <div class="signed-timestamp">
+              Electronically signed on ${enc.signedAt ? new Date(enc.signedAt).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'} 
+              at ${enc.signedAt ? new Date(enc.signedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
+            </div>
+          </div>
+        </div>
+        ${enc.attestationConfirmed ? `
+          <div style="margin-top:12px;font-size:11px;color:var(--text-dim);border-top:1px solid rgba(16,185,129,.2);padding-top:8px;">
+            ✓ Provider attested that information is accurate and complete
+          </div>
+        ` : ''}
+      </div>
+    ` : ''}
     
     ${amendmentsHtml}
     
@@ -9339,6 +9530,590 @@ function getRefreshHeader(title, count = null, extraButtons = '') {
       </div>
     </div>
   `;
+}
+
+// ═══════════════════════════════════════════
+// E-SIGNATURE SYSTEM
+// ═══════════════════════════════════════════
+
+// Signature pad state
+let signaturePadState = {
+  isDrawing: false,
+  canvas: null,
+  ctx: null,
+  lastX: 0,
+  lastY: 0,
+  providerId: null,
+  signatureType: 'draw' // 'draw' or 'type'
+};
+
+// Open signature setup modal for a provider
+function openSignatureSetup(providerId) {
+  const p = db.providers.find(x => x.id === providerId);
+  if (!p) return;
+  
+  signaturePadState.providerId = providerId;
+  signaturePadState.signatureType = 'draw';
+  
+  closeModal();
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✍️ Setup Electronic Signature</h3>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+      Create your official electronic signature for signing clinical notes. This signature will appear on all signed documents.
+    </p>
+    
+    <div class="signature-type-toggle" style="margin-bottom:16px;">
+      <button class="active" onclick="switchSignatureType('draw', this)">✍️ Draw</button>
+      <button onclick="switchSignatureType('type', this)">⌨️ Type</button>
+    </div>
+    
+    <div id="signatureDrawSection" class="signature-pad-container">
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">Draw your signature below:</div>
+      <canvas id="signatureCanvas" class="signature-canvas" width="500" height="150"></canvas>
+      <div class="signature-controls">
+        <button class="btn btn-ghost btn-sm" onclick="clearSignaturePad()">🗑️ Clear</button>
+        <div style="flex:1;"></div>
+        <span style="font-size:11px;color:var(--text-dim);">Use mouse, finger, or stylus</span>
+      </div>
+    </div>
+    
+    <div id="signatureTypeSection" style="display:none;">
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">Type your name to generate signature:</div>
+      <input type="text" id="typedSignatureName" class="typed-signature-input" 
+             placeholder="Type your name..." 
+             value="${p.name || ''}"
+             oninput="updateTypedSignaturePreview()">
+      <div id="typedSignaturePreview" class="typed-signature" style="margin-top:12px;">
+        ${p.name || 'Your Name'}
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal();editProviderModal('${providerId}')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveProviderSignature('${providerId}')">💾 Save Signature</button>
+    </div>
+  `, true);
+  
+  // Initialize canvas after modal renders
+  setTimeout(() => initSignaturePad(), 100);
+}
+
+function switchSignatureType(type, btn) {
+  signaturePadState.signatureType = type;
+  
+  // Update button states
+  document.querySelectorAll('.signature-type-toggle button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  // Toggle sections
+  document.getElementById('signatureDrawSection').style.display = type === 'draw' ? 'block' : 'none';
+  document.getElementById('signatureTypeSection').style.display = type === 'type' ? 'block' : 'none';
+  
+  if (type === 'draw') {
+    setTimeout(() => initSignaturePad(), 50);
+  }
+}
+
+function initSignaturePad() {
+  const canvas = document.getElementById('signatureCanvas');
+  if (!canvas) return;
+  
+  signaturePadState.canvas = canvas;
+  signaturePadState.ctx = canvas.getContext('2d');
+  
+  // Set up canvas size
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = 150 * window.devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = '150px';
+  
+  const ctx = signaturePadState.ctx;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  // Fill white background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Mouse events
+  canvas.addEventListener('mousedown', startDrawing);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDrawing);
+  canvas.addEventListener('mouseout', stopDrawing);
+  
+  // Touch events
+  canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+  canvas.addEventListener('touchend', stopDrawing);
+}
+
+function getCanvasCoords(e) {
+  const canvas = signaturePadState.canvas;
+  const rect = canvas.getBoundingClientRect();
+  
+  if (e.touches) {
+    return {
+      x: e.touches[0].clientX - rect.left,
+      y: e.touches[0].clientY - rect.top
+    };
+  }
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+}
+
+function startDrawing(e) {
+  e.preventDefault();
+  signaturePadState.isDrawing = true;
+  const coords = getCanvasCoords(e);
+  signaturePadState.lastX = coords.x;
+  signaturePadState.lastY = coords.y;
+}
+
+function handleTouchStart(e) {
+  e.preventDefault();
+  startDrawing(e);
+}
+
+function draw(e) {
+  if (!signaturePadState.isDrawing) return;
+  e.preventDefault();
+  
+  const coords = getCanvasCoords(e);
+  const ctx = signaturePadState.ctx;
+  
+  ctx.beginPath();
+  ctx.moveTo(signaturePadState.lastX, signaturePadState.lastY);
+  ctx.lineTo(coords.x, coords.y);
+  ctx.stroke();
+  
+  signaturePadState.lastX = coords.x;
+  signaturePadState.lastY = coords.y;
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  draw(e);
+}
+
+function stopDrawing() {
+  signaturePadState.isDrawing = false;
+}
+
+function clearSignaturePad() {
+  const ctx = signaturePadState.ctx;
+  const canvas = signaturePadState.canvas;
+  if (!ctx || !canvas) return;
+  
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+}
+
+function updateTypedSignaturePreview() {
+  const name = document.getElementById('typedSignatureName').value || 'Your Name';
+  document.getElementById('typedSignaturePreview').textContent = name;
+}
+
+function generateTypedSignatureImage(name) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 500;
+  canvas.height = 100;
+  const ctx = canvas.getContext('2d');
+  
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw signature text
+  ctx.font = '48px "Dancing Script", cursive';
+  ctx.fillStyle = '#1a1a2e';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(name, canvas.width / 2, canvas.height / 2);
+  
+  return canvas.toDataURL('image/png');
+}
+
+function saveProviderSignature(providerId) {
+  const p = db.providers.find(x => x.id === providerId);
+  if (!p) return;
+  
+  let signatureData;
+  
+  if (signaturePadState.signatureType === 'draw') {
+    const canvas = signaturePadState.canvas;
+    if (!canvas) return;
+    
+    // Check if signature is empty (only white)
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+    let isEmpty = true;
+    
+    for (let i = 0; i < pixels.length; i += 4) {
+      // Check if any pixel is not white
+      if (pixels[i] < 250 || pixels[i+1] < 250 || pixels[i+2] < 250) {
+        isEmpty = false;
+        break;
+      }
+    }
+    
+    if (isEmpty) {
+      alert('Please draw your signature before saving.');
+      return;
+    }
+    
+    signatureData = canvas.toDataURL('image/png');
+  } else {
+    const name = document.getElementById('typedSignatureName').value.trim();
+    if (!name) {
+      alert('Please type your name to generate a signature.');
+      return;
+    }
+    signatureData = generateTypedSignatureImage(name);
+  }
+  
+  p.signatureData = signatureData;
+  p.signatureSetupDate = new Date().toISOString();
+  
+  saveDB();
+  closeModal();
+  
+  // Re-open provider edit modal to show updated signature
+  setTimeout(() => editProviderModal(providerId), 100);
+}
+
+// ═══════ NOTE SIGNING WITH E-SIGNATURE ═══════
+
+// Override the updateNoteStatus function to show signature confirmation
+const _originalUpdateNoteStatus = updateNoteStatus;
+function updateNoteStatus(id, newStatus) {
+  if (newStatus === 'signed') {
+    showSignConfirmationModal(id);
+  } else {
+    _originalUpdateNoteStatus(id, newStatus);
+  }
+}
+
+function showSignConfirmationModal(encounterId) {
+  const enc = db.encounters.find(e => e.id === encounterId);
+  if (!enc) return;
+  
+  const p = db.patients.find(x => x.id === enc.patientId);
+  const pv = db.providers.find(x => x.id === enc.providerId);
+  
+  if (!pv) {
+    alert('Provider not found.');
+    return;
+  }
+  
+  closeModal();
+  
+  const hasSignature = pv.signatureData;
+  const hasPin = pv.signingPin;
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="sign-confirmation-modal">
+      <h3>✍️ Sign Clinical Note</h3>
+      
+      <div style="background:var(--bg-input);border-radius:8px;padding:12px;margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:600;">${p ? p.firstName + ' ' + p.lastName : 'Unknown Patient'}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${enc.date} — ${enc.noteType || 'SOAP Note'}</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">${enc.chiefComplaint || ''}</div>
+      </div>
+      
+      ${hasSignature ? `
+        <div class="signature-display">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">Your Electronic Signature:</div>
+          <img src="${pv.signatureData}" alt="Provider Signature" style="max-height:80px;">
+          <div style="font-size:12px;color:var(--text);margin-top:8px;font-weight:600;">${pv.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${pv.credentials || ''} | ${pv.specialty || ''}</div>
+        </div>
+      ` : `
+        <div style="background:rgba(245,158,11,.1);border:1px solid var(--warning);border-radius:8px;padding:16px;margin-bottom:16px;text-align:center;">
+          <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
+          <div style="font-size:13px;color:var(--warning);font-weight:600;">No signature on file</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">A typed signature will be used instead</div>
+          <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="closeModal();openSignatureSetup('${pv.id}')">Setup Signature Now</button>
+        </div>
+      `}
+      
+      <div class="attestation-box">
+        <div class="attestation-text">
+          <strong>Legal Attestation</strong><br><br>
+          By signing this clinical note, I certify that:
+          <ul style="margin:8px 0;padding-left:20px;">
+            <li>I personally provided or supervised the care documented in this note</li>
+            <li>The information contained in this note is accurate and complete to the best of my knowledge</li>
+            <li>This documentation meets all applicable legal and regulatory requirements</li>
+          </ul>
+        </div>
+        <div class="attestation-checkbox">
+          <input type="checkbox" id="attestationCheck" style="width:auto;">
+          <label for="attestationCheck">
+            I attest that the information in this note is accurate and complete, and I authorize the application of my electronic signature.
+          </label>
+        </div>
+      </div>
+      
+      ${hasPin ? `
+        <div style="margin-top:16px;">
+          <div style="font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:8px;">Enter your 4-digit signing PIN:</div>
+          <div class="pin-input-group">
+            <input type="password" class="pin-digit" id="pin1" maxlength="1" oninput="handlePinInput(this, 'pin2')" onkeydown="handlePinBackspace(event, this, null)">
+            <input type="password" class="pin-digit" id="pin2" maxlength="1" oninput="handlePinInput(this, 'pin3')" onkeydown="handlePinBackspace(event, this, 'pin1')">
+            <input type="password" class="pin-digit" id="pin3" maxlength="1" oninput="handlePinInput(this, 'pin4')" onkeydown="handlePinBackspace(event, this, 'pin2')">
+            <input type="password" class="pin-digit" id="pin4" maxlength="1" oninput="handlePinInput(this, null)" onkeydown="handlePinBackspace(event, this, 'pin3')">
+          </div>
+        </div>
+      ` : `
+        <div style="background:var(--bg-input);border-radius:8px;padding:12px;margin-top:16px;text-align:center;">
+          <div style="font-size:11px;color:var(--text-dim);">No signing PIN configured</div>
+          <div style="font-size:11px;color:var(--text-muted);">For enhanced security, set up a PIN in your provider profile</div>
+        </div>
+      `}
+      
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="closeModal();openSOAPNoteDetail('${encounterId}')">Cancel</button>
+        <button class="btn btn-accent" id="signNoteBtn" onclick="executeNoteSigning('${encounterId}', '${pv.id}')">
+          ✅ Sign & Lock Note
+        </button>
+      </div>
+    </div>
+  `);
+  
+  // Focus first PIN input
+  if (hasPin) {
+    setTimeout(() => {
+      const pin1 = document.getElementById('pin1');
+      if (pin1) pin1.focus();
+    }, 100);
+  }
+}
+
+function handlePinInput(input, nextId) {
+  if (input.value.length === 1 && nextId) {
+    document.getElementById(nextId).focus();
+  }
+}
+
+function handlePinBackspace(event, input, prevId) {
+  if (event.key === 'Backspace' && input.value === '' && prevId) {
+    document.getElementById(prevId).focus();
+  }
+}
+
+function executeNoteSigning(encounterId, providerId) {
+  const enc = db.encounters.find(e => e.id === encounterId);
+  const pv = db.providers.find(x => x.id === providerId);
+  
+  if (!enc || !pv) return;
+  
+  // Check attestation
+  const attestation = document.getElementById('attestationCheck');
+  if (!attestation || !attestation.checked) {
+    alert('You must check the attestation checkbox to sign this note.');
+    return;
+  }
+  
+  // Check PIN if configured
+  if (pv.signingPin) {
+    const pin = [
+      document.getElementById('pin1')?.value || '',
+      document.getElementById('pin2')?.value || '',
+      document.getElementById('pin3')?.value || '',
+      document.getElementById('pin4')?.value || ''
+    ].join('');
+    
+    if (pin !== pv.signingPin) {
+      alert('Incorrect PIN. Please try again.');
+      document.getElementById('pin1').value = '';
+      document.getElementById('pin2').value = '';
+      document.getElementById('pin3').value = '';
+      document.getElementById('pin4').value = '';
+      document.getElementById('pin1').focus();
+      return;
+    }
+  }
+  
+  // Sign the note
+  enc.status = 'signed';
+  enc.signedAt = new Date().toISOString();
+  enc.lockedAt = new Date().toISOString();
+  enc.signedBy = {
+    providerId: pv.id,
+    name: pv.name,
+    credentials: pv.credentials || '',
+    npi: pv.npi || '',
+    signatureData: pv.signatureData || null
+  };
+  enc.attestationConfirmed = true;
+  
+  saveDB();
+  closeModal();
+  navigate('notes');
+  
+  // Show success message
+  showToast('✅ Note signed and locked successfully!');
+}
+
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    animation: toast-in 0.3s ease;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'toast-out 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Add toast animation styles
+const toastStyle = document.createElement('style');
+toastStyle.textContent = `
+  @keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  @keyframes toast-out { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+`;
+document.head.appendChild(toastStyle);
+
+// ═══════ BULK SIGN WITH E-SIGNATURE ═══════
+
+const _originalExecuteBulkSign = executeBulkSign;
+function executeBulkSign() {
+  const checked = document.querySelectorAll('.bulk-note-check:checked');
+  const ids = Array.from(checked).map(cb => cb.value);
+  
+  if (!ids.length) {
+    alert('Select at least one note to sign');
+    return;
+  }
+  
+  // Get the first note to determine provider
+  const firstEnc = db.encounters.find(e => e.id === ids[0]);
+  if (!firstEnc) return;
+  
+  const pv = db.providers.find(x => x.id === firstEnc.providerId);
+  if (!pv) return;
+  
+  if (pv.signingPin) {
+    // Show PIN confirmation for bulk sign
+    showBulkSignPinModal(ids, pv);
+  } else {
+    // No PIN, proceed with confirmation
+    if (confirm(`Sign ${ids.length} note(s)?\n\nBy signing, you attest that the information in these notes is accurate and complete.`)) {
+      performBulkSign(ids, pv);
+    }
+  }
+}
+
+function showBulkSignPinModal(ids, pv) {
+  closeModal();
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✍️ Bulk Sign ${ids.length} Notes</h3>
+    
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+      You are about to sign ${ids.length} clinical note(s). By proceeding, you attest that all information is accurate and complete.
+    </p>
+    
+    ${pv.signatureData ? `
+      <div class="signature-display" style="margin-bottom:16px;">
+        <img src="${pv.signatureData}" alt="Signature" style="max-height:60px;">
+        <div style="font-size:12px;margin-top:8px;">${pv.name}</div>
+      </div>
+    ` : ''}
+    
+    <div style="margin-top:16px;">
+      <div style="font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:8px;">Enter your 4-digit signing PIN:</div>
+      <div class="pin-input-group">
+        <input type="password" class="pin-digit" id="bulkPin1" maxlength="1" oninput="handlePinInput(this, 'bulkPin2')" onkeydown="handlePinBackspace(event, this, null)">
+        <input type="password" class="pin-digit" id="bulkPin2" maxlength="1" oninput="handlePinInput(this, 'bulkPin3')" onkeydown="handlePinBackspace(event, this, 'bulkPin1')">
+        <input type="password" class="pin-digit" id="bulkPin3" maxlength="1" oninput="handlePinInput(this, 'bulkPin4')" onkeydown="handlePinBackspace(event, this, 'bulkPin2')">
+        <input type="password" class="pin-digit" id="bulkPin4" maxlength="1" oninput="handlePinInput(this, null)" onkeydown="handlePinBackspace(event, this, 'bulkPin3')">
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal();showBulkSignModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="verifyBulkSignPin('${JSON.stringify(ids).replace(/'/g, "\\'")}', '${pv.id}')">✅ Sign All</button>
+    </div>
+  `);
+  
+  setTimeout(() => document.getElementById('bulkPin1')?.focus(), 100);
+}
+
+function verifyBulkSignPin(idsJson, providerId) {
+  const ids = JSON.parse(idsJson);
+  const pv = db.providers.find(x => x.id === providerId);
+  
+  if (!pv) return;
+  
+  const pin = [
+    document.getElementById('bulkPin1')?.value || '',
+    document.getElementById('bulkPin2')?.value || '',
+    document.getElementById('bulkPin3')?.value || '',
+    document.getElementById('bulkPin4')?.value || ''
+  ].join('');
+  
+  if (pin !== pv.signingPin) {
+    alert('Incorrect PIN. Please try again.');
+    ['bulkPin1', 'bulkPin2', 'bulkPin3', 'bulkPin4'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('bulkPin1')?.focus();
+    return;
+  }
+  
+  performBulkSign(ids, pv);
+}
+
+function performBulkSign(ids, pv) {
+  ids.forEach(id => {
+    const enc = db.encounters.find(e => e.id === id);
+    if (enc && enc.status === 'pending') {
+      enc.status = 'signed';
+      enc.signedAt = new Date().toISOString();
+      enc.lockedAt = new Date().toISOString();
+      enc.signedBy = {
+        providerId: pv.id,
+        name: pv.name,
+        credentials: pv.credentials || '',
+        npi: pv.npi || '',
+        signatureData: pv.signatureData || null
+      };
+      enc.attestationConfirmed = true;
+    }
+  });
+  
+  saveDB();
+  closeModal();
+  navigate('notes');
+  showToast(`✅ ${ids.length} note(s) signed successfully!`);
 }
 
 // ═══════ INIT ═══════
