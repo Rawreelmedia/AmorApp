@@ -417,7 +417,78 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .add-clinical-photo:hover{border-color:var(--primary);color:var(--primary);}
 .add-clinical-photo .add-icon{font-size:24px;margin-bottom:4px;}
 .add-clinical-photo span{font-size:11px;}
+
+/* ═══════ PULL-TO-REFRESH ═══════ */
+.ptr-container{position:relative;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.ptr-indicator{position:absolute;top:-60px;left:0;right:0;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .2s ease;z-index:50;pointer-events:none;}
+.ptr-indicator .ptr-spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:ptr-spin 0.8s linear infinite;opacity:0;transition:opacity .2s;}
+.ptr-indicator .ptr-arrow{font-size:20px;color:var(--primary);transition:transform .2s;opacity:1;}
+.ptr-indicator .ptr-text{font-size:11px;color:var(--text-muted);margin-top:4px;}
+.ptr-indicator.pulling .ptr-arrow{transform:rotate(0deg);}
+.ptr-indicator.ready .ptr-arrow{transform:rotate(180deg);}
+.ptr-indicator.refreshing .ptr-spinner{opacity:1;}
+.ptr-indicator.refreshing .ptr-arrow{opacity:0;display:none;}
+@keyframes ptr-spin{to{transform:rotate(360deg);}}
+
+.ptr-active .ptr-indicator{transform:translateY(60px);}
+
+/* Refresh Button in Header */
+.refresh-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;}
+.refresh-header h3{margin:0;}
+.refresh-header-right{display:flex;align-items:center;gap:8px;}
+.refresh-btn{background:var(--bg-input);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.refresh-btn:hover{border-color:var(--primary);color:var(--primary);}
+.refresh-btn.refreshing{pointer-events:none;opacity:.7;}
+.refresh-btn.refreshing .refresh-icon{animation:ptr-spin 0.8s linear infinite;}
+.last-updated{font-size:11px;color:var(--text-dim);white-space:nowrap;}
+
+/* ═══════ E-SIGNATURE SYSTEM ═══════ */
+.signature-pad-container{background:var(--bg);border:2px solid var(--border);border-radius:var(--radius);padding:16px;margin:12px 0;}
+.signature-pad-container.active{border-color:var(--primary);}
+.signature-canvas{width:100%;height:150px;background:#fff;border-radius:6px;cursor:crosshair;touch-action:none;}
+.signature-canvas.dark{background:var(--bg-input);border:1px solid var(--border);}
+.signature-preview{max-width:300px;max-height:80px;object-fit:contain;border:1px solid var(--border);border-radius:6px;background:#fff;padding:8px;}
+.signature-preview.dark{background:var(--bg-input);}
+.signature-controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+.signature-type-toggle{display:flex;gap:2px;background:var(--bg-input);border-radius:6px;padding:2px;}
+.signature-type-toggle button{background:transparent;border:none;color:var(--text-muted);padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;transition:all .15s;}
+.signature-type-toggle button.active{background:var(--primary);color:#fff;}
+.typed-signature{font-family:'Dancing Script',cursive;font-size:36px;color:#1a1a2e;text-align:center;padding:20px;background:#fff;border-radius:6px;min-height:80px;display:flex;align-items:center;justify-content:center;}
+.typed-signature.dark{background:var(--bg-input);color:var(--text);}
+.typed-signature-input{font-family:'Dancing Script',cursive;font-size:28px;text-align:center;background:transparent;border:none;color:#1a1a2e;width:100%;}
+.typed-signature-input:focus{outline:none;}
+.typed-signature-input.dark{color:var(--text);}
+.sign-confirmation-modal{max-width:560px;}
+.sign-confirmation-modal .signature-display{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px;margin:16px 0;text-align:center;}
+.sign-confirmation-modal .signature-display img{max-height:80px;max-width:100%;}
+.sign-confirmation-modal .attestation-box{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:16px;margin:16px 0;}
+.sign-confirmation-modal .attestation-text{font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;}
+.sign-confirmation-modal .attestation-checkbox{display:flex;align-items:flex-start;gap:10px;font-size:13px;}
+.sign-confirmation-modal .attestation-checkbox input{margin-top:3px;flex-shrink:0;}
+.pin-input-group{display:flex;gap:8px;justify-content:center;margin:16px 0;}
+.pin-digit{width:48px;height:56px;font-size:24px;text-align:center;background:var(--bg-input);border:2px solid var(--border);border-radius:8px;color:var(--text);}
+.pin-digit:focus{border-color:var(--primary);outline:none;}
+.pin-digit::placeholder{color:var(--text-dim);}
+.signed-note-footer{background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(16,185,129,.05));border:1px solid rgba(16,185,129,.3);border-radius:var(--radius);padding:16px;margin-top:16px;}
+.signed-note-footer .signature-section{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.signed-note-footer .signature-image{background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px;max-width:200px;}
+.signed-note-footer .signature-image img{max-height:60px;max-width:100%;}
+.signed-note-footer .signature-info{flex:1;min-width:200px;}
+.signed-note-footer .signer-name{font-weight:700;font-size:14px;color:var(--accent);}
+.signed-note-footer .signer-credentials{font-size:12px;color:var(--text-muted);}
+.signed-note-footer .signed-timestamp{font-size:11px;color:var(--text-dim);margin-top:4px;}
+.signed-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,.15);color:var(--accent);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.signed-badge .lock-icon{font-size:14px;}
+.my-signature-section{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:16px;}
+.my-signature-section h4{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.signature-status{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.signature-status .status-indicator{width:10px;height:10px;border-radius:50%;}
+.signature-status .status-indicator.configured{background:var(--accent);}
+.signature-status .status-indicator.not-configured{background:var(--warning);}
+.signature-status .status-text{font-size:13px;color:var(--text-muted);}
+@media print{.signed-note-footer{background:#f0fff4 !important;border:1px solid #10B981 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.signature-print-section{display:block !important;}}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="app" id="app">
@@ -443,6 +514,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
       <div class="nav-item" onclick="navigate('calculators')" data-nav="calculators"><span class="icon">🧮</span><span class="nav-label">Calculators</span></div>
       <div class="nav-item" onclick="navigate('credentialing')" data-nav="credentialing"><span class="icon">📜</span><span class="nav-label">Credentialing</span></div>
       <div class="nav-item" onclick="navigate('settings')" data-nav="settings"><span class="icon">⚙️</span><span class="nav-label">Settings</span></div>
+      <div class="nav-item" onclick="window.open('user-guide.html','_blank')" data-nav="help"><span class="icon">📚</span><span class="nav-label">Help / Guide</span></div>
     </div>
     <div class="sidebar-footer"><span>Amor EMR v2.0</span> 💙</div>
   </nav>
@@ -645,6 +717,7 @@ function renderDashboard(c){
   const pendingLabs=db.labOrders.filter(l=>l.status==='pending').length;
   const signedToday=db.encounters.filter(e=>e.date===today&&e.status==='signed').length;
   c.innerHTML=`
+    ${getRefreshHeader('Dashboard', null, '')}
     <div class="stats-grid">
       <div class="stat-card blue"><div class="label">Total Patients</div><div class="value">${db.patients.length}</div><div class="sub">${db.practices.length} practices</div></div>
       <div class="stat-card green"><div class="label">Encounters Today</div><div class="value">${todayEnc}</div><div class="sub">${signedToday} signed</div></div>
@@ -746,13 +819,10 @@ function renderPatients(c){
   const providerOptions = db.providers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
   
   c.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <h3 style="margin:0;">${db.patients.length} Patients</h3>
-      <div class="btn-group">
-        <button class="btn btn-primary" onclick="showNewPatientModal()">+ New Patient</button>
-        <button class="btn btn-ghost" onclick="exportPatientsCSV()">📥 Export CSV</button>
-      </div>
-    </div>
+    ${getRefreshHeader('Patients', db.patients.length, `
+      <button class="btn btn-primary" onclick="showNewPatientModal()">+ New Patient</button>
+      <button class="btn btn-ghost" onclick="exportPatientsCSV()">📥 Export CSV</button>
+    `)}
     
     <!-- Advanced Search Panel -->
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;">
@@ -2532,13 +2602,8 @@ function renderProviders(c){
   const practiceOpts = db.practices.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
   
   c.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <div>
-        <h3 style="margin:0;">${db.providers.length} Providers</h3>
-        <span style="font-size:12px;color:var(--text-muted);">Click on a provider to view their profile and practice connections</span>
-      </div>
-      <button class="btn btn-primary" onclick="showNewProviderModal()">+ New Provider</button>
-    </div>
+    ${getRefreshHeader('Providers', db.providers.length, `<button class="btn btn-primary" onclick="showNewProviderModal()">+ New Provider</button>`)}
+    <p style="font-size:12px;color:var(--text-muted);margin:-12px 0 16px;">Click on a provider to view their profile and practice connections</p>
     
     <!-- Search & Filter -->
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;">
@@ -2907,13 +2972,8 @@ function renderPractices(c){
   setPageTitle('Practice Management');
   
   c.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <div>
-        <h3 style="margin:0;">${db.practices.length} Practices</h3>
-        <span style="font-size:12px;color:var(--text-muted);">Click on a practice to view details, providers, and locations</span>
-      </div>
-      <button class="btn btn-primary" onclick="showNewPracticeModal()">+ New Practice</button>
-    </div>
+    ${getRefreshHeader('Practices', db.practices.length, `<button class="btn btn-primary" onclick="showNewPracticeModal()">+ New Practice</button>`)}
+    <p style="font-size:12px;color:var(--text-muted);margin:-12px 0 16px;">Click on a practice to view details, providers, and locations</p>
     
     <!-- Practice Cards Grid -->
     <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(380px,1fr));">
@@ -3269,17 +3329,12 @@ function renderMyTeam(c){
   const roleColors = {Owner:'badge-purple',Physician:'badge-blue',NP:'badge-green',PA:'badge-green',Consultant:'badge-yellow',Staff:'badge-blue'};
   
   c.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <div>
-        <h3 style="margin:0;">My Team</h3>
-        <span style="font-size:12px;color:var(--text-muted);">View all providers at your practice</span>
-      </div>
-      <div style="display:flex;gap:12px;align-items:center;">
-        <select id="teamPracticeFilter" onchange="filterTeamByPractice()" style="width:auto;">
-          ${practiceOpts}
-        </select>
-      </div>
-    </div>
+    ${getRefreshHeader('My Team', teamProviders.length, `
+      <select id="teamPracticeFilter" onchange="filterTeamByPractice()" style="width:auto;">
+        ${practiceOpts}
+      </select>
+    `)}
+    <p style="font-size:12px;color:var(--text-muted);margin:-12px 0 16px;">View all providers at your practice</p>
     
     <!-- Practice Header -->
     ${myPractice ? `
@@ -3401,13 +3456,8 @@ function renderReferrals(c){
   const completed = referrals.filter(r => r.status === 'completed');
   
   c.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <div>
-        <h3 style="margin:0;">Referral Network</h3>
-        <span style="font-size:12px;color:var(--text-muted);">Track internal and external referrals between providers</span>
-      </div>
-      <button class="btn btn-primary" onclick="showNewReferralModal()">+ New Referral</button>
-    </div>
+    ${getRefreshHeader('Referral Network', referrals.length, `<button class="btn btn-primary" onclick="showNewReferralModal()">+ New Referral</button>`)}
+    <p style="font-size:12px;color:var(--text-muted);margin:-12px 0 16px;">Track internal and external referrals between providers</p>
     
     <!-- Stats -->
     <div class="stats-grid" style="margin-bottom:24px;">
@@ -3690,7 +3740,7 @@ function viewReferralDetail(refId){
 function renderEncounters(c){
   setPageTitle('Encounters');
   const sorted=[...db.encounters].sort((a,b)=>b.date.localeCompare(a.date));
-  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3>${db.encounters.length} Encounters</h3><button class="btn btn-primary" onclick="showNewEncounterModal()">+ New Encounter</button></div>
+  c.innerHTML=`${getRefreshHeader('Encounters', db.encounters.length, `<button class="btn btn-primary" onclick="showNewEncounterModal()">+ New Encounter</button>`)}
     <div class="tabs" style="margin-bottom:16px;"><div class="tab active" onclick="filterEnc(this,'all')">All</div><div class="tab" onclick="filterEnc(this,'in-office')">🏥 In-Office</div><div class="tab" onclick="filterEnc(this,'telehealth')">💻 Telehealth</div><div class="tab" onclick="filterEnc(this,'phone')">📞 Phone</div></div>
     <div id="encList">${renderEncList(sorted)}</div>`;
 }
@@ -3806,13 +3856,10 @@ function renderPrescriptions(c){
 // ═══════ LABS ═══════
 function renderLabs(c){
   setPageTitle('Lab Orders');
-  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <h3>${db.labOrders.length} Lab Orders</h3>
-      <div class="btn-group">
-        <button class="btn btn-primary" onclick="showNewLabModal()">+ New Lab Order</button>
-        <button class="btn btn-accent" onclick="showImportLabPDFModal()">📄 Import Lab PDF</button>
-      </div>
-    </div>
+  c.innerHTML=`${getRefreshHeader('Lab Orders', db.labOrders.length, `
+      <button class="btn btn-primary" onclick="showNewLabModal()">+ New Lab Order</button>
+      <button class="btn btn-accent" onclick="showImportLabPDFModal()">📄 Import Lab PDF</button>
+    `)}
     ${db.labOrders.sort((a,b)=>b.orderedDate.localeCompare(a.orderedDate)).map(l=>{
       const p=db.patients.find(x=>x.id===l.patientId);
       const pv=db.providers.find(x=>x.id===l.providerId);
@@ -4695,6 +4742,30 @@ function editProviderModal(id){
       <textarea id="evBio" rows="2">${p.bio || ''}</textarea>
     </div>
     
+    <div class="section-title">✍️ Electronic Signature</div>
+    <div class="my-signature-section">
+      <div class="signature-status">
+        <div class="status-indicator ${p.signatureData ? 'configured' : 'not-configured'}"></div>
+        <div class="status-text">${p.signatureData ? 'Signature configured' : 'No signature on file'}</div>
+      </div>
+      ${p.signatureData ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Current Signature:</div>
+          <img src="${p.signatureData}" class="signature-preview" alt="Provider Signature">
+        </div>
+      ` : ''}
+      <button class="btn btn-primary btn-sm" onclick="openSignatureSetup('${id}')">
+        ${p.signatureData ? '✏️ Update Signature' : '✍️ Setup Signature'}
+      </button>
+    </div>
+    
+    <div class="section-title">🔐 Signing PIN</div>
+    <div class="form-group">
+      <label>4-Digit PIN for signing notes</label>
+      <input type="password" id="evPin" maxlength="4" pattern="[0-9]{4}" placeholder="${p.signingPin ? '••••' : 'Enter 4-digit PIN'}" style="max-width:150px;letter-spacing:8px;text-align:center;">
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Required to electronically sign clinical notes</div>
+    </div>
+    
     <div class="form-actions">
       <button class="btn btn-danger" onclick="deleteProviderConfirm('${id}')">🗑️ Delete</button>
       <div style="flex:1;"></div>
@@ -4718,6 +4789,12 @@ function saveProviderEdit(id){
   p.email = document.getElementById('evEmail').value;
   p.practiceId = document.getElementById('evPr').value;
   p.bio = document.getElementById('evBio').value;
+  
+  // Save signing PIN if provided
+  const pinInput = document.getElementById('evPin');
+  if(pinInput && pinInput.value && pinInput.value.length === 4) {
+    p.signingPin = pinInput.value;
+  }
   
   saveDB();
   closeModal();
@@ -5275,6 +5352,7 @@ function renderPrescriptions(c){
   const allRx=db.prescriptions;
   
   c.innerHTML=`
+    ${getRefreshHeader('Prescriptions', allRx.length, `<button class="btn btn-primary" onclick="showEPrescribeModal()">📝 New E-Prescribe</button>`)}
     <div class="stats-grid" style="margin-bottom:20px;">
       <div class="stat-card blue"><div class="label">Active Rx</div><div class="value">${activeRx.length}</div></div>
       <div class="stat-card green"><div class="label">Total Written</div><div class="value">${allRx.length}</div></div>
@@ -6477,6 +6555,10 @@ function renderNotesModule(c) {
   const amended = db.encounters.filter(e => e.amendments && e.amendments.length > 0).length;
   
   c.innerHTML = `
+    ${getRefreshHeader('Clinical Notes', db.encounters.length, `
+      <button class="btn btn-primary" onclick="showNewSOAPNoteModal()">📝 New SOAP Note</button>
+      <button class="btn btn-accent" onclick="showTemplateSelector()">📋 Use Template</button>
+    `)}
     <div class="stats-grid" style="margin-bottom:24px;">
       <div class="stat-card yellow"><div class="label">Draft Notes</div><div class="value">${drafts}</div><div class="sub">Incomplete</div></div>
       <div class="stat-card blue"><div class="label">Pending Signature</div><div class="value">${pending}</div><div class="sub">Awaiting approval</div></div>
@@ -6485,8 +6567,6 @@ function renderNotesModule(c) {
     </div>
     
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
-      <button class="btn btn-primary" onclick="showNewSOAPNoteModal()">📝 New SOAP Note</button>
-      <button class="btn btn-accent" onclick="showTemplateSelector()">📋 Use Template</button>
       <button class="btn btn-ghost" onclick="showBulkSignModal()">✍️ Bulk Sign Pending</button>
     </div>
     
@@ -7211,10 +7291,13 @@ let scheduleTab = 'calendar'; // calendar, flow
 
 function renderScheduling(c) {
   setPageTitle('Scheduling');
-  const tabs = `<div class="tabs" style="margin-bottom:16px;">
-    <div class="tab ${scheduleTab==='calendar'?'active':''}" onclick="scheduleTab='calendar';render()">📅 Calendar</div>
-    <div class="tab ${scheduleTab==='flow'?'active':''}" onclick="scheduleTab='flow';render()">🏥 Patient Flow Board</div>
-  </div>`;
+  const apptCount = (db.appointments || []).length;
+  const tabs = `
+    ${getRefreshHeader('Scheduling', apptCount, `<button class="btn btn-primary" onclick="showNewAppointmentModal()">+ New Appointment</button>`)}
+    <div class="tabs" style="margin-bottom:16px;">
+      <div class="tab ${scheduleTab==='calendar'?'active':''}" onclick="scheduleTab='calendar';render()">📅 Calendar</div>
+      <div class="tab ${scheduleTab==='flow'?'active':''}" onclick="scheduleTab='flow';render()">🏥 Patient Flow Board</div>
+    </div>`;
   
   if (scheduleTab === 'flow') {
     c.innerHTML = tabs + renderFlowBoard();
@@ -8397,9 +8480,232 @@ function deleteClinicalPhoto(encounterId, index) {
   render();
 }
 
+// ═══════ PULL-TO-REFRESH SYSTEM ═══════
+const ptrState = {
+  startY: 0,
+  currentY: 0,
+  pulling: false,
+  threshold: 80,
+  lastUpdated: {}
+};
+
+function initPullToRefresh() {
+  const content = document.getElementById('content');
+  if (!content) return;
+  
+  // Add PTR indicator if not exists
+  let indicator = content.querySelector('.ptr-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.className = 'ptr-indicator';
+    indicator.innerHTML = `
+      <span class="ptr-arrow">↓</span>
+      <div class="ptr-spinner"></div>
+      <span class="ptr-text">Pull to refresh</span>
+    `;
+    content.insertBefore(indicator, content.firstChild);
+  }
+  
+  content.classList.add('ptr-container');
+  
+  // Touch events
+  content.addEventListener('touchstart', handlePtrStart, { passive: true });
+  content.addEventListener('touchmove', handlePtrMove, { passive: false });
+  content.addEventListener('touchend', handlePtrEnd, { passive: true });
+}
+
+function handlePtrStart(e) {
+  const content = document.getElementById('content');
+  if (content.scrollTop <= 0) {
+    ptrState.startY = e.touches[0].pageY;
+    ptrState.pulling = true;
+  }
+}
+
+function handlePtrMove(e) {
+  if (!ptrState.pulling) return;
+  
+  const content = document.getElementById('content');
+  const indicator = content.querySelector('.ptr-indicator');
+  if (!indicator) return;
+  
+  if (content.scrollTop > 0) {
+    ptrState.pulling = false;
+    content.classList.remove('ptr-active');
+    indicator.classList.remove('pulling', 'ready');
+    return;
+  }
+  
+  ptrState.currentY = e.touches[0].pageY;
+  const pullDistance = ptrState.currentY - ptrState.startY;
+  
+  if (pullDistance > 0) {
+    e.preventDefault();
+    const progress = Math.min(pullDistance / ptrState.threshold, 1);
+    const translateY = Math.min(pullDistance * 0.5, 80);
+    
+    indicator.style.transform = `translateY(${translateY}px)`;
+    
+    if (pullDistance >= ptrState.threshold) {
+      indicator.classList.remove('pulling');
+      indicator.classList.add('ready');
+      indicator.querySelector('.ptr-text').textContent = 'Release to refresh';
+    } else {
+      indicator.classList.remove('ready');
+      indicator.classList.add('pulling');
+      indicator.querySelector('.ptr-text').textContent = 'Pull to refresh';
+    }
+  }
+}
+
+function handlePtrEnd(e) {
+  if (!ptrState.pulling) return;
+  
+  const content = document.getElementById('content');
+  const indicator = content.querySelector('.ptr-indicator');
+  if (!indicator) return;
+  
+  const pullDistance = ptrState.currentY - ptrState.startY;
+  
+  if (pullDistance >= ptrState.threshold) {
+    indicator.classList.remove('pulling', 'ready');
+    indicator.classList.add('refreshing');
+    indicator.querySelector('.ptr-text').textContent = 'Refreshing...';
+    indicator.style.transform = 'translateY(60px)';
+    
+    // Trigger refresh for current page
+    doRefresh(currentPage);
+    
+    // Reset after animation
+    setTimeout(() => {
+      indicator.classList.remove('refreshing');
+      indicator.style.transform = '';
+      indicator.querySelector('.ptr-text').textContent = 'Pull to refresh';
+    }, 800);
+  } else {
+    indicator.style.transform = '';
+    indicator.classList.remove('pulling', 'ready');
+  }
+  
+  ptrState.pulling = false;
+  ptrState.startY = 0;
+  ptrState.currentY = 0;
+}
+
+function doRefresh(page) {
+  // Update last refreshed timestamp
+  ptrState.lastUpdated[page] = new Date();
+  
+  // Reload data from localStorage (simulates server fetch)
+  loadDB();
+  
+  // Re-render current view
+  render();
+  
+  // Update refresh button state
+  updateLastUpdatedUI(page);
+  
+  // Show toast notification
+  showRefreshToast();
+}
+
+function refreshCurrentTab() {
+  const btn = event?.target?.closest('.refresh-btn');
+  if (btn) {
+    btn.classList.add('refreshing');
+    setTimeout(() => btn.classList.remove('refreshing'), 600);
+  }
+  doRefresh(currentPage);
+}
+
+function updateLastUpdatedUI(page) {
+  const timestamp = ptrState.lastUpdated[page];
+  const el = document.querySelector('.last-updated');
+  if (el && timestamp) {
+    el.textContent = 'Updated ' + formatTimeAgo(timestamp);
+  }
+}
+
+function formatTimeAgo(date) {
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  
+  if (diff < 5) return 'just now';
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return date.toLocaleDateString();
+}
+
+function showRefreshToast() {
+  // Remove existing toast
+  const existing = document.querySelector('.refresh-toast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'refresh-toast';
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 9999;
+    animation: toastIn .3s ease;
+  `;
+  toast.textContent = '✓ Data refreshed';
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'toastOut .3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 1500);
+}
+
+// Add toast animations
+const toastStyles = document.createElement('style');
+toastStyles.textContent = `
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+`;
+document.head.appendChild(toastStyles);
+
+// Helper to generate refresh header HTML
+function getRefreshHeader(title, count = null, extraButtons = '') {
+  const lastUpdate = ptrState.lastUpdated[currentPage];
+  const timeAgo = lastUpdate ? formatTimeAgo(lastUpdate) : '';
+  const countText = count !== null ? `${count} ` : '';
+  
+  return `
+    <div class="refresh-header">
+      <h3>${countText}${title}</h3>
+      <div class="refresh-header-right">
+        ${timeAgo ? `<span class="last-updated">Updated ${timeAgo}</span>` : ''}
+        <button class="refresh-btn" onclick="refreshCurrentTab()" title="Refresh data">
+          <span class="refresh-icon">↻</span> Refresh
+        </button>
+        ${extraButtons}
+      </div>
+    </div>
+  `;
+}
+
 // ═══════ INIT ═══════
 loadDB();
 render();
+initPullToRefresh();
+
+// Re-init PTR after each render
+const originalRender = render;
+render = function() {
+  originalRender();
+  setTimeout(initPullToRefresh, 50);
+};
 </script>
 </body>
 </html>

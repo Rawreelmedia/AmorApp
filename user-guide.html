@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>User Guide — Amor Medical Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0B1120;--bg-card:#111827;--bg-input:#1F2937;--bg-hover:#1a2332;
+  --primary:#0EA5E9;--primary-dark:#0284C7;--accent:#10B981;--danger:#EF4444;--warning:#F59E0B;--purple:#8B5CF6;
+  --border:#1F2937;--text:#F1F5F9;--text-muted:#94A3B8;--text-dim:#64748B;
+  --radius:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;}
+a{color:var(--primary);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* Layout */
+.app{display:flex;min-height:100vh;}
+.sidebar{width:280px;background:var(--bg-card);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;padding:20px;z-index:100;}
+.sidebar::-webkit-scrollbar{width:6px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.main{flex:1;margin-left:280px;padding:32px 48px;max-width:900px;}
+
+/* Sidebar */
+.sidebar-header{display:flex;align-items:center;gap:12px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.sidebar-header .logo{font-size:24px;}
+.sidebar-header h1{font-size:18px;font-weight:800;color:var(--primary);}
+.nav-section{margin-bottom:24px;}
+.nav-section h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:12px;padding-left:12px;}
+.nav-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text-muted);font-size:13px;transition:all .15s;cursor:pointer;}
+.nav-link:hover{background:var(--bg-hover);color:var(--text);text-decoration:none;}
+.nav-link.active{background:rgba(14,165,233,.15);color:var(--primary);}
+.nav-link .icon{font-size:16px;min-width:24px;text-align:center;}
+.back-link{display:inline-flex;align-items:center;gap:8px;color:var(--text-muted);font-size:13px;margin-bottom:20px;padding:8px 12px;border-radius:6px;background:var(--bg-input);border:1px solid var(--border);}
+.back-link:hover{color:var(--primary);border-color:var(--primary);text-decoration:none;}
+
+/* Content */
+.page-header{margin-bottom:40px;padding-bottom:24px;border-bottom:1px solid var(--border);}
+.page-header h1{font-size:32px;font-weight:800;margin-bottom:8px;}
+.page-header p{color:var(--text-muted);font-size:16px;}
+
+.section{margin-bottom:48px;scroll-margin-top:24px;}
+.section h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px;color:var(--text);}
+.section h2 .icon{font-size:28px;}
+.section h3{font-size:18px;font-weight:600;margin:24px 0 12px;color:var(--text);}
+.section h4{font-size:15px;font-weight:600;margin:16px 0 8px;color:var(--text-muted);}
+.section p{color:var(--text-muted);margin-bottom:12px;}
+.section ul,.section ol{margin:12px 0 16px 24px;color:var(--text-muted);}
+.section li{margin-bottom:8px;}
+.section li strong{color:var(--text);}
+
+/* Cards & Boxes */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin:16px 0;}
+.card h4{margin-top:0;color:var(--primary);}
+
+.tip-box{background:rgba(16,185,129,.1);border:1px solid var(--accent);border-radius:var(--radius);padding:16px 20px;margin:16px 0;}
+.tip-box::before{content:'💡 Tip:';font-weight:700;color:var(--accent);display:block;margin-bottom:6px;}
+.tip-box p{margin:0;color:var(--text-muted);}
+
+.warning-box{background:rgba(245,158,11,.1);border:1px solid var(--warning);border-radius:var(--radius);padding:16px 20px;margin:16px 0;}
+.warning-box::before{content:'⚠️ Important:';font-weight:700;color:var(--warning);display:block;margin-bottom:6px;}
+.warning-box p{margin:0;color:var(--text-muted);}
+
+.info-box{background:rgba(14,165,233,.1);border:1px solid var(--primary);border-radius:var(--radius);padding:16px 20px;margin:16px 0;}
+.info-box::before{content:'ℹ️ Note:';font-weight:700;color:var(--primary);display:block;margin-bottom:6px;}
+.info-box p{margin:0;color:var(--text-muted);}
+
+/* Steps */
+.steps{counter-reset:step;margin:16px 0;}
+.step{display:flex;gap:16px;margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);}
+.step::before{counter-increment:step;content:counter(step);background:var(--primary);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.step-content{flex:1;}
+.step-content h4{margin:0 0 6px;color:var(--text);}
+.step-content p{margin:0;color:var(--text-muted);font-size:14px;}
+
+/* Feature Grid */
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:16px 0;}
+.feature{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+.feature .icon{font-size:32px;margin-bottom:8px;}
+.feature h4{margin:0 0 6px;font-size:14px;color:var(--text);}
+.feature p{margin:0;font-size:12px;color:var(--text-dim);}
+
+/* Keyboard Shortcuts */
+.kbd{display:inline-block;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;font-family:monospace;color:var(--text);}
+
+/* Screenshots placeholder */
+.screenshot{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:40px;text-align:center;color:var(--text-dim);font-size:13px;margin:16px 0;}
+.screenshot::before{content:'📷';font-size:32px;display:block;margin-bottom:8px;}
+
+/* Table */
+.table-wrapper{overflow-x:auto;margin:16px 0;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:12px;background:var(--bg-card);color:var(--text-dim);font-weight:600;border-bottom:1px solid var(--border);}
+td{padding:12px;border-bottom:1px solid var(--border);color:var(--text-muted);}
+tr:hover td{background:var(--bg-hover);}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+.badge-blue{background:rgba(14,165,233,.15);color:var(--primary);}
+.badge-green{background:rgba(16,185,129,.15);color:var(--accent);}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--warning);}
+.badge-red{background:rgba(239,68,68,.15);color:var(--danger);}
+.badge-purple{background:rgba(139,92,246,.15);color:var(--purple);}
+
+/* Mobile */
+@media(max-width:900px){
+  .sidebar{position:fixed;left:-280px;transition:left .3s;z-index:1000;}
+  .sidebar.open{left:0;}
+  .main{margin-left:0;padding:20px;}
+  .menu-toggle{display:flex!important;}
+  .sidebar-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:999;display:none;}
+  .sidebar-overlay.open{display:block;}
+}
+.menu-toggle{display:none;position:fixed;top:12px;left:12px;z-index:1001;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:20px;cursor:pointer;}
+</style>
+</head>
+<body>
+<button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="app">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">💙</span>
+      <h1>User Guide</h1>
+    </div>
+    
+    <a href="index.html" class="back-link">← Back to App</a>
+    
+    <div class="nav-section">
+      <h3>Getting Started</h3>
+      <a href="#getting-started" class="nav-link"><span class="icon">🚀</span>Overview</a>
+      <a href="#install-pwa" class="nav-link"><span class="icon">📲</span>Installing the App</a>
+      <a href="#first-setup" class="nav-link"><span class="icon">⚙️</span>First-Time Setup</a>
+      <a href="#refresh" class="nav-link"><span class="icon">🔄</span>Refreshing & Updates</a>
+    </div>
+    
+    <div class="nav-section">
+      <h3>Patient Management</h3>
+      <a href="#patients" class="nav-link"><span class="icon">👤</span>Patients Overview</a>
+      <a href="#add-patient" class="nav-link"><span class="icon">➕</span>Adding Patients</a>
+      <a href="#search-patients" class="nav-link"><span class="icon">🔍</span>Search & Filter</a>
+      <a href="#demographics" class="nav-link"><span class="icon">📋</span>Demographics</a>
+      <a href="#insurance" class="nav-link"><span class="icon">🏥</span>Insurance</a>
+    </div>
+    
+    <div class="nav-section">
+      <h3>Clinical Notes</h3>
+      <a href="#soap-notes" class="nav-link"><span class="icon">📝</span>SOAP Notes</a>
+      <a href="#templates" class="nav-link"><span class="icon">📄</span>Templates</a>
+      <a href="#signing-notes" class="nav-link"><span class="icon">✍️</span>Signing Notes</a>
+      <a href="#amendments" class="nav-link"><span class="icon">📎</span>Amendments</a>
+    </div>
+    
+    <div class="nav-section">
+      <h3>Scheduling</h3>
+      <a href="#scheduling" class="nav-link"><span class="icon">📅</span>Calendar</a>
+      <a href="#appointments" class="nav-link"><span class="icon">🗓️</span>Appointments</a>
+      <a href="#flow-board" class="nav-link"><span class="icon">📊</span>Patient Flow</a>
+    </div>
+    
+    <div class="nav-section">
+      <h3>Prescriptions</h3>
+      <a href="#prescriptions" class="nav-link"><span class="icon">💊</span>Writing Rx</a>
+      <a href="#drug-search" class="nav-link"><span class="icon">🔎</span>Drug Search</a>
+      <a href="#interactions" class="nav-link"><span class="icon">⚠️</span>Interactions</a>
+    </div>
+    
+    <div class="nav-section">
+      <h3>More Features</h3>
+      <a href="#providers" class="nav-link"><span class="icon">👨‍⚕️</span>Providers</a>
+      <a href="#documents" class="nav-link"><span class="icon">📁</span>Documents</a>
+      <a href="#camera" class="nav-link"><span class="icon">📷</span>Camera</a>
+      <a href="#settings" class="nav-link"><span class="icon">⚙️</span>Settings</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="page-header">
+      <h1>📚 Amor Medical User Guide</h1>
+      <p>Complete documentation for the Amor Medical EMR Platform</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- GETTING STARTED -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <section id="getting-started" class="section">
+      <h2><span class="icon">🚀</span> Getting Started</h2>
+      <p>Welcome to Amor Medical — a modern, mobile-friendly Electronic Medical Records (EMR) platform designed for healthcare providers. This guide will help you get up and running quickly.</p>
+      
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="icon">📱</div>
+          <h4>Mobile-First</h4>
+          <p>Works on iPad, iPhone, Android, and desktop</p>
+        </div>
+        <div class="feature">
+          <div class="icon">⚡</div>
+          <h4>Fast & Offline</h4>
+          <p>PWA technology for instant loading</p>
+        </div>
+        <div class="feature">
+          <div class="icon">🔒</div>
+          <h4>Secure</h4>
+          <p>HIPAA-compliant data handling</p>
+        </div>
+        <div class="feature">
+          <div class="icon">☁️</div>
+          <h4>Cloud Sync</h4>
+          <p>Access from anywhere</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="install-pwa" class="section">
+      <h2><span class="icon">📲</span> Installing the PWA</h2>
+      <p>Amor Medical is a Progressive Web App (PWA), which means you can install it directly to your device's home screen for a native app-like experience — no app store required!</p>
+      
+      <h3>📱 Installing on iPad / iPhone (iOS)</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Open in Safari</h4>
+            <p>Navigate to the Amor Medical app URL in Safari. Note: Installation only works in Safari on iOS devices.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Tap the Share Button</h4>
+            <p>Tap the share icon (📤) at the bottom of the screen (or top on iPad).</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Select "Add to Home Screen"</h4>
+            <p>Scroll down in the share menu and tap "Add to Home Screen".</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Name and Add</h4>
+            <p>Keep the name "Amor Medical" or customize it, then tap "Add" in the top right corner.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tip-box">
+        <p>Once installed, the app will open in full-screen mode without Safari's navigation bars, just like a native app!</p>
+      </div>
+
+      <h3>🤖 Installing on Android</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Open in Chrome</h4>
+            <p>Navigate to the Amor Medical app URL in Chrome browser.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Look for Install Prompt</h4>
+            <p>You may see an "Install App" banner at the bottom, or tap the menu (⋮) and select "Install app" or "Add to Home screen".</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Confirm Installation</h4>
+            <p>Tap "Install" on the confirmation dialog. The app icon will appear on your home screen.</p>
+          </div>
+        </div>
+      </div>
+
+      <h3>💻 Installing on Desktop (Chrome/Edge)</h3>
+      <p>If you see the <span class="badge badge-blue">📲 Install App</span> button in the app's top navigation bar, simply click it to install. Alternatively:</p>
+      <ul>
+        <li>In Chrome: Click the install icon in the address bar, or Menu → "Install Amor Medical"</li>
+        <li>In Edge: Click the install icon in the address bar, or Menu → Apps → "Install this site as an app"</li>
+      </ul>
+    </section>
+
+    <section id="first-setup" class="section">
+      <h2><span class="icon">⚙️</span> First-Time Setup</h2>
+      <p>When you first open Amor Medical, here's what to do:</p>
+      
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Configure Your Practice</h4>
+            <p>Navigate to <strong>Settings → Practice</strong> and enter your practice name, address, NPI, and contact information.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Add Providers</h4>
+            <p>Go to <strong>Providers</strong> tab and add all providers who will be using the system. Include credentials (MD, DO, NP, PA) and specialties.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Set Up Note Templates</h4>
+            <p>Review and customize SOAP note templates in <strong>Settings → Templates</strong> to match your workflow.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Configure Scheduling</h4>
+            <p>Set up appointment types, durations, and room assignments in <strong>Scheduling → Settings</strong>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="refresh" class="section">
+      <h2><span class="icon">🔄</span> Refreshing & Updating the App</h2>
+      <p>Amor Medical automatically checks for updates, but you can also manually refresh to ensure you have the latest version.</p>
+      
+      <h3>The Refresh Button 🔄</h3>
+      <p>Located in the top navigation bar, the green <strong>🔄 Refresh</strong> button performs a "hard refresh" that:</p>
+      <ul>
+        <li>Clears cached app files</li>
+        <li>Unregisters the service worker</li>
+        <li>Downloads the latest version from the server</li>
+        <li>Reloads the entire application</li>
+      </ul>
+      
+      <div class="info-box">
+        <p>Use the Refresh button whenever you notice something isn't working correctly, or when you see the "Update Available" banner.</p>
+      </div>
+
+      <h3>Update Banner 🎉</h3>
+      <p>When a new version is available, you'll see a colorful banner at the top of the screen:</p>
+      <div class="card" style="background:linear-gradient(90deg,var(--primary),var(--accent));text-align:center;color:#fff;font-weight:600;">
+        🎉 Update available! — Tap to refresh
+      </div>
+      <p>Simply tap the banner to update immediately.</p>
+
+      <h3>Settings → Check for Updates</h3>
+      <p>For more detailed version info, open <strong>⚙️ Settings</strong> from the top bar:</p>
+      <ul>
+        <li><strong>App Version</strong> — Your currently installed version</li>
+        <li><strong>Server Version</strong> — The latest available version</li>
+        <li><strong>Last Updated</strong> — When you last refreshed</li>
+      </ul>
+      
+      <h3>Full Reset (Nuclear Option) 🗑️</h3>
+      <p>If you're experiencing persistent issues, use the <span class="badge badge-red">🗑️ Full Reset</span> button in Settings. This clears:</p>
+      <ul>
+        <li>All cached data</li>
+        <li>Service worker registration</li>
+        <li>Local storage</li>
+        <li>Session storage</li>
+      </ul>
+      
+      <div class="warning-box">
+        <p>Full Reset will clear any locally-stored preferences. Use only as a last resort for troubleshooting.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PATIENTS -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <section id="patients" class="section">
+      <h2><span class="icon">👤</span> Patients</h2>
+      <p>The Patients module is the heart of the EMR. Here you manage patient demographics, insurance, encounters, and clinical documentation.</p>
+      
+      <h3>Navigating the Patient List</h3>
+      <p>Click <strong>🧑‍🤝‍🧑 Patients</strong> in the sidebar to view all patients. The list shows:</p>
+      <ul>
+        <li><strong>Name</strong> — Patient's full name</li>
+        <li><strong>DOB</strong> — Date of birth</li>
+        <li><strong>MRN</strong> — Medical Record Number</li>
+        <li><strong>Phone</strong> — Primary contact number</li>
+        <li><strong>Status</strong> — Active, Inactive, or Deceased</li>
+      </ul>
+    </section>
+
+    <section id="add-patient" class="section">
+      <h2><span class="icon">➕</span> Adding New Patients</h2>
+      <p>To create a new patient record:</p>
+      
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Click "➕ New Patient"</h4>
+            <p>Located at the top of the Patients list or in the right panel quick actions.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Enter Demographics</h4>
+            <p>Fill in required fields: First Name, Last Name, Date of Birth, and Sex. Additional fields include SSN, address, phone, and email.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Add Insurance (Optional)</h4>
+            <p>Click "Add Insurance" to enter primary and secondary insurance information.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Save Patient</h4>
+            <p>Click "Save Patient" to create the record. The patient will be assigned an MRN automatically.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tip-box">
+        <p>Use the 📷 Camera feature to quickly capture insurance cards and driver's licenses to auto-populate fields.</p>
+      </div>
+    </section>
+
+    <section id="search-patients" class="section">
+      <h2><span class="icon">🔍</span> Searching & Filtering Patients</h2>
+      <p>Quickly find patients using the search bar at the top of the screen:</p>
+      
+      <ul>
+        <li><strong>By Name</strong> — Type first or last name</li>
+        <li><strong>By MRN</strong> — Enter the full or partial MRN</li>
+        <li><strong>By DOB</strong> — Enter date in MM/DD/YYYY format</li>
+        <li><strong>By Phone</strong> — Enter the phone number</li>
+      </ul>
+      
+      <h3>Advanced Filters</h3>
+      <p>Click the <strong>🔽 Filter</strong> button to access advanced filters:</p>
+      <ul>
+        <li>Status (Active/Inactive)</li>
+        <li>Insurance type</li>
+        <li>Primary provider</li>
+        <li>Last visit date range</li>
+      </ul>
+    </section>
+
+    <section id="demographics" class="section">
+      <h2><span class="icon">📋</span> Patient Demographics</h2>
+      <p>Click on any patient to open their chart. The Demographics tab shows:</p>
+      
+      <h4>Personal Information</h4>
+      <ul>
+        <li>Legal name and preferred name</li>
+        <li>Date of birth and age</li>
+        <li>Sex at birth and gender identity</li>
+        <li>SSN (last 4 displayed)</li>
+        <li>Preferred language</li>
+        <li>Race and ethnicity</li>
+      </ul>
+      
+      <h4>Contact Information</h4>
+      <ul>
+        <li>Home/Work/Cell phone numbers</li>
+        <li>Email address</li>
+        <li>Street address, City, State, ZIP</li>
+        <li>Preferred contact method</li>
+      </ul>
+      
+      <h4>Emergency Contact</h4>
+      <ul>
+        <li>Emergency contact name</li>
+        <li>Relationship</li>
+        <li>Phone number</li>
+      </ul>
+    </section>
+
+    <section id="insurance" class="section">
+      <h2><span class="icon">🏥</span> Insurance Management</h2>
+      <p>Manage patient insurance information in the Insurance tab of the patient chart.</p>
+      
+      <h3>Adding Insurance</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Click "➕ Add Insurance"</h4>
+            <p>Opens the insurance entry form.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Select Insurance Type</h4>
+            <p>Choose Primary, Secondary, or Tertiary.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Enter Plan Details</h4>
+            <p>Insurance company, Plan name, Policy number, Group number, and effective dates.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Add Subscriber Info</h4>
+            <p>If patient is not the subscriber, enter subscriber details and relationship.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tip-box">
+        <p>Use the 📷 Insurance Card Scan feature to automatically extract policy information from photos of insurance cards.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- CLINICAL NOTES -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <section id="soap-notes" class="section">
+      <h2><span class="icon">📝</span> Clinical Notes (SOAP)</h2>
+      <p>Amor Medical uses the SOAP format for clinical documentation — a structured approach that ensures comprehensive, organized medical records.</p>
+      
+      <h3>SOAP Sections Explained</h3>
+      
+      <div class="card">
+        <h4><span class="badge badge-blue">S</span> Subjective</h4>
+        <p>The patient's description of their symptoms, concerns, and medical history. Includes:</p>
+        <ul style="margin-bottom:0;">
+          <li>Chief Complaint (CC)</li>
+          <li>History of Present Illness (HPI)</li>
+          <li>Review of Systems (ROS)</li>
+          <li>Past Medical/Surgical/Family/Social History</li>
+        </ul>
+      </div>
+      
+      <div class="card">
+        <h4><span class="badge badge-green">O</span> Objective</h4>
+        <p>Observable, measurable findings from the examination:</p>
+        <ul style="margin-bottom:0;">
+          <li>Vital Signs (BP, HR, Temp, RR, SpO2, Weight, Height)</li>
+          <li>Physical Examination findings</li>
+          <li>Lab results and imaging</li>
+        </ul>
+      </div>
+      
+      <div class="card">
+        <h4><span class="badge badge-yellow">A</span> Assessment</h4>
+        <p>The provider's clinical interpretation:</p>
+        <ul style="margin-bottom:0;">
+          <li>Diagnosis/Diagnoses (ICD-10 codes)</li>
+          <li>Differential diagnoses</li>
+          <li>Clinical impressions</li>
+        </ul>
+      </div>
+      
+      <div class="card">
+        <h4><span class="badge badge-purple">P</span> Plan</h4>
+        <p>The treatment and follow-up strategy:</p>
+        <ul style="margin-bottom:0;">
+          <li>Medications prescribed</li>
+          <li>Orders (labs, imaging, referrals)</li>
+          <li>Patient education</li>
+          <li>Follow-up instructions</li>
+        </ul>
+      </div>
+
+      <h3>Creating a New Note</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Open Patient Chart</h4>
+            <p>Search for and select the patient from the Patients list.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Click "📝 New Note"</h4>
+            <p>Opens a new SOAP note linked to this patient.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Select Note Type & Template</h4>
+            <p>Choose the visit type (New Patient, Follow-up, Procedure, etc.) and apply a template if desired.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Document Each Section</h4>
+            <p>Work through S, O, A, P sections. Use the 🎤 voice button for dictation.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Review and Sign</h4>
+            <p>Review your note, then click "✍️ Sign Note" to finalize.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="templates" class="section">
+      <h2><span class="icon">📄</span> Using Templates</h2>
+      <p>Templates save time by pre-populating common text and structures for specific visit types.</p>
+      
+      <h3>Available Templates</h3>
+      <ul>
+        <li><strong>Annual Physical</strong> — Comprehensive wellness exam</li>
+        <li><strong>Follow-Up Visit</strong> — Brief follow-up structure</li>
+        <li><strong>Sick Visit</strong> — Acute illness evaluation</li>
+        <li><strong>Procedure Note</strong> — In-office procedures</li>
+        <li><strong>Telehealth Visit</strong> — Virtual consultation</li>
+      </ul>
+      
+      <h3>Applying a Template</h3>
+      <p>When creating a new note, select a template from the dropdown menu. The note will be pre-filled with template content that you can customize.</p>
+      
+      <div class="tip-box">
+        <p>Templates can include "smart phrases" — type shortcuts like ".hpi" that expand into full text blocks.</p>
+      </div>
+    </section>
+
+    <section id="signing-notes" class="section">
+      <h2><span class="icon">✍️</span> Signing Notes</h2>
+      <p>Signing a note is a critical step that finalizes the documentation and locks it from further editing.</p>
+      
+      <h3>What Happens When You Sign</h3>
+      <ul>
+        <li>The note is marked as <span class="badge badge-green">Signed</span></li>
+        <li>A timestamp and provider signature are added</li>
+        <li>The note becomes <strong>read-only</strong> — no direct edits allowed</li>
+        <li>The note is available for billing submission</li>
+        <li>Other providers can view the finalized documentation</li>
+      </ul>
+      
+      <div class="warning-box">
+        <p>Once signed, a note cannot be edited. If corrections are needed, you must add an Amendment (see below).</p>
+      </div>
+      
+      <h3>Note Statuses</h3>
+      <div class="table-wrapper">
+        <table>
+          <tr>
+            <th>Status</th>
+            <th>Description</th>
+            <th>Editable?</th>
+          </tr>
+          <tr>
+            <td><span class="badge badge-yellow">Draft</span></td>
+            <td>Work in progress, not yet complete</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-blue">Pending</span></td>
+            <td>Complete but awaiting signature</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-green">Signed</span></td>
+            <td>Finalized and locked</td>
+            <td>❌ No (Amendment only)</td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <section id="amendments" class="section">
+      <h2><span class="icon">📎</span> Adding Amendments</h2>
+      <p>Amendments allow you to add corrections or additional information to a signed note without altering the original documentation.</p>
+      
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Open the Signed Note</h4>
+            <p>Navigate to the encounter you need to amend.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Click "➕ Add Amendment"</h4>
+            <p>Found at the bottom of the note or in the note actions menu.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Enter Amendment Text</h4>
+            <p>Clearly describe the correction or additional information. Be specific about what is being changed or added.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Sign Amendment</h4>
+            <p>The amendment is timestamped and signed, appearing below the original note.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="info-box">
+        <p>Amendments preserve the integrity of the original note while allowing necessary corrections — this is a HIPAA-compliant approach to medical record modification.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SCHEDULING -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <section id="scheduling" class="section">
+      <h2><span class="icon">📅</span> Scheduling</h2>
+      <p>The Scheduling module helps you manage appointments, view calendar availability, and track patient flow through the clinic.</p>
+      
+      <h3>Calendar Views</h3>
+      <p>Toggle between views using the buttons in the calendar header:</p>
+      
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="icon">📋</div>
+          <h4>Day View</h4>
+          <p>Detailed hourly schedule for a single day</p>
+        </div>
+        <div class="feature">
+          <div class="icon">📅</div>
+          <h4>Week View</h4>
+          <p>7-day overview with time slots</p>
+        </div>
+        <div class="feature">
+          <div class="icon">🗓️</div>
+          <h4>Month View</h4>
+          <p>Full month at a glance</p>
+        </div>
+      </div>
+      
+      <h3>Navigating the Calendar</h3>
+      <ul>
+        <li>Use <strong>◀ ▶</strong> arrows to move forward/backward</li>
+        <li>Click <strong>Today</strong> to jump to the current date</li>
+        <li>Click any date in Month view to see that day's details</li>
+        <li>Filter by provider using the provider dropdown</li>
+      </ul>
+    </section>
+
+    <section id="appointments" class="section">
+      <h2><span class="icon">🗓️</span> Creating Appointments</h2>
+      
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Click a Time Slot or "+ New Appointment"</h4>
+            <p>Click an empty slot on the calendar or the New Appointment button.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Search/Select Patient</h4>
+            <p>Type the patient name to search, or click "New Patient" to register them first.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Choose Appointment Type</h4>
+            <p>Select from: New Patient, Follow-up, Procedure, Telehealth, Walk-in, etc.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Set Date, Time, and Duration</h4>
+            <p>Confirm the schedule details. Duration auto-fills based on appointment type.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Assign Provider and Room</h4>
+            <p>Select the provider and assign an exam room if applicable.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Add Reason for Visit</h4>
+            <p>Enter the chief complaint or reason for the appointment.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Save Appointment</h4>
+            <p>Click "Save" to create the appointment. It will appear on the calendar.</p>
+          </div>
+        </div>
+      </div>
+      
+      <h3>Appointment Types</h3>
+      <div class="table-wrapper">
+        <table>
+          <tr>
+            <th>Type</th>
+            <th>Color</th>
+            <th>Default Duration</th>
+          </tr>
+          <tr>
+            <td>New Patient</td>
+            <td><span class="badge badge-blue">Blue</span></td>
+            <td>60 min</td>
+          </tr>
+          <tr>
+            <td>Follow-Up</td>
+            <td><span class="badge badge-green">Green</span></td>
+            <td>30 min</td>
+          </tr>
+          <tr>
+            <td>Procedure</td>
+            <td><span class="badge badge-purple">Purple</span></td>
+            <td>45 min</td>
+          </tr>
+          <tr>
+            <td>Telehealth</td>
+            <td><span class="badge badge-yellow">Yellow</span></td>
+            <td>30 min</td>
+          </tr>
+          <tr>
+            <td>Walk-In</td>
+            <td><span class="badge badge-red">Red</span></td>
+            <td>20 min</td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <section id="flow-board" class="section">
+      <h2><span class="icon">📊</span> Patient Flow Board</h2>
+      <p>The Flow Board provides a real-time view of patient status throughout their clinic visit, using a Kanban-style layout.</p>
+      
+      <h3>Flow Columns</h3>
+      <div class="feature-grid">
+        <div class="feature" style="border-left:3px solid var(--primary);">
+          <h4>Check-In</h4>
+          <p>Patient has arrived and checked in</p>
+        </div>
+        <div class="feature" style="border-left:3px solid var(--warning);">
+          <h4>Roomed</h4>
+          <p>Patient in exam room, waiting for provider</p>
+        </div>
+        <div class="feature" style="border-left:3px solid var(--accent);">
+          <h4>With Provider</h4>
+          <p>Provider is with the patient</p>
+        </div>
+        <div class="feature" style="border-left:3px solid var(--purple);">
+          <h4>Check-Out</h4>
+          <p>Visit complete, processing check-out</p>
+        </div>
+      </div>
+      
+      <h3>Check-In Workflow</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Patient Arrives</h4>
+            <p>Front desk marks patient as "Checked In" from the appointment card.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Verify Demographics & Insurance</h4>
+            <p>Confirm patient information is current. Scan insurance cards if needed.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Move to "Roomed"</h4>
+            <p>MA/Nurse takes patient to exam room, records vitals, and updates status.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Provider Sees Patient</h4>
+            <p>Status updates to "With Provider" when the provider enters.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Check-Out</h4>
+            <p>After visit, patient moves to Check-Out for scheduling follow-ups and payment.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tip-box">
+        <p>Drag and drop patient cards between columns to quickly update their status. Wait times are calculated automatically and color-coded (green < 15min, yellow 15-30min, red > 30min).</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PRESCRIPTIONS -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <section id="prescriptions" class="section">
+      <h2><span class="icon">💊</span> Prescriptions</h2>
+      <p>The Prescriptions module allows providers to search for medications, write prescriptions, check for drug interactions, and manage patient medication lists.</p>
+      
+      <h3>Writing a Prescription</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Open Patient Chart → Medications</h4>
+            <p>Navigate to the patient and go to the Medications tab.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Click "➕ New Rx"</h4>
+            <p>Opens the prescription writing interface.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Search for Medication</h4>
+            <p>Type the drug name. Results include brand names, generics, and formulations.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Select Strength & Form</h4>
+            <p>Choose the specific formulation (e.g., "Lisinopril 10mg tablet").</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Enter Sig (Instructions)</h4>
+            <p>Write directions: dose, frequency, route, duration. Example: "Take 1 tablet by mouth daily".</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Set Quantity & Refills</h4>
+            <p>Enter dispense quantity (e.g., #30) and number of refills (0-11).</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Select Pharmacy</h4>
+            <p>Choose from patient's preferred pharmacies or search for a new one.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Review & Send</h4>
+            <p>Review the prescription, check interactions, then send electronically.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="drug-search" class="section">
+      <h2><span class="icon">🔎</span> Drug Search</h2>
+      <p>The drug database includes thousands of medications with:</p>
+      <ul>
+        <li>Brand and generic names</li>
+        <li>Multiple formulations (tablet, capsule, liquid, injection, etc.)</li>
+        <li>Available strengths</li>
+        <li>DEA Schedule for controlled substances</li>
+      </ul>
+      
+      <h3>Search Tips</h3>
+      <ul>
+        <li>Search by brand name: "Lipitor"</li>
+        <li>Search by generic: "atorvastatin"</li>
+        <li>Partial matches work: "lisino" finds Lisinopril</li>
+        <li>Filter by drug class in advanced search</li>
+      </ul>
+    </section>
+
+    <section id="interactions" class="section">
+      <h2><span class="icon">⚠️</span> Drug Interactions</h2>
+      <p>Amor Medical automatically checks for drug-drug interactions when prescribing.</p>
+      
+      <h3>Interaction Severity Levels</h3>
+      <div class="table-wrapper">
+        <table>
+          <tr>
+            <th>Level</th>
+            <th>Description</th>
+            <th>Action</th>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">Severe</span></td>
+            <td>Life-threatening or permanent damage risk</td>
+            <td>Avoid combination</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-yellow">Moderate</span></td>
+            <td>May worsen condition or require monitoring</td>
+            <td>Use with caution</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-blue">Minor</span></td>
+            <td>Minimal clinical significance</td>
+            <td>Be aware</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div class="warning-box">
+        <p>Always review interaction alerts before finalizing a prescription. You may override warnings with documentation of clinical reasoning.</p>
+      </div>
+      
+      <h3>Medication List Management</h3>
+      <p>Maintain an accurate medication list by:</p>
+      <ul>
+        <li><strong>Reconciling</strong> — Update list each visit</li>
+        <li><strong>Adding</strong> — Document new medications including OTC and supplements</li>
+        <li><strong>Discontinuing</strong> — Mark medications no longer being taken</li>
+        <li><strong>Documenting allergies</strong> — Record reactions in the allergy section</li>
+      </ul>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PROVIDERS & PRACTICES -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <section id="providers" class="section">
+      <h2><span class="icon">👨‍⚕️</span> Providers & Practices</h2>
+      
+      <h3>Adding Providers</h3>
+      <p>Navigate to <strong>Settings → Providers</strong> and click "➕ Add Provider":</p>
+      <ul>
+        <li><strong>Name</strong> — Full name with credentials (e.g., "Jane Smith, MD")</li>
+        <li><strong>Credentials</strong> — MD, DO, NP, PA, RN, etc.</li>
+        <li><strong>Specialty</strong> — Family Medicine, Internal Medicine, Cardiology, etc.</li>
+        <li><strong>NPI</strong> — 10-digit National Provider Identifier</li>
+        <li><strong>DEA Number</strong> — Required for prescribing controlled substances</li>
+        <li><strong>State License</strong> — Medical license number</li>
+      </ul>
+      
+      <h3>Practice Setup</h3>
+      <p>Configure practice information in <strong>Settings → Practice</strong>:</p>
+      <ul>
+        <li>Practice name and DBA</li>
+        <li>Tax ID / EIN</li>
+        <li>Practice NPI (Type 2)</li>
+        <li>Address and contact info</li>
+        <li>Hours of operation</li>
+      </ul>
+      
+      <h3>Provider-Practice Relationships</h3>
+      <p>Link providers to practice locations if you have multiple sites. This affects:</p>
+      <ul>
+        <li>Which locations appear on prescriptions</li>
+        <li>Scheduling availability by location</li>
+        <li>Billing and claims routing</li>
+      </ul>
+      
+      <h3>Referrals</h3>
+      <p>Create referrals to outside specialists from the patient chart:</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Open Patient Chart → Referrals</h4>
+            <p>Navigate to the Referrals tab.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Click "➕ New Referral"</h4>
+            <p>Opens the referral form.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Search for Specialist</h4>
+            <p>Search by name, specialty, or organization.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Complete Referral Details</h4>
+            <p>Reason for referral, urgency, and relevant clinical information.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Send or Print</h4>
+            <p>Send electronically or print for fax/mail.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- DOCUMENTS -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <section id="documents" class="section">
+      <h2><span class="icon">📁</span> Documents</h2>
+      <p>Upload, organize, and manage patient documents including scanned records, lab results, and correspondence.</p>
+      
+      <h3>Uploading Documents</h3>
+      <p>From the patient chart, go to <strong>Documents</strong> tab:</p>
+      <ul>
+        <li><strong>Drag and drop</strong> files onto the upload zone</li>
+        <li><strong>Click "📤 Upload"</strong> to browse and select files</li>
+        <li><strong>Use camera</strong> to capture photos directly</li>
+      </ul>
+      
+      <h3>Supported File Types</h3>
+      <div class="table-wrapper">
+        <table>
+          <tr>
+            <th>Type</th>
+            <th>Extensions</th>
+          </tr>
+          <tr>
+            <td>Images</td>
+            <td>.jpg, .jpeg, .png, .gif, .bmp, .webp</td>
+          </tr>
+          <tr>
+            <td>Documents</td>
+            <td>.pdf, .doc, .docx, .txt, .rtf</td>
+          </tr>
+          <tr>
+            <td>Spreadsheets</td>
+            <td>.xls, .xlsx, .csv</td>
+          </tr>
+          <tr>
+            <td>Medical</td>
+            <td>.dcm (DICOM), .hl7</td>
+          </tr>
+        </table>
+      </div>
+      
+      <h3>Attaching Documents to Encounters</h3>
+      <p>Link documents to specific visits for context:</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Select Document</h4>
+            <p>Click on the document in the Documents list.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Click "Link to Encounter"</h4>
+            <p>Choose which encounter/visit to attach it to.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Add Description</h4>
+            <p>Optionally add a description or document type label.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tip-box">
+        <p>Documents can be organized into categories: Lab Results, Imaging, Correspondence, Insurance, Consents, Other.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- CAMERA -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <section id="camera" class="section">
+      <h2><span class="icon">📷</span> Camera Features</h2>
+      <p>Amor Medical includes integrated camera features for capturing photos directly within the app.</p>
+      
+      <h3>Taking Photos</h3>
+      <p>Access the camera from:</p>
+      <ul>
+        <li><strong>Documents tab</strong> → 📷 Capture button</li>
+        <li><strong>New Patient form</strong> → Photo capture for ID/insurance</li>
+        <li><strong>Clinical note</strong> → Attach clinical photos</li>
+      </ul>
+      
+      <h3>Insurance Card Capture</h3>
+      <p>Quickly digitize insurance cards:</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-content">
+            <h4>Go to Patient → Insurance</h4>
+            <p>Open the Insurance tab in the patient chart.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Click "📷 Scan Card"</h4>
+            <p>Opens the camera interface.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Capture Front of Card</h4>
+            <p>Position the card within the frame and capture.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Capture Back of Card</h4>
+            <p>Flip the card and capture the back.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-content">
+            <h4>Review & Save</h4>
+            <p>Images are saved to the patient's documents and linked to insurance.</p>
+          </div>
+        </div>
+      </div>
+      
+      <h3>Clinical Photos</h3>
+      <p>Document clinical findings with photos:</p>
+      <ul>
+        <li>Wound progression</li>
+        <li>Skin conditions</li>
+        <li>Pre/post procedure documentation</li>
+        <li>Range of motion assessments</li>
+      </ul>
+      
+      <div class="warning-box">
+        <p>Always obtain patient consent before taking clinical photos. Document consent in the chart.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SETTINGS -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <section id="settings" class="section">
+      <h2><span class="icon">⚙️</span> Settings & Updates</h2>
+      <p>Access Settings by clicking the ⚙️ icon in the top navigation bar.</p>
+      
+      <h3>Checking for Updates</h3>
+      <p>In the Settings modal:</p>
+      <ul>
+        <li><strong>App Version</strong> — Your current installed version</li>
+        <li><strong>Server Version</strong> — Latest available version</li>
+        <li>Click <strong>"🔍 Check for Updates"</strong> to manually check</li>
+      </ul>
+      
+      <h3>Clearing Cache</h3>
+      <p>If the app is behaving unexpectedly:</p>
+      <ul>
+        <li><strong>🔄 Clear Cache & Reload</strong> — Clears cached files and reloads</li>
+        <li><strong>🗑️ Full Reset</strong> — Nuclear option that clears everything</li>
+      </ul>
+      
+      <h3>Version Information</h3>
+      <p>The version number follows semantic versioning (X.Y.Z):</p>
+      <ul>
+        <li><strong>X</strong> — Major version (significant changes)</li>
+        <li><strong>Y</strong> — Minor version (new features)</li>
+        <li><strong>Z</strong> — Patch version (bug fixes)</li>
+      </ul>
+      
+      <div class="info-box">
+        <p>Last Updated shows when you last refreshed the app. If it's been a while, consider refreshing to get the latest improvements!</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- FOOTER -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <footer style="margin-top:60px;padding-top:24px;border-top:1px solid var(--border);text-align:center;color:var(--text-dim);font-size:13px;">
+      <p>💙 Amor Medical Platform User Guide</p>
+      <p style="margin-top:8px;">Built with love by Emily 🌿 & Ashley 💜</p>
+      <p style="margin-top:4px;">© 2026 Dr. Roger Gonzalez · Rico Solutions</p>
+      <p style="margin-top:16px;">
+        <a href="index.html">← Back to App</a>
+      </p>
+    </footer>
+  </main>
+</div>
+
+<script>
+// Mobile sidebar toggle
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('open');
+}
+
+// Active nav link highlighting
+document.addEventListener('DOMContentLoaded', () => {
+  const navLinks = document.querySelectorAll('.nav-link');
+  const sections = document.querySelectorAll('.section');
+  
+  function setActiveLink() {
+    let current = '';
+    sections.forEach(section => {
+      const sectionTop = section.offsetTop - 100;
+      if (scrollY >= sectionTop) {
+        current = section.getAttribute('id');
+      }
+    });
+    
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === '#' + current) {
+        link.classList.add('active');
+      }
+    });
+  }
+  
+  window.addEventListener('scroll', setActiveLink);
+  setActiveLink();
+  
+  // Close sidebar on link click (mobile)
+  navLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 900) {
+        toggleSidebar();
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>
