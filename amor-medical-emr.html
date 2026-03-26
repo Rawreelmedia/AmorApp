@@ -5262,10 +5262,16 @@ function stopFieldDictation(){
 
 function createEncounter(status){
   const pat=db.patients.find(p=>p.id===document.getElementById('neP').value);
-  const e={id:genId(),patientId:document.getElementById('neP').value,providerId:document.getElementById('nePv').value,practiceId:pat?pat.practiceId:db.practices[0].id,date:document.getElementById('neD').value,type:document.getElementById('neT').value,noteType:document.getElementById('neNT').value,chiefComplaint:document.getElementById('neCC').value,subjective:document.getElementById('neS').value,objective:document.getElementById('neO').value,assessment:document.getElementById('neA').value,plan:document.getElementById('nePl').value,vitals:{bp:document.getElementById('neBP').value,hr:document.getElementById('neHR').value,temp:document.getElementById('neTp').value,spo2:document.getElementById('neO2').value,weight:document.getElementById('neWt').value,height:document.getElementById('neHt').value},icd10:document.getElementById('neICD').value,cpt:document.getElementById('neCPT').value,status:status,signedAt:status==='signed'?new Date().toISOString():null};
+  const e={id:genId(),patientId:document.getElementById('neP').value,providerId:document.getElementById('nePv').value,practiceId:pat?pat.practiceId:db.practices[0].id,date:document.getElementById('neD').value,type:document.getElementById('neT').value,noteType:document.getElementById('neNT').value,chiefComplaint:document.getElementById('neCC').value,subjective:document.getElementById('neS').value,objective:document.getElementById('neO').value,assessment:document.getElementById('neA').value,plan:document.getElementById('nePl').value,vitals:{bp:document.getElementById('neBP').value,hr:document.getElementById('neHR').value,temp:document.getElementById('neTp').value,spo2:document.getElementById('neO2').value,weight:document.getElementById('neWt').value,height:document.getElementById('neHt').value},icd10:document.getElementById('neICD').value,cpt:document.getElementById('neCPT').value,status:status==='signed'?'pending':status,signedAt:null};
   if(!e.chiefComplaint){alert('Chief complaint required');return;}
   if(isMainRecording)stopMainMic();if(isFieldRecording)stopFieldDictation();
-  db.encounters.push(e);saveDB();closeModal();render();
+  db.encounters.push(e);saveDB();closeModal();
+  // If user wanted to sign directly, show signature confirmation modal
+  if(status==='signed'){
+    setTimeout(()=>showSignConfirmationModal(e.id),100);
+  }else{
+    render();
+  }
 }
 
 function editEncounterModal(id){
