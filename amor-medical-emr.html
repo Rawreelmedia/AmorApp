@@ -5682,6 +5682,1723 @@ function viewReferralDetail(refId){
   `, true);
 }
 
+// ═══════════════════════════════════════════
+// AFFILIATES MODULE - Affiliate Practice Management
+// ═══════════════════════════════════════════
+
+const AFFILIATE_STATUS_COLORS = {
+  active: 'badge-green',
+  pending: 'badge-yellow',
+  suspended: 'badge-red'
+};
+
+const SPECIALTIES = [
+  'Cardiology','Dermatology','Endocrinology','Gastroenterology','Hematology',
+  'Infectious Disease','Nephrology','Neurology','Oncology','Ophthalmology',
+  'Orthopedics','Pain Management','Podiatry','Psychiatry','Pulmonology',
+  'Rheumatology','Urology','General Surgery','Vascular Surgery','Primary Care'
+];
+
+const INSURANCE_PANELS = [
+  'Blue Cross Blue Shield','Aetna','United Healthcare','Cigna','Humana',
+  'Medicare','Medicaid','Tricare','Workers Comp','Self-Pay'
+];
+
+const EMR_SYSTEMS = [
+  {id:'ecw',name:'eClinicalWorks',format:'HL7v2'},
+  {id:'epic',name:'Epic',format:'FHIR'},
+  {id:'cerner',name:'Cerner',format:'FHIR'},
+  {id:'athena',name:'Athena',format:'HL7v2'},
+  {id:'modmed',name:'ModMed',format:'JSON'},
+  {id:'drchrono',name:'DrChrono',format:'REST'},
+  {id:'other',name:'Other/Unknown',format:'HL7v2'}
+];
+
+function renderAffiliates(c) {
+  if (!hasPermission('accessAffiliates')) {
+    renderAccessDenied(c, 'Affiliates');
+    return;
+  }
+  
+  setPageTitle('🤝 Affiliate Practices');
+  
+  const affiliates = db.affiliates || [];
+  const activeCount = affiliates.filter(a => a.status === 'active').length;
+  const pendingCount = affiliates.filter(a => a.status === 'pending').length;
+  const suspendedCount = affiliates.filter(a => a.status === 'suspended').length;
+  
+  // Calculate total leads and conversions
+  const totalLeads = affiliates.reduce((sum, a) => sum + (a.leadsReceived || 0), 0);
+  const totalConversions = affiliates.reduce((sum, a) => sum + (a.leadsConverted || 0), 0);
+  const conversionRate = totalLeads > 0 ? ((totalConversions / totalLeads) * 100).toFixed(1) : 0;
+  
+  c.innerHTML = `
+    ${getRefreshHeader('Affiliate Practices', affiliates.length, `
+      <button class="btn btn-primary" onclick="showNewAffiliateModal()">+ New Affiliate</button>
+      <button class="btn btn-ghost" onclick="showAffiliateBilling()">💰 Billing</button>
+      <button class="btn btn-ghost" onclick="exportAffiliatesCSV()">📥 Export</button>
+    `)}
+    
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="label">Active Affiliates</div>
+        <div class="value">${activeCount}</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="label">Pending</div>
+        <div class="value">${pendingCount}</div>
+      </div>
+      <div class="stat-card red">
+        <div class="label">Suspended</div>
+        <div class="value">${suspendedCount}</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="label">Total Leads Sent</div>
+        <div class="value">${totalLeads}</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="label">Conversions</div>
+        <div class="value">${totalConversions}</div>
+        <div class="sub">${conversionRate}% rate</div>
+      </div>
+    </div>
+    
+    <div class="tabs" style="margin-bottom:16px;">
+      <div class="tab active" onclick="filterAffiliates(this,'all')">All</div>
+      <div class="tab" onclick="filterAffiliates(this,'active')">🟢 Active</div>
+      <div class="tab" onclick="filterAffiliates(this,'pending')">🟡 Pending</div>
+      <div class="tab" onclick="filterAffiliates(this,'suspended')">🔴 Suspended</div>
+    </div>
+    
+    <div class="doc-filter-bar" style="margin-bottom:16px;">
+      <input type="text" id="affSearchInput" placeholder="Search affiliates..." oninput="filterAffiliatesRender()">
+      <select id="affSpecialtyFilter" onchange="filterAffiliatesRender()">
+        <option value="">All Specialties</option>
+        ${SPECIALTIES.map(s => `<option value="${s}">${s}</option>`).join('')}
+      </select>
+    </div>
+    
+    <div id="affiliatesList">
+      ${renderAffiliateCards(affiliates)}
+    </div>
+  `;
+}
+
+let affiliateStatusFilter = 'all';
+
+function filterAffiliates(btn, status) {
+  affiliateStatusFilter = status;
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  filterAffiliatesRender();
+}
+
+function filterAffiliatesRender() {
+  const search = (document.getElementById('affSearchInput')?.value || '').toLowerCase();
+  const specialty = document.getElementById('affSpecialtyFilter')?.value || '';
+  
+  let affiliates = [...(db.affiliates || [])];
+  
+  if (affiliateStatusFilter !== 'all') {
+    affiliates = affiliates.filter(a => a.status === affiliateStatusFilter);
+  }
+  
+  if (search) {
+    affiliates = affiliates.filter(a =>
+      a.name.toLowerCase().includes(search) ||
+      (a.contactName || '').toLowerCase().includes(search) ||
+      (a.specialty || '').toLowerCase().includes(search)
+    );
+  }
+  
+  if (specialty) {
+    affiliates = affiliates.filter(a => a.specialty === specialty);
+  }
+  
+  document.getElementById('affiliatesList').innerHTML = renderAffiliateCards(affiliates);
+}
+
+function renderAffiliateCards(affiliates) {
+  if (affiliates.length === 0) {
+    return '<div class="empty-state"><div class="empty-icon">🤝</div><p>No affiliates found</p></div>';
+  }
+  
+  return `<div class="users-grid">${affiliates.map(a => {
+    const convRate = a.leadsReceived > 0 ? ((a.leadsConverted / a.leadsReceived) * 100).toFixed(0) : 0;
+    const availColor = a.availability === 'high' ? 'var(--accent)' : a.availability === 'medium' ? 'var(--warning)' : 'var(--danger)';
+    
+    return `
+      <div class="user-card" onclick="viewAffiliateDetail('${a.id}')" style="cursor:pointer;">
+        <div class="user-card-status">
+          <span class="badge ${AFFILIATE_STATUS_COLORS[a.status]}">${a.status}</span>
+        </div>
+        <div class="user-card-header">
+          <div class="user-card-avatar" style="background:var(--primary);">🏥</div>
+          <div class="user-card-info">
+            <div class="user-card-name">${a.name}</div>
+            <div class="user-card-email">${a.specialty}</div>
+            <div class="user-card-practice">${a.contactName || '—'}</div>
+          </div>
+        </div>
+        <div class="user-card-body">
+          <div class="user-card-field">
+            <span class="user-card-field-label">Leads</span>
+            <span class="user-card-field-value">${a.leadsReceived || 0}</span>
+          </div>
+          <div class="user-card-field">
+            <span class="user-card-field-label">Conversions</span>
+            <span class="user-card-field-value">${a.leadsConverted || 0} (${convRate}%)</span>
+          </div>
+          <div class="user-card-field">
+            <span class="user-card-field-label">Fee</span>
+            <span class="user-card-field-value">$${a.feeAmount}/${a.feeType === 'per-lead' ? 'lead' : 'conv'}</span>
+          </div>
+          <div class="user-card-field">
+            <span class="user-card-field-label">Availability</span>
+            <span class="user-card-field-value" style="color:${availColor};">● ${a.availability || 'unknown'}</span>
+          </div>
+        </div>
+        <div class="user-card-actions" onclick="event.stopPropagation();">
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();routeLeadToAffiliate('${a.id}')">📨 Send Lead</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editAffiliateModal('${a.id}')">✏️ Edit</button>
+        </div>
+      </div>
+    `;
+  }).join('')}</div>`;
+}
+
+function viewAffiliateDetail(affId) {
+  const a = (db.affiliates || []).find(x => x.id === affId);
+  if (!a) return;
+  
+  const convRate = a.leadsReceived > 0 ? ((a.leadsConverted / a.leadsReceived) * 100).toFixed(1) : 0;
+  const emrInfo = EMR_SYSTEMS.find(e => e.name === a.emrSystem) || EMR_SYSTEMS.find(e => e.id === 'other');
+  
+  // Get leads assigned to this affiliate
+  const assignedLeads = (db.leads || []).filter(l => l.assignedAffiliateId === a.id);
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>🏥 ${a.name}</h3>
+    
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <span class="badge ${AFFILIATE_STATUS_COLORS[a.status]}">${a.status}</span>
+      <span class="badge badge-purple">${a.specialty}</span>
+      ${a.availability ? `<span class="badge ${a.availability === 'high' ? 'badge-green' : a.availability === 'medium' ? 'badge-yellow' : 'badge-red'}">Avail: ${a.availability}</span>` : ''}
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:16px;">
+      <div class="stat-card blue"><div class="label">Leads Received</div><div class="value">${a.leadsReceived || 0}</div></div>
+      <div class="stat-card green"><div class="label">Conversions</div><div class="value">${a.leadsConverted || 0}</div></div>
+      <div class="stat-card purple"><div class="label">Conv. Rate</div><div class="value">${convRate}%</div></div>
+      <div class="stat-card yellow"><div class="label">Revenue</div><div class="value">$${((a.feeType === 'per-lead' ? a.leadsReceived : a.leadsConverted) * a.feeAmount).toLocaleString()}</div></div>
+    </div>
+    
+    <div class="form-grid">
+      <div class="form-group"><label>Contact</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${a.contactName || '—'}</div></div>
+      <div class="form-group"><label>Email</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${a.contactEmail || '—'}</div></div>
+      <div class="form-group"><label>Phone</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${a.contactPhone || '—'}</div></div>
+      <div class="form-group"><label>NPI</label><div style="padding:8px;background:var(--bg);border-radius:6px;font-family:monospace;">${a.npi || '—'}</div></div>
+      <div class="form-group full"><label>Address</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${a.street || '—'}, ${a.city || ''} ${a.state || ''} ${a.zip || ''}</div></div>
+      <div class="form-group"><label>Contract Start</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${a.contractStartDate || 'Not signed'}</div></div>
+      <div class="form-group"><label>Fee Structure</label><div style="padding:8px;background:var(--bg);border-radius:6px;">$${a.feeAmount} ${a.feeType === 'per-lead' ? 'per lead' : 'per conversion'}</div></div>
+    </div>
+    
+    <div class="section-title">Insurance Panels</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+      ${(a.insurancePanels || []).map(ins => `<span class="badge badge-blue">${ins}</span>`).join('') || '<span style="color:var(--text-dim);">None specified</span>'}
+    </div>
+    
+    <div class="section-title">Service Area (ZIP Codes)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+      ${(a.serviceZips || []).map(z => `<span class="badge badge-purple">${z}</span>`).join('') || '<span style="color:var(--text-dim);">None specified</span>'}
+    </div>
+    
+    <div class="section-title">EMR Integration</div>
+    <div style="padding:12px;background:var(--bg-input);border-radius:8px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:600;">${a.emrSystem || 'Not configured'}</div>
+          <div style="font-size:11px;color:var(--text-dim);">Format: ${emrInfo?.format || 'Unknown'}</div>
+          ${a.emrEndpoint ? `<div style="font-size:11px;color:var(--text-dim);font-family:monospace;">${a.emrEndpoint}</div>` : ''}
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="testEMRConnection('${a.id}')">🔌 Test Connection</button>
+      </div>
+    </div>
+    
+    ${a.notes ? `<div class="section-title">Notes</div><div style="padding:12px;background:var(--bg-input);border-radius:8px;font-size:13px;margin-bottom:16px;">${a.notes}</div>` : ''}
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="changeAffiliateStatus('${a.id}')">📊 Change Status</button>
+      <button class="btn btn-primary" onclick="closeModal();routeLeadToAffiliate('${a.id}')">📨 Send Lead</button>
+      <button class="btn btn-ghost" onclick="closeModal();editAffiliateModal('${a.id}')">✏️ Edit</button>
+    </div>
+  `, true);
+}
+
+function showNewAffiliateModal() {
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>🤝 New Affiliate Practice</h3>
+    
+    <div class="tabs" style="margin-bottom:16px;">
+      <div class="tab active" onclick="showAffTab(this, 'basic')">Basic Info</div>
+      <div class="tab" onclick="showAffTab(this, 'contract')">Contract</div>
+      <div class="tab" onclick="showAffTab(this, 'coverage')">Coverage</div>
+      <div class="tab" onclick="showAffTab(this, 'emr')">EMR</div>
+    </div>
+    
+    <div id="affTab-basic" class="aff-tab-content">
+      <div class="form-grid">
+        <div class="form-group full"><label>Practice Name *</label><input id="newAffName" placeholder="e.g., Miami Cardiology Associates"></div>
+        <div class="form-group"><label>NPI</label><input id="newAffNPI" placeholder="10-digit NPI"></div>
+        <div class="form-group"><label>Specialty *</label>
+          <select id="newAffSpecialty">
+            <option value="">Select specialty...</option>
+            ${SPECIALTIES.map(s => `<option value="${s}">${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Contact Name</label><input id="newAffContactName" placeholder="Dr. John Smith"></div>
+        <div class="form-group"><label>Contact Email</label><input id="newAffContactEmail" type="email" placeholder="contact@practice.com"></div>
+        <div class="form-group"><label>Contact Phone</label><input id="newAffContactPhone" placeholder="(305) 555-0000"></div>
+        <div class="form-group full"><label>Street Address</label><input id="newAffStreet" placeholder="123 Main St"></div>
+        <div class="form-group"><label>City</label><input id="newAffCity" placeholder="Miami"></div>
+        <div class="form-group"><label>State</label><input id="newAffState" value="FL" maxlength="2"></div>
+        <div class="form-group"><label>ZIP</label><input id="newAffZip" placeholder="33101"></div>
+      </div>
+    </div>
+    
+    <div id="affTab-contract" class="aff-tab-content" style="display:none;">
+      <div class="form-grid">
+        <div class="form-group"><label>Contract Start Date</label><input id="newAffContractDate" type="date"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="newAffStatus">
+            <option value="pending">Pending</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Fee Type *</label>
+          <select id="newAffFeeType">
+            <option value="per-conversion">Per Conversion</option>
+            <option value="per-lead">Per Lead</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Fee Amount ($) *</label><input id="newAffFeeAmount" type="number" placeholder="100"></div>
+        <div class="form-group full"><label>Notes</label><textarea id="newAffNotes" rows="3" placeholder="Contract terms, special arrangements..."></textarea></div>
+      </div>
+    </div>
+    
+    <div id="affTab-coverage" class="aff-tab-content" style="display:none;">
+      <div class="form-group">
+        <label>Insurance Panels Accepted</label>
+        <div style="max-height:150px;overflow-y:auto;background:var(--bg-input);padding:12px;border-radius:6px;border:1px solid var(--border);">
+          ${INSURANCE_PANELS.map(ins => `<label style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:4px;"><input type="checkbox" value="${ins}" class="new-aff-insurance" style="width:auto;"> ${ins}</label>`).join('')}
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Service Area ZIP Codes (comma-separated)</label>
+        <input id="newAffZips" placeholder="33101, 33102, 33103...">
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Current Availability</label>
+        <select id="newAffAvailability">
+          <option value="high">🟢 High - Accepting new patients</option>
+          <option value="medium">🟡 Medium - Limited availability</option>
+          <option value="low">🔴 Low - Waitlist only</option>
+        </select>
+      </div>
+    </div>
+    
+    <div id="affTab-emr" class="aff-tab-content" style="display:none;">
+      <div class="form-grid">
+        <div class="form-group full"><label>EMR System</label>
+          <select id="newAffEMR">
+            <option value="">Select EMR system...</option>
+            ${EMR_SYSTEMS.map(e => `<option value="${e.name}">${e.name} (${e.format})</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group full"><label>EMR API Endpoint (optional)</label><input id="newAffEMREndpoint" placeholder="https://api.emrsystem.com/v1"></div>
+      </div>
+      <div style="margin-top:16px;padding:12px;background:var(--bg-input);border-radius:8px;">
+        <div style="font-size:12px;color:var(--text-muted);">
+          <strong>💡 EMR Integration Info:</strong><br>
+          When pushing patient data to affiliates, we support HL7 v2.x and FHIR R4 formats. 
+          Contact our integration team for custom implementations.
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createAffiliate()">Create Affiliate</button>
+    </div>
+  `, true);
+}
+
+function showAffTab(btn, tabId) {
+  document.querySelectorAll('.aff-tab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('affTab-' + tabId).style.display = 'block';
+}
+
+function createAffiliate() {
+  const name = document.getElementById('newAffName').value.trim();
+  const specialty = document.getElementById('newAffSpecialty').value;
+  const feeAmount = document.getElementById('newAffFeeAmount').value;
+  
+  if (!name || !specialty || !feeAmount) {
+    alert('Please fill in required fields: Practice Name, Specialty, Fee Amount');
+    return;
+  }
+  
+  const insurances = Array.from(document.querySelectorAll('.new-aff-insurance:checked')).map(cb => cb.value);
+  const zipsInput = document.getElementById('newAffZips').value;
+  const zips = zipsInput ? zipsInput.split(',').map(z => z.trim()).filter(Boolean) : [];
+  
+  const newAffiliate = {
+    id: genId(),
+    name,
+    npi: document.getElementById('newAffNPI').value.trim(),
+    specialty,
+    contactName: document.getElementById('newAffContactName').value.trim(),
+    contactEmail: document.getElementById('newAffContactEmail').value.trim(),
+    contactPhone: document.getElementById('newAffContactPhone').value.trim(),
+    street: document.getElementById('newAffStreet').value.trim(),
+    city: document.getElementById('newAffCity').value.trim(),
+    state: document.getElementById('newAffState').value.trim().toUpperCase(),
+    zip: document.getElementById('newAffZip').value.trim(),
+    status: document.getElementById('newAffStatus').value,
+    contractStartDate: document.getElementById('newAffContractDate').value || null,
+    feeType: document.getElementById('newAffFeeType').value,
+    feeAmount: parseFloat(feeAmount),
+    insurancePanels: insurances,
+    serviceZips: zips,
+    emrSystem: document.getElementById('newAffEMR').value,
+    emrEndpoint: document.getElementById('newAffEMREndpoint').value.trim(),
+    availability: document.getElementById('newAffAvailability').value,
+    leadsReceived: 0,
+    leadsConverted: 0,
+    notes: document.getElementById('newAffNotes').value.trim(),
+    createdAt: new Date().toISOString()
+  };
+  
+  if (!db.affiliates) db.affiliates = [];
+  db.affiliates.push(newAffiliate);
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ Affiliate "${name}" created`);
+}
+
+function editAffiliateModal(affId) {
+  const a = (db.affiliates || []).find(x => x.id === affId);
+  if (!a) return;
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✏️ Edit Affiliate: ${a.name}</h3>
+    
+    <div class="form-grid">
+      <div class="form-group full"><label>Practice Name *</label><input id="editAffName" value="${a.name || ''}"></div>
+      <div class="form-group"><label>NPI</label><input id="editAffNPI" value="${a.npi || ''}"></div>
+      <div class="form-group"><label>Specialty *</label>
+        <select id="editAffSpecialty">
+          ${SPECIALTIES.map(s => `<option value="${s}" ${a.specialty === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Contact Name</label><input id="editAffContactName" value="${a.contactName || ''}"></div>
+      <div class="form-group"><label>Contact Email</label><input id="editAffContactEmail" value="${a.contactEmail || ''}"></div>
+      <div class="form-group"><label>Contact Phone</label><input id="editAffContactPhone" value="${a.contactPhone || ''}"></div>
+      <div class="form-group"><label>Status</label>
+        <select id="editAffStatus">
+          <option value="pending" ${a.status === 'pending' ? 'selected' : ''}>Pending</option>
+          <option value="active" ${a.status === 'active' ? 'selected' : ''}>Active</option>
+          <option value="suspended" ${a.status === 'suspended' ? 'selected' : ''}>Suspended</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Availability</label>
+        <select id="editAffAvailability">
+          <option value="high" ${a.availability === 'high' ? 'selected' : ''}>🟢 High</option>
+          <option value="medium" ${a.availability === 'medium' ? 'selected' : ''}>🟡 Medium</option>
+          <option value="low" ${a.availability === 'low' ? 'selected' : ''}>🔴 Low</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Fee Type</label>
+        <select id="editAffFeeType">
+          <option value="per-conversion" ${a.feeType === 'per-conversion' ? 'selected' : ''}>Per Conversion</option>
+          <option value="per-lead" ${a.feeType === 'per-lead' ? 'selected' : ''}>Per Lead</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Fee Amount ($)</label><input id="editAffFeeAmount" type="number" value="${a.feeAmount || 0}"></div>
+      <div class="form-group full"><label>Notes</label><textarea id="editAffNotes" rows="3">${a.notes || ''}</textarea></div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-danger" onclick="deleteAffiliate('${a.id}')">🗑️ Delete</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateAffiliate('${a.id}')">Save Changes</button>
+    </div>
+  `, true);
+}
+
+function updateAffiliate(affId) {
+  const a = (db.affiliates || []).find(x => x.id === affId);
+  if (!a) return;
+  
+  a.name = document.getElementById('editAffName').value.trim();
+  a.npi = document.getElementById('editAffNPI').value.trim();
+  a.specialty = document.getElementById('editAffSpecialty').value;
+  a.contactName = document.getElementById('editAffContactName').value.trim();
+  a.contactEmail = document.getElementById('editAffContactEmail').value.trim();
+  a.contactPhone = document.getElementById('editAffContactPhone').value.trim();
+  a.status = document.getElementById('editAffStatus').value;
+  a.availability = document.getElementById('editAffAvailability').value;
+  a.feeType = document.getElementById('editAffFeeType').value;
+  a.feeAmount = parseFloat(document.getElementById('editAffFeeAmount').value) || 0;
+  a.notes = document.getElementById('editAffNotes').value.trim();
+  a.updatedAt = new Date().toISOString();
+  
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ Affiliate "${a.name}" updated`);
+}
+
+function deleteAffiliate(affId) {
+  const a = (db.affiliates || []).find(x => x.id === affId);
+  if (!a) return;
+  
+  if (confirm(`Delete affiliate "${a.name}"?\n\nThis cannot be undone.`)) {
+    db.affiliates = db.affiliates.filter(x => x.id !== affId);
+    saveDB();
+    closeModal();
+    render();
+    showToast(`🗑️ Affiliate deleted`);
+  }
+}
+
+function changeAffiliateStatus(affId) {
+  const a = (db.affiliates || []).find(x => x.id === affId);
+  if (!a) return;
+  
+  closeModal();
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📊 Change Status: ${a.name}</h3>
+    <p style="color:var(--text-muted);margin-bottom:16px;">Current status: <span class="badge ${AFFILIATE_STATUS_COLORS[a.status]}">${a.status}</span></p>
+    
+    <div class="form-group">
+      <label>New Status</label>
+      <select id="newStatusSelect">
+        <option value="active" ${a.status === 'active' ? 'selected' : ''}>🟢 Active</option>
+        <option value="pending" ${a.status === 'pending' ? 'selected' : ''}>🟡 Pending</option>
+        <option value="suspended" ${a.status === 'suspended' ? 'selected' : ''}>🔴 Suspended</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label>Reason (optional)</label>
+      <textarea id="statusChangeReason" rows="2" placeholder="Why is the status changing?"></textarea>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="applyAffiliateStatus('${affId}')">Update Status</button>
+    </div>
+  `);
+}
+
+function applyAffiliateStatus(affId) {
+  const a = (db.affiliates || []).find(x => x.id === affId);
+  if (!a) return;
+  
+  const newStatus = document.getElementById('newStatusSelect').value;
+  const reason = document.getElementById('statusChangeReason').value.trim();
+  
+  a.status = newStatus;
+  a.statusChangedAt = new Date().toISOString();
+  if (reason) {
+    a.notes = (a.notes ? a.notes + '\n\n' : '') + `[${new Date().toLocaleDateString()}] Status changed to ${newStatus}: ${reason}`;
+  }
+  
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ Status updated to ${newStatus}`);
+}
+
+function testEMRConnection(affId) {
+  const a = (db.affiliates || []).find(x => x.id === affId);
+  if (!a) return;
+  
+  // Simulate connection test
+  showToast(`🔌 Testing connection to ${a.emrSystem}...`);
+  
+  setTimeout(() => {
+    const success = Math.random() > 0.3; // 70% success rate for demo
+    if (success) {
+      showToast(`✅ Connection to ${a.emrSystem} successful!`);
+    } else {
+      showToast(`❌ Connection failed. Check endpoint configuration.`);
+    }
+  }, 1500);
+}
+
+function exportAffiliatesCSV() {
+  const affiliates = db.affiliates || [];
+  const headers = ['Name','NPI','Specialty','Status','Contact','Email','Phone','Fee Type','Fee Amount','Leads','Conversions','Conv Rate'];
+  const rows = affiliates.map(a => {
+    const convRate = a.leadsReceived > 0 ? ((a.leadsConverted / a.leadsReceived) * 100).toFixed(1) + '%' : '0%';
+    return [
+      a.name, a.npi || '', a.specialty, a.status, a.contactName || '', a.contactEmail || '', a.contactPhone || '',
+      a.feeType, a.feeAmount, a.leadsReceived || 0, a.leadsConverted || 0, convRate
+    ].map(v => `"${(v + '').replace(/"/g, '""')}"`).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `affiliates-export-${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+  showToast('📥 Export downloaded');
+}
+
+// ═══════════════════════════════════════════
+// LEADS MODULE - Patient Lead Routing
+// ═══════════════════════════════════════════
+
+const LEAD_STATUS_COLORS = {
+  new: 'badge-blue',
+  contacted: 'badge-yellow',
+  scheduled: 'badge-purple',
+  converted: 'badge-green',
+  lost: 'badge-red'
+};
+
+const LEAD_SOURCES = ['website', 'phone', 'referral', 'walk-in', 'social-media', 'advertising', 'other'];
+
+function renderLeads(c) {
+  if (!hasPermission('accessLeads')) {
+    renderAccessDenied(c, 'Leads');
+    return;
+  }
+  
+  setPageTitle('📥 Patient Leads');
+  
+  const leads = db.leads || [];
+  const newCount = leads.filter(l => l.status === 'new').length;
+  const contactedCount = leads.filter(l => l.status === 'contacted').length;
+  const scheduledCount = leads.filter(l => l.status === 'scheduled').length;
+  const convertedCount = leads.filter(l => l.status === 'converted').length;
+  const lostCount = leads.filter(l => l.status === 'lost').length;
+  
+  c.innerHTML = `
+    ${getRefreshHeader('Patient Leads', leads.length, `
+      <button class="btn btn-primary" onclick="showNewLeadModal()">+ New Lead</button>
+      <button class="btn btn-accent" onclick="showLeadRoutingWizard()">🎯 Route Leads</button>
+      <button class="btn btn-ghost" onclick="exportLeadsCSV()">📥 Export</button>
+    `)}
+    
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="label">New Leads</div>
+        <div class="value">${newCount}</div>
+        <div class="sub">Awaiting contact</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="label">Contacted</div>
+        <div class="value">${contactedCount}</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="label">Scheduled</div>
+        <div class="value">${scheduledCount}</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">Converted</div>
+        <div class="value">${convertedCount}</div>
+      </div>
+      <div class="stat-card red">
+        <div class="label">Lost</div>
+        <div class="value">${lostCount}</div>
+      </div>
+    </div>
+    
+    <div class="tabs" style="margin-bottom:16px;">
+      <div class="tab active" onclick="filterLeads(this,'all')">All</div>
+      <div class="tab" onclick="filterLeads(this,'new')">🆕 New</div>
+      <div class="tab" onclick="filterLeads(this,'contacted')">📞 Contacted</div>
+      <div class="tab" onclick="filterLeads(this,'scheduled')">📅 Scheduled</div>
+      <div class="tab" onclick="filterLeads(this,'converted')">✅ Converted</div>
+      <div class="tab" onclick="filterLeads(this,'lost')">❌ Lost</div>
+    </div>
+    
+    <div class="doc-filter-bar" style="margin-bottom:16px;">
+      <input type="text" id="leadSearchInput" placeholder="Search leads..." oninput="filterLeadsRender()">
+      <select id="leadSourceFilter" onchange="filterLeadsRender()">
+        <option value="">All Sources</option>
+        ${LEAD_SOURCES.map(s => `<option value="${s}">${s}</option>`).join('')}
+      </select>
+      <select id="leadSpecialtyFilter" onchange="filterLeadsRender()">
+        <option value="">All Specialties</option>
+        ${SPECIALTIES.map(s => `<option value="${s}">${s}</option>`).join('')}
+      </select>
+    </div>
+    
+    <div id="leadsList">
+      ${renderLeadCards(leads)}
+    </div>
+  `;
+}
+
+let leadStatusFilter = 'all';
+
+function filterLeads(btn, status) {
+  leadStatusFilter = status;
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  filterLeadsRender();
+}
+
+function filterLeadsRender() {
+  const search = (document.getElementById('leadSearchInput')?.value || '').toLowerCase();
+  const source = document.getElementById('leadSourceFilter')?.value || '';
+  const specialty = document.getElementById('leadSpecialtyFilter')?.value || '';
+  
+  let leads = [...(db.leads || [])];
+  
+  if (leadStatusFilter !== 'all') {
+    leads = leads.filter(l => l.status === leadStatusFilter);
+  }
+  
+  if (search) {
+    leads = leads.filter(l =>
+      (l.firstName + ' ' + l.lastName).toLowerCase().includes(search) ||
+      (l.phone || '').includes(search) ||
+      (l.email || '').toLowerCase().includes(search)
+    );
+  }
+  
+  if (source) {
+    leads = leads.filter(l => l.source === source);
+  }
+  
+  if (specialty) {
+    leads = leads.filter(l => l.specialtyNeeded === specialty);
+  }
+  
+  document.getElementById('leadsList').innerHTML = renderLeadCards(leads);
+}
+
+function renderLeadCards(leads) {
+  if (leads.length === 0) {
+    return '<div class="empty-state"><div class="empty-icon">📥</div><p>No leads found</p></div>';
+  }
+  
+  // Sort by created date (newest first)
+  leads = leads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  
+  return `<div style="display:flex;flex-direction:column;gap:12px;">${leads.map(l => {
+    const ageMinutes = Math.floor((Date.now() - new Date(l.createdAt).getTime()) / 60000);
+    const ageDisplay = ageMinutes < 60 ? `${ageMinutes}m ago` : 
+                       ageMinutes < 1440 ? `${Math.floor(ageMinutes / 60)}h ago` : 
+                       `${Math.floor(ageMinutes / 1440)}d ago`;
+    
+    const sourceIcon = l.source === 'website' ? '🌐' : l.source === 'phone' ? '📞' : l.source === 'referral' ? '🔗' : '📋';
+    
+    return `
+      <div class="encounter-card" onclick="viewLeadDetail('${l.id}')" style="cursor:pointer;">
+        <div class="enc-header">
+          <span class="enc-date">
+            <strong>${l.firstName} ${l.lastName}</strong>
+            <span style="color:var(--text-dim);font-weight:normal;margin-left:8px;">${l.phone || 'No phone'}</span>
+          </span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="badge ${LEAD_STATUS_COLORS[l.status]}">${l.status}</span>
+            <span style="font-size:11px;color:var(--text-dim);">${ageDisplay}</span>
+          </div>
+        </div>
+        <div class="enc-preview" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <span style="margin-right:16px;"><strong>Specialty:</strong> ${l.specialtyNeeded || '—'}</span>
+            <span style="margin-right:16px;"><strong>Insurance:</strong> ${l.insurancePrimary || 'Unknown'}</span>
+            <span>${sourceIcon} ${l.source}</span>
+          </div>
+          <div style="display:flex;gap:6px;" onclick="event.stopPropagation();">
+            ${l.status === 'new' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showLeadMatchingModal('${l.id}')">🎯 Match</button>` : ''}
+            ${l.status !== 'converted' && l.status !== 'lost' ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();updateLeadStatus('${l.id}')">📊 Status</button>` : ''}
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">
+          <strong>Reason:</strong> ${l.reasonForVisit || '—'}
+        </div>
+      </div>
+    `;
+  }).join('')}</div>`;
+}
+
+function showNewLeadModal() {
+  const today = new Date().toISOString().split('T')[0];
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📥 New Patient Lead</h3>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">Enter patient intake information for routing to appropriate affiliate.</p>
+    
+    <div class="form-grid">
+      <div class="form-group"><label>First Name *</label><input id="newLeadFirst" placeholder="John"></div>
+      <div class="form-group"><label>Last Name *</label><input id="newLeadLast" placeholder="Smith"></div>
+      <div class="form-group"><label>Date of Birth *</label><input id="newLeadDOB" type="date"></div>
+      <div class="form-group"><label>Gender</label>
+        <select id="newLeadGender">
+          <option value="">Select...</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Phone *</label><input id="newLeadPhone" placeholder="(305) 555-1234"></div>
+      <div class="form-group"><label>Email</label><input id="newLeadEmail" type="email" placeholder="john@email.com"></div>
+      <div class="form-group"><label>Insurance *</label>
+        <select id="newLeadInsurance">
+          <option value="">Select insurance...</option>
+          ${INSURANCE_PANELS.map(ins => `<option value="${ins}">${ins}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Insurance ID</label><input id="newLeadInsuranceId" placeholder="Policy number"></div>
+      <div class="form-group full"><label>Reason for Visit *</label><textarea id="newLeadReason" rows="2" placeholder="Describe symptoms or reason for appointment..."></textarea></div>
+      <div class="form-group"><label>Specialty Needed *</label>
+        <select id="newLeadSpecialty">
+          <option value="">Select specialty...</option>
+          ${SPECIALTIES.map(s => `<option value="${s}">${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Preferred ZIP Code</label><input id="newLeadZip" placeholder="33101"></div>
+      <div class="form-group"><label>Lead Source *</label>
+        <select id="newLeadSource">
+          ${LEAD_SOURCES.map(s => `<option value="${s}">${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Urgency</label>
+        <select id="newLeadUrgency">
+          <option value="normal">Normal</option>
+          <option value="urgent">Urgent</option>
+          <option value="emergency">Emergency</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>Notes</label><textarea id="newLeadNotes" rows="2" placeholder="Additional notes..."></textarea></div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="createLeadAndMatch()">Create & Match</button>
+      <button class="btn btn-primary" onclick="createLead()">Create Lead</button>
+    </div>
+  `, true);
+}
+
+function createLead() {
+  const firstName = document.getElementById('newLeadFirst').value.trim();
+  const lastName = document.getElementById('newLeadLast').value.trim();
+  const dob = document.getElementById('newLeadDOB').value;
+  const phone = document.getElementById('newLeadPhone').value.trim();
+  const reason = document.getElementById('newLeadReason').value.trim();
+  const specialty = document.getElementById('newLeadSpecialty').value;
+  const insurance = document.getElementById('newLeadInsurance').value;
+  const source = document.getElementById('newLeadSource').value;
+  
+  if (!firstName || !lastName || !dob || !phone || !reason || !specialty || !source) {
+    alert('Please fill in all required fields');
+    return;
+  }
+  
+  const newLead = {
+    id: genId(),
+    firstName,
+    lastName,
+    dob,
+    gender: document.getElementById('newLeadGender').value,
+    phone,
+    email: document.getElementById('newLeadEmail').value.trim(),
+    insurancePrimary: insurance,
+    insuranceId: document.getElementById('newLeadInsuranceId').value.trim(),
+    reasonForVisit: reason,
+    specialtyNeeded: specialty,
+    preferredZip: document.getElementById('newLeadZip').value.trim(),
+    source,
+    urgency: document.getElementById('newLeadUrgency').value,
+    status: 'new',
+    notes: document.getElementById('newLeadNotes').value.trim(),
+    createdAt: new Date().toISOString(),
+    assignedAffiliateId: null,
+    matchScores: null
+  };
+  
+  if (!db.leads) db.leads = [];
+  db.leads.push(newLead);
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ Lead created for ${firstName} ${lastName}`);
+  
+  return newLead.id;
+}
+
+function createLeadAndMatch() {
+  const leadId = createLead();
+  if (leadId) {
+    setTimeout(() => showLeadMatchingModal(leadId), 300);
+  }
+}
+
+function viewLeadDetail(leadId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  if (!l) return;
+  
+  const assignedAffiliate = l.assignedAffiliateId ? (db.affiliates || []).find(a => a.id === l.assignedAffiliateId) : null;
+  const ageYears = l.dob ? Math.floor((Date.now() - new Date(l.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : '—';
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📥 Lead Detail</h3>
+    
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <span class="badge ${LEAD_STATUS_COLORS[l.status]}">${l.status}</span>
+      <span class="badge badge-purple">${l.specialtyNeeded}</span>
+      <span class="badge badge-blue">${l.source}</span>
+      ${l.urgency === 'urgent' ? '<span class="badge badge-yellow">⚡ Urgent</span>' : ''}
+      ${l.urgency === 'emergency' ? '<span class="badge badge-red">🚨 Emergency</span>' : ''}
+    </div>
+    
+    <div class="form-grid">
+      <div class="form-group"><label>Name</label><div style="padding:8px;background:var(--bg);border-radius:6px;font-weight:600;">${l.firstName} ${l.lastName}</div></div>
+      <div class="form-group"><label>DOB / Age</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${l.dob || '—'} (${ageYears} yrs)</div></div>
+      <div class="form-group"><label>Phone</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${l.phone || '—'}</div></div>
+      <div class="form-group"><label>Email</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${l.email || '—'}</div></div>
+      <div class="form-group"><label>Insurance</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${l.insurancePrimary || 'Unknown'}</div></div>
+      <div class="form-group"><label>Insurance ID</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${l.insuranceId || '—'}</div></div>
+      <div class="form-group"><label>Preferred ZIP</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${l.preferredZip || '—'}</div></div>
+      <div class="form-group"><label>Created</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${new Date(l.createdAt).toLocaleString()}</div></div>
+      <div class="form-group full"><label>Reason for Visit</label><div style="padding:8px;background:var(--bg);border-radius:6px;">${l.reasonForVisit}</div></div>
+    </div>
+    
+    ${assignedAffiliate ? `
+      <div class="section-title">Assigned Affiliate</div>
+      <div style="padding:12px;background:var(--bg-input);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:600;">${assignedAffiliate.name}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${assignedAffiliate.specialty} | ${assignedAffiliate.contactPhone || ''}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal();pushLeadToEMR('${l.id}')">🔌 Push to EMR</button>
+      </div>
+    ` : ''}
+    
+    ${l.notes ? `<div class="section-title">Notes</div><div style="padding:12px;background:var(--bg-input);border-radius:8px;font-size:13px;">${l.notes}</div>` : ''}
+    
+    <div class="form-actions">
+      ${l.status === 'new' ? `<button class="btn btn-accent" onclick="closeModal();showLeadMatchingModal('${l.id}')">🎯 Match to Affiliate</button>` : ''}
+      ${l.status !== 'converted' && l.status !== 'lost' ? `<button class="btn btn-ghost" onclick="closeModal();updateLeadStatus('${l.id}')">📊 Update Status</button>` : ''}
+      <button class="btn btn-ghost" onclick="closeModal();editLeadModal('${l.id}')">✏️ Edit</button>
+      <button class="btn btn-primary" onclick="closeModal();convertLeadToPatient('${l.id}')">👤 Convert to Patient</button>
+    </div>
+  `, true);
+}
+
+function showLeadMatchingModal(leadId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  if (!l) return;
+  
+  // Calculate match scores for each active affiliate
+  const affiliates = (db.affiliates || []).filter(a => a.status === 'active');
+  const scoredAffiliates = affiliates.map(a => {
+    let score = 0;
+    let factors = [];
+    
+    // Specialty match (40 points)
+    if (a.specialty === l.specialtyNeeded) {
+      score += 40;
+      factors.push('✅ Specialty match');
+    }
+    
+    // Insurance match (30 points)
+    if (l.insurancePrimary && a.insurancePanels && a.insurancePanels.includes(l.insurancePrimary)) {
+      score += 30;
+      factors.push('✅ Insurance accepted');
+    } else {
+      factors.push('❌ Insurance not on panel');
+    }
+    
+    // ZIP code match (20 points)
+    if (l.preferredZip && a.serviceZips && a.serviceZips.includes(l.preferredZip)) {
+      score += 20;
+      factors.push('✅ In service area');
+    } else if (l.preferredZip && a.serviceZips) {
+      factors.push('⚠️ Outside preferred ZIP');
+    }
+    
+    // Availability (10 points)
+    if (a.availability === 'high') {
+      score += 10;
+      factors.push('✅ High availability');
+    } else if (a.availability === 'medium') {
+      score += 5;
+      factors.push('⚠️ Limited availability');
+    } else {
+      factors.push('❌ Low availability');
+    }
+    
+    return { ...a, score, factors };
+  }).sort((a, b) => b.score - a.score);
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>🎯 Match Lead to Affiliate</h3>
+    
+    <div style="background:var(--bg-input);padding:12px;border-radius:8px;margin-bottom:16px;">
+      <div style="font-weight:600;">${l.firstName} ${l.lastName}</div>
+      <div style="font-size:12px;color:var(--text-muted);">
+        Specialty: ${l.specialtyNeeded} | Insurance: ${l.insurancePrimary || 'Unknown'} | ZIP: ${l.preferredZip || 'Any'}
+      </div>
+    </div>
+    
+    <div class="section-title">Matching Affiliates</div>
+    ${scoredAffiliates.length > 0 ? `
+      <div style="display:flex;flex-direction:column;gap:12px;max-height:400px;overflow-y:auto;">
+        ${scoredAffiliates.map(a => `
+          <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;${a.score >= 70 ? 'border-color:var(--accent);' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+              <div>
+                <div style="font-weight:600;">${a.name}</div>
+                <div style="font-size:12px;color:var(--text-muted);">${a.specialty} | ${a.contactPhone || ''}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:24px;font-weight:700;color:${a.score >= 70 ? 'var(--accent)' : a.score >= 40 ? 'var(--warning)' : 'var(--danger)'};">${a.score}%</div>
+                <div style="font-size:10px;color:var(--text-dim);">Match Score</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+              ${a.factors.map(f => `<span style="font-size:10px;padding:2px 6px;background:var(--bg);border-radius:4px;">${f}</span>`).join('')}
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-primary btn-sm" onclick="assignLeadToAffiliate('${l.id}','${a.id}')">Assign to ${a.name.split(' ')[0]}</button>
+              <button class="btn btn-ghost btn-sm" onclick="closeModal();viewAffiliateDetail('${a.id}')">View Details</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : `
+      <div class="empty-state" style="padding:24px;">
+        <div class="empty-icon">🤷</div>
+        <p>No matching affiliates found for ${l.specialtyNeeded}</p>
+        <button class="btn btn-primary" onclick="closeModal();showNewAffiliateModal()">+ Add Affiliate</button>
+      </div>
+    `}
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+  `, true);
+}
+
+function assignLeadToAffiliate(leadId, affiliateId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  const a = (db.affiliates || []).find(x => x.id === affiliateId);
+  if (!l || !a) return;
+  
+  l.assignedAffiliateId = affiliateId;
+  l.assignedAt = new Date().toISOString();
+  l.status = 'contacted';
+  
+  // Update affiliate stats
+  a.leadsReceived = (a.leadsReceived || 0) + 1;
+  
+  // Create assignment record
+  if (!db.leadAssignments) db.leadAssignments = [];
+  db.leadAssignments.push({
+    id: genId(),
+    leadId,
+    affiliateId,
+    assignedAt: new Date().toISOString(),
+    status: 'assigned'
+  });
+  
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ Lead assigned to ${a.name}`);
+  
+  // Show option to push to EMR
+  setTimeout(() => {
+    if (confirm(`Push patient data to ${a.name}'s EMR (${a.emrSystem || 'Unknown'})?`)) {
+      pushLeadToEMR(leadId);
+    }
+  }, 500);
+}
+
+function updateLeadStatus(leadId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  if (!l) return;
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📊 Update Lead Status</h3>
+    <p style="color:var(--text-muted);margin-bottom:16px;">${l.firstName} ${l.lastName} — Current: <span class="badge ${LEAD_STATUS_COLORS[l.status]}">${l.status}</span></p>
+    
+    <div class="form-group">
+      <label>New Status</label>
+      <select id="newLeadStatus">
+        <option value="new" ${l.status === 'new' ? 'selected' : ''}>🆕 New</option>
+        <option value="contacted" ${l.status === 'contacted' ? 'selected' : ''}>📞 Contacted</option>
+        <option value="scheduled" ${l.status === 'scheduled' ? 'selected' : ''}>📅 Scheduled</option>
+        <option value="converted" ${l.status === 'converted' ? 'selected' : ''}>✅ Converted</option>
+        <option value="lost" ${l.status === 'lost' ? 'selected' : ''}>❌ Lost</option>
+      </select>
+    </div>
+    
+    <div id="scheduledDateGroup" style="display:none;margin-top:12px;">
+      <div class="form-group">
+        <label>Scheduled Appointment Date/Time</label>
+        <input id="leadScheduledDate" type="datetime-local">
+      </div>
+    </div>
+    
+    <div id="lostReasonGroup" style="display:none;margin-top:12px;">
+      <div class="form-group">
+        <label>Reason Lost</label>
+        <select id="leadLostReason">
+          <option value="">Select reason...</option>
+          <option value="No response">No response</option>
+          <option value="Chose different provider">Chose different provider</option>
+          <option value="Insurance issue">Insurance issue</option>
+          <option value="No longer needs care">No longer needs care</option>
+          <option value="Location inconvenient">Location inconvenient</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-group" style="margin-top:12px;">
+      <label>Notes</label>
+      <textarea id="leadStatusNotes" rows="2" placeholder="Status update notes..."></textarea>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="applyLeadStatus('${l.id}')">Update Status</button>
+    </div>
+    
+    <script>
+      document.getElementById('newLeadStatus').addEventListener('change', function() {
+        document.getElementById('scheduledDateGroup').style.display = this.value === 'scheduled' ? 'block' : 'none';
+        document.getElementById('lostReasonGroup').style.display = this.value === 'lost' ? 'block' : 'none';
+      });
+    </script>
+  `);
+}
+
+function applyLeadStatus(leadId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  if (!l) return;
+  
+  const newStatus = document.getElementById('newLeadStatus').value;
+  const notes = document.getElementById('leadStatusNotes').value.trim();
+  
+  l.status = newStatus;
+  l.statusUpdatedAt = new Date().toISOString();
+  
+  if (newStatus === 'scheduled') {
+    l.scheduledAt = document.getElementById('leadScheduledDate').value;
+  }
+  
+  if (newStatus === 'lost') {
+    l.lostReason = document.getElementById('leadLostReason').value;
+  }
+  
+  if (newStatus === 'converted') {
+    l.convertedAt = new Date().toISOString();
+    // Update affiliate conversion count
+    if (l.assignedAffiliateId) {
+      const a = (db.affiliates || []).find(x => x.id === l.assignedAffiliateId);
+      if (a) {
+        a.leadsConverted = (a.leadsConverted || 0) + 1;
+      }
+    }
+  }
+  
+  if (notes) {
+    l.notes = (l.notes ? l.notes + '\n\n' : '') + `[${new Date().toLocaleDateString()}] ${newStatus}: ${notes}`;
+  }
+  
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ Lead status updated to ${newStatus}`);
+}
+
+function editLeadModal(leadId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  if (!l) return;
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>✏️ Edit Lead</h3>
+    
+    <div class="form-grid">
+      <div class="form-group"><label>First Name</label><input id="editLeadFirst" value="${l.firstName || ''}"></div>
+      <div class="form-group"><label>Last Name</label><input id="editLeadLast" value="${l.lastName || ''}"></div>
+      <div class="form-group"><label>Phone</label><input id="editLeadPhone" value="${l.phone || ''}"></div>
+      <div class="form-group"><label>Email</label><input id="editLeadEmail" value="${l.email || ''}"></div>
+      <div class="form-group"><label>Insurance</label>
+        <select id="editLeadInsurance">
+          <option value="">Select...</option>
+          ${INSURANCE_PANELS.map(ins => `<option value="${ins}" ${l.insurancePrimary === ins ? 'selected' : ''}>${ins}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Specialty Needed</label>
+        <select id="editLeadSpecialty">
+          ${SPECIALTIES.map(s => `<option value="${s}" ${l.specialtyNeeded === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group full"><label>Reason for Visit</label><textarea id="editLeadReason" rows="2">${l.reasonForVisit || ''}</textarea></div>
+      <div class="form-group full"><label>Notes</label><textarea id="editLeadNotes" rows="2">${l.notes || ''}</textarea></div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-danger" onclick="deleteLead('${l.id}')">🗑️ Delete</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateLead('${l.id}')">Save Changes</button>
+    </div>
+  `, true);
+}
+
+function updateLead(leadId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  if (!l) return;
+  
+  l.firstName = document.getElementById('editLeadFirst').value.trim();
+  l.lastName = document.getElementById('editLeadLast').value.trim();
+  l.phone = document.getElementById('editLeadPhone').value.trim();
+  l.email = document.getElementById('editLeadEmail').value.trim();
+  l.insurancePrimary = document.getElementById('editLeadInsurance').value;
+  l.specialtyNeeded = document.getElementById('editLeadSpecialty').value;
+  l.reasonForVisit = document.getElementById('editLeadReason').value.trim();
+  l.notes = document.getElementById('editLeadNotes').value.trim();
+  l.updatedAt = new Date().toISOString();
+  
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ Lead updated`);
+}
+
+function deleteLead(leadId) {
+  if (confirm('Delete this lead? This cannot be undone.')) {
+    db.leads = (db.leads || []).filter(l => l.id !== leadId);
+    saveDB();
+    closeModal();
+    render();
+    showToast('🗑️ Lead deleted');
+  }
+}
+
+function convertLeadToPatient(leadId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  if (!l) return;
+  
+  // Check if patient already exists
+  const existing = db.patients.find(p => 
+    p.firstName.toLowerCase() === l.firstName.toLowerCase() &&
+    p.lastName.toLowerCase() === l.lastName.toLowerCase() &&
+    p.dob === l.dob
+  );
+  
+  if (existing) {
+    if (confirm(`A patient named ${l.firstName} ${l.lastName} with DOB ${l.dob} already exists. Open their chart?`)) {
+      closeModal();
+      openPatientDetail(existing.id);
+    }
+    return;
+  }
+  
+  // Create new patient from lead
+  const newPatient = {
+    id: genId(),
+    firstName: l.firstName,
+    lastName: l.lastName,
+    dob: l.dob,
+    gender: l.gender || '',
+    phone: l.phone,
+    email: l.email,
+    insurancePrimary: l.insurancePrimary,
+    insuranceId: l.insuranceId,
+    street: '',
+    city: '',
+    state: 'FL',
+    zip: l.preferredZip || '',
+    practiceId: db.practices[0]?.id || null,
+    providerId: null,
+    allergies: [],
+    pmh: [],
+    status: 'active',
+    mrn: generateMRN(),
+    createdAt: new Date().toISOString(),
+    sourceLeadId: leadId
+  };
+  
+  db.patients.push(newPatient);
+  
+  // Update lead status
+  l.status = 'converted';
+  l.convertedAt = new Date().toISOString();
+  l.convertedPatientId = newPatient.id;
+  
+  // Update affiliate conversion count
+  if (l.assignedAffiliateId) {
+    const a = (db.affiliates || []).find(x => x.id === l.assignedAffiliateId);
+    if (a) {
+      a.leadsConverted = (a.leadsConverted || 0) + 1;
+    }
+  }
+  
+  saveDB();
+  closeModal();
+  showToast(`✅ Patient created from lead`);
+  openPatientDetail(newPatient.id);
+}
+
+function routeLeadToAffiliate(affiliateId) {
+  // Show leads that can be assigned to this affiliate
+  const a = (db.affiliates || []).find(x => x.id === affiliateId);
+  if (!a) return;
+  
+  const unassignedLeads = (db.leads || []).filter(l => 
+    !l.assignedAffiliateId && 
+    l.status === 'new' &&
+    l.specialtyNeeded === a.specialty
+  );
+  
+  if (unassignedLeads.length === 0) {
+    showToast(`No unassigned ${a.specialty} leads available`);
+    return;
+  }
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>📨 Route Leads to ${a.name}</h3>
+    <p style="color:var(--text-muted);margin-bottom:16px;">Select leads to assign to this affiliate:</p>
+    
+    <div style="max-height:400px;overflow-y:auto;">
+      ${unassignedLeads.map(l => `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-input);border-radius:8px;margin-bottom:8px;">
+          <input type="checkbox" class="route-lead-checkbox" value="${l.id}" style="width:auto;">
+          <div style="flex:1;">
+            <div style="font-weight:600;">${l.firstName} ${l.lastName}</div>
+            <div style="font-size:12px;color:var(--text-muted);">${l.insurancePrimary || 'Unknown insurance'} | ${l.preferredZip || 'No ZIP'}</div>
+            <div style="font-size:11px;color:var(--text-dim);">${l.reasonForVisit}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="bulkAssignLeads('${affiliateId}')">Assign Selected</button>
+    </div>
+  `, true);
+}
+
+function bulkAssignLeads(affiliateId) {
+  const checkboxes = document.querySelectorAll('.route-lead-checkbox:checked');
+  if (checkboxes.length === 0) {
+    alert('Please select at least one lead');
+    return;
+  }
+  
+  const a = (db.affiliates || []).find(x => x.id === affiliateId);
+  if (!a) return;
+  
+  checkboxes.forEach(cb => {
+    const l = (db.leads || []).find(x => x.id === cb.value);
+    if (l) {
+      l.assignedAffiliateId = affiliateId;
+      l.assignedAt = new Date().toISOString();
+      l.status = 'contacted';
+    }
+  });
+  
+  a.leadsReceived = (a.leadsReceived || 0) + checkboxes.length;
+  
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ ${checkboxes.length} leads assigned to ${a.name}`);
+}
+
+// ═══════════════════════════════════════════
+// EMR PUSH SYSTEM
+// ═══════════════════════════════════════════
+
+function pushLeadToEMR(leadId) {
+  const l = (db.leads || []).find(x => x.id === leadId);
+  if (!l || !l.assignedAffiliateId) {
+    showToast('❌ Lead must be assigned to an affiliate first');
+    return;
+  }
+  
+  const a = (db.affiliates || []).find(x => x.id === l.assignedAffiliateId);
+  if (!a) return;
+  
+  const emrInfo = EMR_SYSTEMS.find(e => e.name === a.emrSystem) || EMR_SYSTEMS.find(e => e.id === 'other');
+  
+  // Generate mock payload based on EMR format
+  const payload = emrInfo?.format === 'FHIR' ? generateFHIRPayload(l) : generateHL7Payload(l);
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>🔌 Push to Affiliate EMR</h3>
+    
+    <div style="background:var(--bg-input);padding:12px;border-radius:8px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:600;">${a.name}</div>
+          <div style="font-size:12px;color:var(--text-muted);">EMR: ${a.emrSystem || 'Unknown'} | Format: ${emrInfo?.format || 'HL7v2'}</div>
+        </div>
+        <span class="badge ${a.emrEndpoint ? 'badge-green' : 'badge-yellow'}">${a.emrEndpoint ? 'Configured' : 'Not configured'}</span>
+      </div>
+    </div>
+    
+    <div class="section-title">Patient Data to Send</div>
+    <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:16px;">
+      <div style="font-size:13px;">
+        <strong>Name:</strong> ${l.firstName} ${l.lastName}<br>
+        <strong>DOB:</strong> ${l.dob}<br>
+        <strong>Phone:</strong> ${l.phone}<br>
+        <strong>Insurance:</strong> ${l.insurancePrimary} (${l.insuranceId || 'No ID'})<br>
+        <strong>Reason:</strong> ${l.reasonForVisit}
+      </div>
+    </div>
+    
+    <div class="section-title">Payload Preview (${emrInfo?.format || 'HL7v2'})</div>
+    <div style="background:#1a1a2e;padding:12px;border-radius:8px;margin-bottom:16px;max-height:200px;overflow-y:auto;">
+      <pre style="font-size:11px;color:#10B981;white-space:pre-wrap;word-break:break-all;margin:0;">${escapeHtml(payload)}</pre>
+    </div>
+    
+    <div style="background:rgba(245,158,11,.1);border:1px solid var(--warning);border-radius:8px;padding:12px;margin-bottom:16px;">
+      <div style="display:flex;align-items:flex-start;gap:8px;">
+        <span style="font-size:18px;">⚠️</span>
+        <div style="font-size:12px;color:var(--warning);">
+          <strong>Demo Mode:</strong> This is a simulated EMR push. In production, this would send data via secure API to the affiliate's EMR system.
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="executePush('${l.id}','${a.id}','${emrInfo?.format || 'HL7v2'}')">🚀 Send to EMR</button>
+    </div>
+  `, true);
+}
+
+function generateHL7Payload(lead) {
+  const now = new Date();
+  const ts = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
+  const dob = lead.dob ? lead.dob.replace(/-/g, '') : '';
+  
+  return `MSH|^~\\&|AMOR_EMR|AMOR_MEDICAL|AFFILIATE_EMR|AFFILIATE|${ts}||ADT^A04|${lead.id}|P|2.5.1
+EVN|A04|${ts}
+PID|1||${lead.id}^^^AMOR^MR||${lead.lastName}^${lead.firstName}^^^||${dob}|${lead.gender?.charAt(0) || 'U'}|||^^^^${lead.preferredZip || ''}|||${lead.phone}|||||||||||||
+PV1|1|O|||||||||||||||||${genId()}
+IN1|1|${lead.insurancePrimary || ''}|${lead.insuranceId || ''}
+DG1|1||^${lead.reasonForVisit}`;
+}
+
+function generateFHIRPayload(lead) {
+  return JSON.stringify({
+    resourceType: "Patient",
+    id: lead.id,
+    identifier: [{
+      system: "urn:amor-medical:mrn",
+      value: lead.id
+    }],
+    name: [{
+      family: lead.lastName,
+      given: [lead.firstName]
+    }],
+    birthDate: lead.dob,
+    gender: lead.gender?.toLowerCase() || "unknown",
+    telecom: [{
+      system: "phone",
+      value: lead.phone
+    }, {
+      system: "email",
+      value: lead.email
+    }],
+    address: [{
+      postalCode: lead.preferredZip
+    }],
+    extension: [{
+      url: "urn:amor-medical:reason-for-visit",
+      valueString: lead.reasonForVisit
+    }, {
+      url: "urn:amor-medical:insurance",
+      valueString: lead.insurancePrimary
+    }]
+  }, null, 2);
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function executePush(leadId, affiliateId, format) {
+  showToast('🔄 Sending to EMR...');
+  
+  // Simulate API call
+  setTimeout(() => {
+    const success = Math.random() > 0.2; // 80% success rate
+    
+    // Log the push attempt
+    if (!db.emrPushLogs) db.emrPushLogs = [];
+    db.emrPushLogs.push({
+      id: genId(),
+      leadId,
+      affiliateId,
+      pushedAt: new Date().toISOString(),
+      status: success ? 'success' : 'failed',
+      format,
+      response: success ? 'ACK' : 'Connection timeout',
+      responseCode: success ? 200 : 504
+    });
+    
+    // Update lead
+    const l = (db.leads || []).find(x => x.id === leadId);
+    if (l) {
+      l.emrPushStatus = success ? 'success' : 'failed';
+      l.emrPushAt = new Date().toISOString();
+    }
+    
+    saveDB();
+    closeModal();
+    
+    if (success) {
+      showToast('✅ Successfully pushed to EMR!');
+    } else {
+      showToast('❌ EMR push failed. Check connection settings.');
+    }
+    
+    render();
+  }, 2000);
+}
+
+// ═══════════════════════════════════════════
+// AFFILIATE BILLING
+// ═══════════════════════════════════════════
+
+function showAffiliateBilling() {
+  const affiliates = db.affiliates || [];
+  const billing = db.affiliateBilling || [];
+  
+  // Calculate totals
+  const totalPending = billing.filter(b => b.status === 'pending').reduce((sum, b) => sum + b.totalDue, 0);
+  const totalPaid = billing.filter(b => b.status === 'paid').reduce((sum, b) => sum + b.totalDue, 0);
+  
+  // Generate current month billing preview
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthlyProjections = affiliates.filter(a => a.status === 'active').map(a => {
+    const amount = a.feeType === 'per-lead' 
+      ? (a.leadsReceived || 0) * a.feeAmount 
+      : (a.leadsConverted || 0) * a.feeAmount;
+    return { affiliate: a, amount };
+  });
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>💰 Affiliate Billing</h3>
+    
+    <div class="stats-grid" style="margin-bottom:16px;">
+      <div class="stat-card yellow">
+        <div class="label">Pending</div>
+        <div class="value">$${totalPending.toLocaleString()}</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">Paid (All Time)</div>
+        <div class="value">$${totalPaid.toLocaleString()}</div>
+      </div>
+    </div>
+    
+    <div class="section-title">Current Month Projections (${currentMonth})</div>
+    <div style="max-height:300px;overflow-y:auto;margin-bottom:16px;">
+      ${monthlyProjections.length > 0 ? monthlyProjections.map(p => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg-input);border-radius:8px;margin-bottom:8px;">
+          <div>
+            <div style="font-weight:600;">${p.affiliate.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);">
+              ${p.affiliate.feeType === 'per-lead' 
+                ? `${p.affiliate.leadsReceived || 0} leads × $${p.affiliate.feeAmount}` 
+                : `${p.affiliate.leadsConverted || 0} conversions × $${p.affiliate.feeAmount}`}
+            </div>
+          </div>
+          <div style="font-size:18px;font-weight:700;color:var(--primary);">$${p.amount.toLocaleString()}</div>
+        </div>
+      `).join('') : '<div style="text-align:center;color:var(--text-dim);padding:16px;">No active affiliates</div>'}
+    </div>
+    
+    <div class="section-title">Billing History</div>
+    <div style="max-height:200px;overflow-y:auto;">
+      ${billing.length > 0 ? billing.slice().reverse().map(b => {
+        const aff = affiliates.find(a => a.id === b.affiliateId);
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-weight:500;">${aff?.name || 'Unknown'}</div>
+              <div style="font-size:11px;color:var(--text-dim);">${b.period} | ${b.invoiceNumber}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:600;">$${b.totalDue.toLocaleString()}</div>
+              <span class="badge ${b.status === 'paid' ? 'badge-green' : 'badge-yellow'}">${b.status}</span>
+            </div>
+          </div>
+        `;
+      }).join('') : '<div style="text-align:center;color:var(--text-dim);padding:16px;">No billing history</div>'}
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="generateInvoices()">📄 Generate Invoices</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    </div>
+  `, true);
+}
+
+function generateInvoices() {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const affiliates = (db.affiliates || []).filter(a => a.status === 'active');
+  
+  if (!db.affiliateBilling) db.affiliateBilling = [];
+  
+  let generated = 0;
+  affiliates.forEach(a => {
+    // Check if invoice already exists for this month
+    const existing = db.affiliateBilling.find(b => b.affiliateId === a.id && b.period === currentMonth);
+    if (existing) return;
+    
+    const leadsCount = a.leadsReceived || 0;
+    const conversionsCount = a.leadsConverted || 0;
+    const totalDue = a.feeType === 'per-lead' ? leadsCount * a.feeAmount : conversionsCount * a.feeAmount;
+    
+    if (totalDue > 0) {
+      db.affiliateBilling.push({
+        id: genId(),
+        affiliateId: a.id,
+        period: currentMonth,
+        leadsCount,
+        conversionsCount,
+        feeType: a.feeType,
+        feeAmount: a.feeAmount,
+        totalDue,
+        status: 'pending',
+        invoiceNumber: `INV-${currentMonth.replace('-', '')}-${String(db.affiliateBilling.length + 1).padStart(3, '0')}`,
+        invoiceDate: new Date().toISOString().split('T')[0],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      });
+      generated++;
+    }
+  });
+  
+  saveDB();
+  closeModal();
+  showAffiliateBilling();
+  showToast(`📄 Generated ${generated} invoice(s)`);
+}
+
+function showLeadRoutingWizard() {
+  const newLeads = (db.leads || []).filter(l => l.status === 'new' && !l.assignedAffiliateId);
+  
+  if (newLeads.length === 0) {
+    showToast('No unassigned leads to route');
+    return;
+  }
+  
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>🎯 Auto-Route Leads</h3>
+    <p style="color:var(--text-muted);margin-bottom:16px;">Automatically assign ${newLeads.length} unassigned leads to the best matching affiliates.</p>
+    
+    <div style="background:var(--bg-input);padding:16px;border-radius:8px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span>Unassigned Leads:</span>
+        <strong>${newLeads.length}</strong>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);">
+        Leads will be matched based on: Specialty, Insurance, Location, Availability
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="autoRouteAllLeads()">🚀 Auto-Route All</button>
+    </div>
+  `);
+}
+
+function autoRouteAllLeads() {
+  const newLeads = (db.leads || []).filter(l => l.status === 'new' && !l.assignedAffiliateId);
+  const activeAffiliates = (db.affiliates || []).filter(a => a.status === 'active');
+  
+  let assigned = 0;
+  
+  newLeads.forEach(l => {
+    // Find best match
+    const matches = activeAffiliates
+      .filter(a => a.specialty === l.specialtyNeeded)
+      .map(a => {
+        let score = 40; // Base score for specialty match
+        if (l.insurancePrimary && a.insurancePanels?.includes(l.insurancePrimary)) score += 30;
+        if (l.preferredZip && a.serviceZips?.includes(l.preferredZip)) score += 20;
+        if (a.availability === 'high') score += 10;
+        else if (a.availability === 'medium') score += 5;
+        return { affiliate: a, score };
+      })
+      .sort((a, b) => b.score - a.score);
+    
+    if (matches.length > 0 && matches[0].score >= 40) {
+      l.assignedAffiliateId = matches[0].affiliate.id;
+      l.assignedAt = new Date().toISOString();
+      l.status = 'contacted';
+      l.matchScores = matches.slice(0, 3);
+      
+      matches[0].affiliate.leadsReceived = (matches[0].affiliate.leadsReceived || 0) + 1;
+      assigned++;
+    }
+  });
+  
+  saveDB();
+  closeModal();
+  render();
+  showToast(`✅ Auto-routed ${assigned} of ${newLeads.length} leads`);
+}
+
+function exportLeadsCSV() {
+  const leads = db.leads || [];
+  const headers = ['First','Last','DOB','Phone','Email','Insurance','Specialty','Status','Source','Created','Assigned To'];
+  const rows = leads.map(l => {
+    const aff = l.assignedAffiliateId ? (db.affiliates || []).find(a => a.id === l.assignedAffiliateId) : null;
+    return [
+      l.firstName, l.lastName, l.dob, l.phone || '', l.email || '', l.insurancePrimary || '',
+      l.specialtyNeeded, l.status, l.source, new Date(l.createdAt).toLocaleDateString(),
+      aff?.name || ''
+    ].map(v => `"${(v + '').replace(/"/g, '""')}"`).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+  showToast('📥 Export downloaded');
+}
+
 // ═══════ ENCOUNTERS ═══════
 function renderEncounters(c){
   setPageTitle('Encounters');
