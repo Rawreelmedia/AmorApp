@@ -2,14 +2,15 @@
   "name": "Amor Medical Platform",
   "short_name": "Amor Medical",
   "description": "EMR, Clinical Calculators, Command Center — Amor Medical by Dr. Roger Gonzalez",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0B1120",
   "theme_color": "#0EA5E9",
   "orientation": "any",
   "icons": [
-    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"}
+    {"src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png"}
   ],
   "categories": ["medical", "health", "business"]
 }
