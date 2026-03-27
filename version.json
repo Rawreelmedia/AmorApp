@@ -1,1 +1,5 @@
-{"version":"1.0.5","releaseDate":"2026-03-26","releaseNotes":"Bulletproof dashboard rendering"}
+{
+  "version": "3.0.0",
+  "releaseDate": "2024-03-27",
+  "releaseNotes": "Complete EMR rebuild with full CRUD: patients, encounters, SOAP notes, prescriptions, labs, referrals, affiliates, leads, providers, settings. localStorage persistence, mobile responsive, toast notifications."
+}
