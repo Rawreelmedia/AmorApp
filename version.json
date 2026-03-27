@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "releaseDate": "2026-03-26",
-  "releaseNotes": "Fixed dashboard rendering, improved cache management"
+  "releaseNotes": "Added error handling to dashboard rendering"
 }

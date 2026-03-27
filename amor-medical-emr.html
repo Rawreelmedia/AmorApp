@@ -2622,7 +2622,10 @@ function fmtAddr(o){return [o.street,o.city,o.state,o.zip].filter(Boolean).join(
 // ═══════════════════════════════════════════
 function render(){
   const c=document.getElementById('content'),rp=document.getElementById('rightPanel');
+  if(!c){console.error('[EMR] Content element not found!');return;}
+  if(!db){console.error('[EMR] Database not loaded!');c.innerHTML='<div style="padding:40px;color:#EF4444;"><h2>⚠️ Database Error</h2><p>Data failed to load. <button onclick="localStorage.clear();location.reload();" style="margin-top:10px;padding:8px 16px;background:#0EA5E9;color:white;border:none;border-radius:6px;cursor:pointer;">Reset & Reload</button></p></div>';return;}
   rp.classList.add('hidden');
+  try {
   switch(currentPage){
     case 'dashboard': renderDashboard(c); break;
     case 'executive': renderExecutive(c); break;
@@ -2646,6 +2649,10 @@ function render(){
     case 'credentialing': renderCredentialing(c); break;
     case 'users': renderUsers(c); break;
     case 'settings': renderSettings(c); break;
+  }
+  } catch(err) {
+    console.error('[EMR] Render error:', err);
+    c.innerHTML='<div style="padding:40px;color:#EF4444;"><h2>⚠️ Render Error</h2><p>'+err.message+'</p><pre style="font-size:11px;color:#94A3B8;margin-top:10px;overflow:auto;">'+err.stack+'</pre><button onclick="localStorage.clear();location.reload();" style="margin-top:16px;padding:10px 20px;background:#0EA5E9;color:white;border:none;border-radius:8px;cursor:pointer;">Reset & Reload</button></div>';
   }
 }
 
