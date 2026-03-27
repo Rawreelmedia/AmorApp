@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'amor-v5';
+const CACHE_VERSION = 'amor-v6';
 const ASSETS = [
   './index.html',
   './manifest.json',

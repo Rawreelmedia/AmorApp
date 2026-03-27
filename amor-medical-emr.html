@@ -2659,17 +2659,29 @@ function render(){
 // ═══════ DASHBOARD ═══════
 function renderDashboard(c){
   setPageTitle('Dashboard');
-  const today=new Date().toISOString().split('T')[0];
-  const todayEnc=db.encounters.filter(e=>e.date===today).length;
-  const activeRx=db.prescriptions.filter(p=>p.status==='active').length;
-  const pendingLabs=db.labOrders.filter(l=>l.status==='pending').length;
-  const signedToday=db.encounters.filter(e=>e.date===today&&e.status==='signed').length;
-  c.innerHTML=`
-    ${getRefreshHeader('Dashboard', null, '')}
+  // Safe defaults
+  const patients = db.patients || [];
+  const encounters = db.encounters || [];
+  const prescriptions = db.prescriptions || [];
+  const labOrders = db.labOrders || [];
+  const providers = db.providers || [];
+  const practices = db.practices || [];
+  
+  const today = new Date().toISOString().split('T')[0];
+  const todayEnc = encounters.filter(e => e.date === today).length;
+  const activeRx = prescriptions.filter(p => p.status === 'active').length;
+  const pendingLabs = labOrders.filter(l => l.status === 'pending').length;
+  const signedToday = encounters.filter(e => e.date === today && e.status === 'signed').length;
+  
+  c.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:18px;font-weight:700;">Dashboard</h3>
+      <button class="btn btn-ghost" onclick="location.reload()" style="font-size:12px;">↻ Refresh</button>
+    </div>
     <div class="stats-grid">
-      <div class="stat-card blue"><div class="label">Total Patients</div><div class="value">${db.patients.length}</div><div class="sub">${db.practices.length} practices</div></div>
+      <div class="stat-card blue"><div class="label">Total Patients</div><div class="value">${patients.length}</div><div class="sub">${practices.length} practices</div></div>
       <div class="stat-card green"><div class="label">Encounters Today</div><div class="value">${todayEnc}</div><div class="sub">${signedToday} signed</div></div>
-      <div class="stat-card yellow"><div class="label">Active Providers</div><div class="value">${db.providers.length}</div></div>
+      <div class="stat-card yellow"><div class="label">Active Providers</div><div class="value">${providers.length}</div></div>
       <div class="stat-card red"><div class="label">Active Rx</div><div class="value">${activeRx}</div></div>
       <div class="stat-card purple"><div class="label">Pending Labs</div><div class="value">${pendingLabs}</div></div>
     </div>
@@ -2684,12 +2696,21 @@ function renderDashboard(c){
   `;
 }
 function renderActivityFeed(){
-  let items=[];
-  db.encounters.slice(-5).reverse().forEach(e=>{
-    const p=db.patients.find(x=>x.id===e.patientId);const pv=db.providers.find(x=>x.id===e.providerId);
-    items.push(`<div class="activity-item"><div class="activity-dot" style="background:var(--accent)"></div><div><div class="activity-text"><strong>${pv?.name||''}</strong> — ${e.type||'visit'} with <strong>${p?p.firstName+' '+p.lastName:''}</strong>: ${e.chiefComplaint}</div><div class="activity-time">${e.date} · ${e.noteType||'SOAP'}</div></div></div>`);
-  });
-  return items.join('')||'<div class="empty-state"><p>No recent activity</p></div>';
+  try {
+    const encounters = db.encounters || [];
+    const patients = db.patients || [];
+    const providers = db.providers || [];
+    let items = [];
+    encounters.slice(-5).reverse().forEach(e => {
+      const p = patients.find(x => x.id === e.patientId);
+      const pv = providers.find(x => x.id === e.providerId);
+      items.push(`<div class="activity-item"><div class="activity-dot" style="background:var(--accent)"></div><div><div class="activity-text"><strong>${pv?.name || ''}</strong> — ${e.type || 'visit'} with <strong>${p ? p.firstName + ' ' + p.lastName : ''}</strong>: ${e.chiefComplaint || ''}</div><div class="activity-time">${e.date || ''} · ${e.noteType || 'SOAP'}</div></div></div>`);
+    });
+    return items.join('') || '<div class="empty-state"><p>No recent activity</p></div>';
+  } catch(err) {
+    console.error('[EMR] Activity feed error:', err);
+    return '<div class="empty-state"><p>Error loading activity</p></div>';
+  }
 }
 
 // ═══════ EXECUTIVE DASHBOARD ═══════
