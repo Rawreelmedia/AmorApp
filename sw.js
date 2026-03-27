@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'amor-v20';
+const CACHE_VERSION = 'amor-v21';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -54,25 +54,19 @@ self.addEventListener('fetch', e => {
     return;
   }
   
+  // Network-first: always try fresh content, fall back to cache if offline
   e.respondWith(
-    caches.match(e.request)
-      .then(cached => {
-        // Return cached version, but also fetch update in background
-        const fetchPromise = fetch(e.request)
-          .then(response => {
-            // Update cache with fresh version
-            if (response && response.status === 200) {
-              const clone = response.clone();
-              caches.open(CACHE_VERSION).then(cache => {
-                cache.put(e.request, clone);
-              });
-            }
-            return response;
-          })
-          .catch(() => cached);
-        
-        return cached || fetchPromise;
+    fetch(e.request)
+      .then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache => {
+            cache.put(e.request, clone);
+          });
+        }
+        return response;
       })
+      .catch(() => caches.match(e.request))
   );
 });
 
